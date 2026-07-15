@@ -1,0 +1,552 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>#001 나를 아는 검사 · Know Thyself</title>
+<meta name="description" content="이 실험실의 주인을 파악하는 성향 검사. A survey that profiles this lab's owner so future experiments fit." />
+<style>
+  :root {
+    --bg: #17161a; --surface: #201f26; --surface-2: #26252e;
+    --border: #35343d; --border-strong: #4a4954;
+    --text: #ecebf2; --text-2: #b6b4c2; --muted: #83818f;
+    --accent: #5dcaa5; --accent-dim: #2f5f50;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
+    --mono: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f4f3f0; --surface: #ffffff; --surface-2: #eceae5;
+      --border: #d9d6ce; --border-strong: #bdb9ae;
+      --text: #26241f; --text-2: #5c584f; --muted: #8f8a7e;
+      --accent: #1d9e75; --accent-dim: #b7e6d4;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body {
+    margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); line-height: 1.55;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 24px 18px 120px; }
+
+  /* progress bar (sticky) */
+  .top {
+    position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px);
+    padding: 12px 0 10px; margin-bottom: 8px;
+  }
+  .bar { height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent); transition: width .25s ease; }
+  .top-meta { display: flex; justify-content: space-between; font-family: var(--mono);
+    font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  .kicker { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  h1 { font-size: 24px; font-weight: 600; margin: 4px 0 6px; }
+  .lead { color: var(--text-2); font-size: 14px; margin: 0 0 4px; }
+  .lead-en { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+
+  .section-head { margin: 8px 0 18px; }
+  .section-head h2 { font-size: 18px; font-weight: 600; margin: 0; }
+  .section-head p { font-size: 13px; color: var(--muted); margin: 4px 0 0; }
+
+  .q { background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: 12px; padding: 16px 16px 14px; margin-bottom: 12px; }
+  .q.answered { border-color: var(--accent-dim); }
+  .q-text { font-size: 15px; font-weight: 500; margin-bottom: 2px; }
+  .q-en { font-size: 12.5px; color: var(--muted); margin-bottom: 12px; }
+
+  /* likert */
+  .likert { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; }
+  .likert label { position: relative; }
+  .likert input { position: absolute; opacity: 0; pointer-events: none; }
+  .likert .dot {
+    display: flex; align-items: center; justify-content: center;
+    aspect-ratio: 1; border: 1.5px solid var(--border-strong); border-radius: 50%;
+    cursor: pointer; color: var(--muted); font-size: 11px; transition: all .12s;
+  }
+  .likert input:checked + .dot { background: var(--accent); border-color: var(--accent); color: var(--bg); font-weight: 700; }
+  .likert .dot:hover { border-color: var(--accent); }
+  .likert-ends { display: flex; justify-content: space-between; font-size: 11px; color: var(--muted); margin-top: 8px; }
+
+  /* choice / multi */
+  .opts { display: flex; flex-direction: column; gap: 8px; }
+  .opts label { display: flex; align-items: flex-start; gap: 10px; padding: 10px 12px;
+    border: 1px solid var(--border); border-radius: 10px; cursor: pointer; font-size: 14px; transition: all .12s; }
+  .opts label:hover { border-color: var(--border-strong); }
+  .opts input { margin-top: 3px; accent-color: var(--accent); flex: none; }
+  .opts input:checked ~ span { color: var(--text); }
+  .opts label:has(input:checked) { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 10%, transparent); }
+  .opt-en { display: block; font-size: 12px; color: var(--muted); }
+
+  textarea { width: 100%; min-height: 84px; resize: vertical;
+    background: var(--surface-2); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text); font-family: var(--sans); font-size: 14px; padding: 10px 12px; }
+  textarea:focus { outline: none; border-color: var(--accent); }
+
+  /* nav */
+  .nav { position: fixed; left: 0; right: 0; bottom: 0; z-index: 20;
+    background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px);
+    border-top: 0.5px solid var(--border); padding: 12px 18px; }
+  .nav-inner { max-width: 680px; margin: 0 auto; display: flex; gap: 10px; align-items: center; }
+  button { font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer;
+    border-radius: 10px; padding: 11px 18px; border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--text); transition: all .12s; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent); color: var(--bg); border-color: var(--accent); }
+  button.primary:disabled { opacity: .4; cursor: not-allowed; }
+  button:disabled { opacity: .4; cursor: not-allowed; }
+  .nav .spacer { flex: 1; text-align: center; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+
+  /* result */
+  .result-card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px; padding: 22px; margin-bottom: 14px; }
+  .mbti { font-family: var(--mono); font-size: 44px; font-weight: 700; letter-spacing: 4px; color: var(--accent); }
+  .chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 8px; }
+  .chip { font-size: 12px; font-family: var(--mono); padding: 4px 10px; border-radius: 99px;
+    background: var(--surface-2); border: 0.5px solid var(--border); color: var(--text-2); }
+  pre { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 10px;
+    padding: 12px; overflow-x: auto; font-family: var(--mono); font-size: 12px; color: var(--text-2); }
+  .note { font-size: 13px; color: var(--muted); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+  .hidden { display: none !important; }
+  a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="top">
+    <div class="bar"><i id="progFill"></i></div>
+    <div class="top-meta"><span id="progLabel">0 / 0</span><span id="secLabel"></span></div>
+  </div>
+
+  <!-- intro -->
+  <section id="intro">
+    <div class="kicker">experiment #001</div>
+    <h1>나를 아는 검사 · Know Thyself</h1>
+    <p class="lead">이 실험실의 주인이 어떤 사람인지 파악하기 위한 성향 검사예요. 여기 답한 내용은 앞으로 어떤 실험을 만들지 정하는 재료로 쓰입니다.</p>
+    <p class="lead-en">A personality &amp; taste survey that profiles this lab's owner. Your answers become the reference material for deciding what to build next.</p>
+    <p class="note">약 10–30분 · 총 <span id="qCount">0</span>문항 · 답변은 이 브라우저에 자동 저장돼요 (서버 없음). ~10–30 min, autosaved locally, no server.</p>
+    <div class="row" style="margin-top:18px;">
+      <button class="primary" id="startBtn">시작하기 · Start</button>
+      <button id="resumeBtn" class="hidden">이어서 하기 · Resume</button>
+    </div>
+  </section>
+
+  <!-- questionnaire -->
+  <section id="quiz" class="hidden">
+    <div class="section-head">
+      <h2 id="secTitle"></h2>
+      <p id="secSub"></p>
+    </div>
+    <div id="questions"></div>
+  </section>
+
+  <!-- result -->
+  <section id="result" class="hidden"></section>
+</main>
+
+<nav class="nav hidden" id="navBar">
+  <div class="nav-inner">
+    <button id="prevBtn">이전 · Back</button>
+    <div class="spacer" id="navHint"></div>
+    <button class="primary" id="nextBtn">다음 · Next</button>
+  </div>
+</nav>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ *
+ * Question bank. Types: likert | choice | multi | text
+ * personality questions carry {axis, sign}:
+ *   axis EI (+=E), SN (+=N), TF (+=T), JP (+=J); sign flips agreement.
+ * ------------------------------------------------------------------ */
+const LIKERT_ENDS = ["전혀 아니다 · No", "매우 그렇다 · Yes"];
+
+const SECTIONS = [
+  {
+    title: "① 성향 · Temperament",
+    sub: "직관적으로 답해도 좋아요. There are no wrong answers.",
+    questions: [
+      { id: "p_ei1", type: "likert", axis: "EI", sign: +1, q: "여러 사람과 어울리고 나면 에너지가 차오른다.", en: "Being around people energizes me." },
+      { id: "p_ei2", type: "likert", axis: "EI", sign: -1, q: "혼자 있는 시간이 있어야 회복된다.", en: "I recharge by being alone." },
+      { id: "p_ei3", type: "likert", axis: "EI", sign: +1, q: "처음 보는 사람에게 먼저 말을 거는 편이다.", en: "I tend to start conversations with strangers." },
+      { id: "p_sn1", type: "likert", axis: "SN", sign: +1, q: "구체적 디테일보다 아이디어의 '큰 그림'이 먼저 눈에 들어온다.", en: "I see the big picture before the details." },
+      { id: "p_sn2", type: "likert", axis: "SN", sign: -1, q: "추상적 가능성보다 검증된 사실과 실제 경험을 신뢰한다.", en: "I trust proven facts and experience over abstract possibility." },
+      { id: "p_sn3", type: "likert", axis: "SN", sign: +1, q: "새로운 가능성이나 은유를 상상하는 것을 즐긴다.", en: "I enjoy imagining new possibilities and metaphors." },
+      { id: "p_tf1", type: "likert", axis: "TF", sign: +1, q: "결정할 때 논리적 일관성이 사람들의 감정보다 우선이다.", en: "When deciding, logic comes before feelings." },
+      { id: "p_tf2", type: "likert", axis: "TF", sign: -1, q: "다른 사람의 기분 변화를 빠르게 알아차린다.", en: "I quickly notice shifts in others' moods." },
+      { id: "p_tf3", type: "likert", axis: "TF", sign: +1, q: "비판을 받아도 논리가 맞으면 크게 개의치 않는다.", en: "I don't mind criticism if the logic is sound." },
+      { id: "p_jp1", type: "likert", axis: "JP", sign: +1, q: "계획을 세우고 그대로 지킬 때 마음이 편하다.", en: "I feel at ease making a plan and sticking to it." },
+      { id: "p_jp2", type: "likert", axis: "JP", sign: -1, q: "마감 직전의 즉흥적 몰입을 즐기는 편이다.", en: "I enjoy last-minute, spontaneous bursts of focus." },
+      { id: "p_jp3", type: "likert", axis: "JP", sign: +1, q: "선택지를 열어두기보다 빨리 결정해서 닫는 게 좋다.", en: "I'd rather decide and close options than keep them open." }
+    ]
+  },
+  {
+    title: "② 만들고 싶은 것 · What excites you to build",
+    sub: "실험실에 쌓일 실험의 방향을 정하는 핵심 파트예요.",
+    questions: [
+      { id: "b_sim", type: "likert", tag: "simulation", q: "물리·생태계를 흉내 내는 '시뮬레이션'을 만들면 신난다.", en: "Building simulations of physics/ecosystems excites me." },
+      { id: "b_viz", type: "likert", tag: "visualization", q: "데이터를 아름답게 보여주는 '시각화'에 끌린다.", en: "I'm drawn to beautiful data visualization." },
+      { id: "b_toy", type: "likert", tag: "toy", q: "목적 없이 만지면 즐거운 '장난감(toy)'을 좋아한다.", en: "I love aimless, delightful toys." },
+      { id: "b_audio", type: "likert", tag: "audio", q: "소리·음악과 상호작용하는 실험에 관심이 있다.", en: "I'm interested in sound/music interaction." },
+      { id: "b_algo", type: "likert", tag: "generative", q: "알고리즘·수학적 패턴(프랙탈, 세포자동자 등)이 흥미롭다.", en: "Algorithmic patterns (fractals, automata) fascinate me." },
+      { id: "b_tool", type: "likert", tag: "tool", q: "실용적 도구(계산기, 트래커, 유틸)를 만드는 것도 좋다.", en: "I also enjoy building practical tools." },
+      { id: "b_text", type: "likert", tag: "language", q: "글·언어·텍스트를 가지고 노는 실험이 끌린다.", en: "Playing with text and language appeals to me." },
+      { id: "b_game", type: "likert", tag: "game", q: "작은 게임이나 인터랙티브 스토리를 만들고 싶다.", en: "I'd like to make small games or interactive stories." }
+    ]
+  },
+  {
+    title: "③ 미학 · Aesthetics",
+    sub: "실험실의 룩앤필 기본값을 잡는 데 씁니다.",
+    questions: [
+      { id: "a_density", type: "choice", q: "선호하는 화면 밀도는?", en: "Preferred visual density?", options: [
+        { v: "minimal", ko: "극단적 미니멀", en: "Extreme minimal" },
+        { v: "balanced", ko: "적당한 균형", en: "Balanced" },
+        { v: "maximal", ko: "정보 풍부한 맥시멀", en: "Information-rich maximal" } ] },
+      { id: "a_motion", type: "likert", q: "화면에 움직임(애니메이션)이 많은 걸 좋아한다.", en: "I like lots of motion on screen." },
+      { id: "a_palette", type: "choice", q: "끌리는 색감은?", en: "Palette you're drawn to?", options: [
+        { v: "mono", ko: "모노톤·흑백", en: "Monochrome" },
+        { v: "pastel", ko: "파스텔·부드러움", en: "Pastel" },
+        { v: "vivid", ko: "비비드·네온", en: "Vivid / neon" },
+        { v: "natural", ko: "자연색·흙빛", en: "Natural / earthy" } ] },
+      { id: "a_mood", type: "choice", q: "선호하는 무드는?", en: "Preferred mood?", options: [
+        { v: "retro", ko: "레트로·터미널", en: "Retro / terminal" },
+        { v: "modern", ko: "클린·모던", en: "Clean / modern" },
+        { v: "analog", ko: "손그림·아날로그", en: "Hand-drawn / analog" },
+        { v: "glitch", ko: "실험적·글리치", en: "Experimental / glitch" } ] },
+      { id: "a_dark", type: "likert", q: "다크 모드를 기본으로 선호한다.", en: "I prefer dark mode by default." }
+    ]
+  },
+  {
+    title: "④ 관심 주제 · Topics",
+    sub: "끌리는 세계를 넓게 골라주세요.",
+    questions: [
+      { id: "t_topics", type: "multi", q: "요즘 끌리는 주제를 모두 골라주세요.", en: "Pick every topic that pulls you right now.", options: [
+        { v: "music", ko: "음악·소리", en: "Music / sound" },
+        { v: "city", ko: "도시·교통", en: "Cities / transit" },
+        { v: "nature", ko: "생물·자연", en: "Biology / nature" },
+        { v: "physics", ko: "물리", en: "Physics" },
+        { v: "math", ko: "수학·패턴", en: "Math / patterns" },
+        { v: "language", ko: "언어·글", en: "Language / text" },
+        { v: "games", ko: "게임", en: "Games" },
+        { v: "space", ko: "우주", en: "Space" },
+        { v: "economy", ko: "경제·시장", en: "Economy / markets" },
+        { v: "psychology", ko: "심리·인간", en: "Psychology" },
+        { v: "maps", ko: "지도·지리", en: "Maps / geography" },
+        { v: "typography", ko: "타이포그래피", en: "Typography" },
+        { v: "history", ko: "역사", en: "History" },
+        { v: "food", ko: "음식·요리", en: "Food / cooking" } ] },
+      { id: "t_learn", type: "likert", q: "새로운 기술을 배우면서 만드는 걸 즐긴다.", en: "I enjoy learning new tech while building." },
+      { id: "t_process", type: "likert", q: "완성작보다 '만드는 과정 자체'가 재미의 핵심이다.", en: "The process matters more to me than the finished thing." }
+    ]
+  },
+  {
+    title: "⑤ 작업 스타일 · Working style",
+    sub: "실험 운영 리듬을 맞추는 데 씁니다.",
+    questions: [
+      { id: "w_time", type: "choice", q: "실험 하나에 쓰고 싶은 시간은?", en: "Time you want to spend per experiment?", options: [
+        { v: "hours", ko: "몇 시간", en: "A few hours" },
+        { v: "oneday", ko: "하루", en: "One day" },
+        { v: "weekend", ko: "주말 내내", en: "A whole weekend" },
+        { v: "multi", ko: "여러 주말에 걸쳐", en: "Across multiple weekends" } ] },
+      { id: "w_done", type: "likert", q: "'완성도보다 완료' 모토에 진심으로 동의한다.", en: "I truly buy into 'done over perfect'." },
+      { id: "w_cadence", type: "choice", q: "실험 주기 목표는?", en: "Target cadence?", options: [
+        { v: "weekly", ko: "매주", en: "Weekly" },
+        { v: "biweekly", ko: "격주", en: "Every two weeks" },
+        { v: "whenever", ko: "마음 내킬 때", en: "Whenever it strikes" } ] },
+      { id: "w_show", type: "likert", q: "남에게 보여주고 반응을 얻는 것이 큰 동기부여가 된다.", en: "Showing others and getting reactions motivates me." },
+      { id: "w_solo", type: "likert", q: "혼자 조용히 파고드는 과정 자체가 즐겁다.", en: "I enjoy digging in quietly on my own." },
+      { id: "w_stack", type: "choice", q: "코딩할 때 선호는?", en: "Coding preference?", options: [
+        { v: "vanilla", ko: "바닐라 JS 위주", en: "Mostly vanilla JS" },
+        { v: "libs", ko: "라이브러리 자유롭게", en: "Libraries freely" },
+        { v: "either", ko: "상관없음", en: "No preference" } ] }
+    ]
+  },
+  {
+    title: "⑥ 자유 서술 · In your words",
+    sub: "짧아도 좋아요. 미래의 실험 아이디어가 여기서 나옵니다. (선택)",
+    questions: [
+      { id: "f_dream", type: "text", q: "예전부터 '언젠간 만들어보고 싶다'고 생각한 것이 있다면?", en: "Something you've always wanted to build?" },
+      { id: "f_love", type: "text", q: "좋아하는 웹사이트·앱·게임과 그 이유는?", en: "A site/app/game you love, and why?" },
+      { id: "f_curious", type: "text", q: "최근에 궁금했던 것, 혹은 풀어보고 싶은 질문 하나.", en: "A question you've been curious about lately." },
+      { id: "f_success", type: "text", q: "이 실험실이 1년 뒤 어떤 모습이면 '성공'일까?", en: "What would make this lab a success in a year?" },
+      { id: "f_words", type: "text", q: "당신을 세 단어로 표현한다면?", en: "Three words that describe you?" }
+    ]
+  }
+];
+
+const STORAGE_KEY = "lab.profile.v1";
+const ALL_Q = SECTIONS.flatMap(s => s.questions);
+const REQUIRED = ALL_Q.filter(q => q.type !== "text").map(q => q.id);
+
+let answers = {};
+let secIndex = 0;
+
+/* ---------- persistence ---------- */
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { const d = JSON.parse(raw); answers = d.answers || {}; }
+  } catch (e) { answers = {}; }
+}
+function save() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify({
+      version: "v1", updated: new Date().toISOString(), answers
+    }));
+  } catch (e) {}
+}
+
+/* ---------- rendering ---------- */
+const $ = sel => document.querySelector(sel);
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function renderQuestion(q) {
+  const val = answers[q.id];
+  let inner = "";
+  if (q.type === "likert") {
+    let dots = "";
+    for (let n = -3; n <= 3; n++) {
+      const checked = val === n ? "checked" : "";
+      const lbl = n === 0 ? "·" : (n < 0 ? n : "+" + n);
+      dots += `<label><input type="radio" name="${q.id}" value="${n}" ${checked}><span class="dot">${lbl}</span></label>`;
+    }
+    inner = `<div class="likert" data-q="${q.id}">${dots}</div>
+      <div class="likert-ends"><span>${LIKERT_ENDS[0]}</span><span>${LIKERT_ENDS[1]}</span></div>`;
+  } else if (q.type === "choice" || q.type === "multi") {
+    const inputType = q.type === "choice" ? "radio" : "checkbox";
+    const sel = q.type === "multi" ? (Array.isArray(val) ? val : []) : val;
+    inner = `<div class="opts" data-q="${q.id}">` + q.options.map(o => {
+      const on = q.type === "multi" ? sel.includes(o.v) : sel === o.v;
+      return `<label><input type="${inputType}" name="${q.id}" value="${o.v}" ${on ? "checked" : ""}>
+        <span>${esc(o.ko)}<span class="opt-en">${esc(o.en)}</span></span></label>`;
+    }).join("") + `</div>`;
+  } else if (q.type === "text") {
+    inner = `<textarea data-q="${q.id}" placeholder="자유롭게 · optional">${val ? esc(val) : ""}</textarea>`;
+  }
+  const isAns = isAnswered(q);
+  return `<div class="q ${isAns ? "answered" : ""}" id="q-${q.id}">
+    <div class="q-text">${esc(q.q)}</div>
+    <div class="q-en">${esc(q.en)}</div>
+    ${inner}
+  </div>`;
+}
+
+function isAnswered(q) {
+  const v = answers[q.id];
+  if (q.type === "multi") return Array.isArray(v) && v.length > 0;
+  if (q.type === "text") return typeof v === "string" && v.trim().length > 0;
+  return v !== undefined && v !== null && v !== "";
+}
+
+function renderSection() {
+  const s = SECTIONS[secIndex];
+  $("#secTitle").textContent = s.title;
+  $("#secSub").textContent = s.sub;
+  $("#questions").innerHTML = s.questions.map(renderQuestion).join("");
+  wireInputs();
+  updateProgress();
+  $("#prevBtn").disabled = secIndex === 0;
+  const isLast = secIndex === SECTIONS.length - 1;
+  $("#nextBtn").textContent = isLast ? "결과 보기 · Finish" : "다음 · Next";
+  $("#secLabel").textContent = `섹션 ${secIndex + 1}/${SECTIONS.length}`;
+  window.scrollTo({ top: 0, behavior: "smooth" });
+  refreshNextEnabled();
+}
+
+function wireInputs() {
+  $("#questions").querySelectorAll(".likert, .opts").forEach(box => {
+    box.addEventListener("change", e => {
+      const qid = box.dataset.q;
+      const q = ALL_Q.find(x => x.id === qid);
+      if (q.type === "likert") answers[qid] = Number(e.target.value);
+      else if (q.type === "choice") answers[qid] = e.target.value;
+      else if (q.type === "multi") {
+        answers[qid] = [...box.querySelectorAll("input:checked")].map(i => i.value);
+      }
+      document.getElementById("q-" + qid).classList.toggle("answered", isAnswered(q));
+      save(); updateProgress(); refreshNextEnabled();
+    });
+  });
+  $("#questions").querySelectorAll("textarea").forEach(ta => {
+    ta.addEventListener("input", e => {
+      const qid = ta.dataset.q;
+      answers[qid] = e.target.value;
+      document.getElementById("q-" + qid).classList.toggle("answered", isAnswered(ALL_Q.find(x=>x.id===qid)));
+      save(); updateProgress();
+    });
+  });
+}
+
+function answeredCount() { return ALL_Q.filter(isAnswered).length; }
+function requiredDone() { return REQUIRED.every(id => {
+  const q = ALL_Q.find(x => x.id === id); return isAnswered(q);
+}); }
+
+function updateProgress() {
+  const done = answeredCount(), total = ALL_Q.length;
+  $("#progFill").style.width = (done / total * 100) + "%";
+  $("#progLabel").textContent = `${done} / ${total}`;
+}
+
+function refreshNextEnabled() {
+  // require all non-text questions in the CURRENT section before advancing
+  const s = SECTIONS[secIndex];
+  const sectionDone = s.questions.filter(q => q.type !== "text").every(isAnswered);
+  const isLast = secIndex === SECTIONS.length - 1;
+  $("#nextBtn").disabled = isLast ? !requiredDone() : !sectionDone;
+  $("#navHint").textContent = sectionDone ? "" : "이 섹션의 문항을 완료해주세요";
+}
+
+/* ---------- scoring ---------- */
+function computeResult() {
+  const axes = { EI: 0, SN: 0, TF: 0, JP: 0 };
+  ALL_Q.forEach(q => {
+    if (q.axis && typeof answers[q.id] === "number") axes[q.axis] += q.sign * answers[q.id];
+  });
+  const mbti =
+    (axes.EI >= 0 ? "E" : "I") +
+    (axes.SN >= 0 ? "N" : "S") +
+    (axes.TF >= 0 ? "T" : "F") +
+    (axes.JP >= 0 ? "J" : "P");
+
+  // build tastes ranked
+  const tastes = SECTIONS[1].questions
+    .map(q => ({ tag: q.tag, score: (answers[q.id] || 0) }))
+    .sort((a, b) => b.score - a.score);
+  const topTastes = tastes.filter(t => t.score > 0).map(t => t.tag);
+
+  const topics = Array.isArray(answers.t_topics) ? answers.t_topics : [];
+
+  const aesthetics = {
+    density: answers.a_density, palette: answers.a_palette,
+    mood: answers.a_mood, motion: answers.a_motion, dark: answers.a_dark
+  };
+  const workStyle = {
+    timePerExperiment: answers.w_time, cadence: answers.w_cadence,
+    stack: answers.w_stack, doneOverPerfect: answers.w_done,
+    showsForReaction: answers.w_show, solo: answers.w_solo
+  };
+  const freeText = {
+    dream: answers.f_dream || "", loves: answers.f_love || "",
+    curious: answers.f_curious || "", success: answers.f_success || "",
+    threeWords: answers.f_words || ""
+  };
+
+  return {
+    schema: "lab.owner-profile/v1",
+    completedAt: new Date().toISOString(),
+    mbti, mbtiAxes: axes,
+    buildTastesRanked: tastes,
+    topBuildTastes: topTastes,
+    topics, aesthetics, workStyle, freeText,
+    rawAnswers: answers
+  };
+}
+
+/* ---------- result screen ---------- */
+function showResult() {
+  const r = computeResult();
+  save();
+  $("#quiz").classList.add("hidden");
+  $("#navBar").classList.add("hidden");
+  const chips = t => t.map(x => `<span class="chip">${esc(x)}</span>`).join("");
+  const json = JSON.stringify(r, null, 2);
+  $("#result").classList.remove("hidden");
+  $("#result").innerHTML = `
+    <div class="kicker">experiment #001 · 결과</div>
+    <h1>당신의 프로필 · Your profile</h1>
+    <div class="result-card">
+      <div class="note">성향 유형 · type</div>
+      <div class="mbti">${r.mbti}</div>
+      <div class="chips">
+        <span class="chip">EI ${r.mbtiAxes.EI}</span>
+        <span class="chip">SN ${r.mbtiAxes.SN}</span>
+        <span class="chip">TF ${r.mbtiAxes.TF}</span>
+        <span class="chip">JP ${r.mbtiAxes.JP}</span>
+      </div>
+    </div>
+    <div class="result-card">
+      <div class="note">만들고 싶어 하는 것 · top build tastes</div>
+      <div class="chips">${r.topBuildTastes.length ? chips(r.topBuildTastes) : '<span class="chip">—</span>'}</div>
+      <div class="note" style="margin-top:14px;">끌리는 주제 · topics</div>
+      <div class="chips">${r.topics.length ? chips(r.topics) : '<span class="chip">—</span>'}</div>
+    </div>
+    <div class="result-card">
+      <div class="note">이 데이터를 프로젝트에 반영하려면 · to feed this into the project</div>
+      <p style="font-size:14px;">아래 JSON을 내려받아 저장소의 <code>data/profile.json</code>으로 저장한 뒤 Claude에게 "프로필 반영해줘"라고 말하세요.<br>
+      <span class="note">Download the JSON, save it as <code>data/profile.json</code> in the repo, then ask Claude to ingest it.</span></p>
+      <div class="row" style="margin:12px 0;">
+        <button class="primary" id="dlBtn">JSON 다운로드 · Download</button>
+        <button id="copyBtn">클립보드 복사 · Copy</button>
+        <button id="retakeBtn">다시 하기 · Retake</button>
+      </div>
+      <pre id="jsonOut">${esc(json)}</pre>
+    </div>
+    <p class="foot note"><a href="../../">← 실험실로 · back to the lab</a></p>
+  `;
+
+  $("#dlBtn").onclick = () => {
+    const blob = new Blob([json], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "profile.json";
+    a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  $("#copyBtn").onclick = async () => {
+    try { await navigator.clipboard.writeText(json); $("#copyBtn").textContent = "복사됨 · Copied ✓"; }
+    catch (e) { $("#copyBtn").textContent = "복사 실패 — 직접 선택하세요"; }
+  };
+  $("#retakeBtn").onclick = () => {
+    if (!confirm("답변을 초기화하고 처음부터 다시 할까요? Reset all answers?")) return;
+    answers = {}; save(); secIndex = 0;
+    $("#result").classList.add("hidden");
+    startQuiz();
+  };
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* ---------- flow ---------- */
+function startQuiz() {
+  $("#intro").classList.add("hidden");
+  $("#result").classList.add("hidden");
+  $("#quiz").classList.remove("hidden");
+  $("#navBar").classList.remove("hidden");
+  renderSection();
+}
+
+function init() {
+  load();
+  $("#qCount").textContent = ALL_Q.length;
+  const hasProgress = Object.keys(answers).length > 0;
+  if (hasProgress) $("#resumeBtn").classList.remove("hidden");
+  updateProgress();
+
+  $("#startBtn").onclick = () => {
+    if (hasProgress && !confirm("이전 답변이 있습니다. 처음부터 새로 시작할까요? (이어서 하려면 취소)")) {
+      secIndex = 0; startQuiz(); return;
+    }
+    if (hasProgress) { answers = {}; save(); }
+    secIndex = 0; startQuiz();
+  };
+  $("#resumeBtn").onclick = () => {
+    // jump to first section with an incomplete required question
+    secIndex = SECTIONS.findIndex(s => s.questions.some(q => q.type !== "text" && !isAnswered(q)));
+    if (secIndex < 0) secIndex = SECTIONS.length - 1;
+    startQuiz();
+  };
+  $("#prevBtn").onclick = () => { if (secIndex > 0) { secIndex--; renderSection(); } };
+  $("#nextBtn").onclick = () => {
+    if (secIndex < SECTIONS.length - 1) { secIndex++; renderSection(); }
+    else showResult();
+  };
+}
+
+init();
+</script>
+</body>
+</html>

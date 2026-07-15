@@ -1,0 +1,14 @@
+<svg viewBox="0 0 200 90" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Know Thyself">
+  <rect width="200" height="90" fill="#201f26"/>
+  <!-- likert dots row -->
+  <g fill="none" stroke="#4a4954" stroke-width="1.5">
+    <circle cx="46" cy="34" r="6"/><circle cx="70" cy="34" r="6"/><circle cx="94" cy="34" r="6"/>
+    <circle cx="118" cy="34" r="6"/><circle cx="142" cy="34" r="6"/>
+  </g>
+  <circle cx="118" cy="34" r="6" fill="#5dcaa5" stroke="none"/>
+  <!-- progress bar -->
+  <rect x="46" y="56" width="108" height="6" rx="3" fill="#35343d"/>
+  <rect x="46" y="56" width="66" height="6" rx="3" fill="#5dcaa5"/>
+  <!-- question mark seed -->
+  <text x="100" y="82" text-anchor="middle" font-family="monospace" font-size="9" fill="#83818f">who are you?</text>
+</svg>
