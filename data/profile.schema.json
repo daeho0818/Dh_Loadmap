@@ -1,0 +1,13 @@
+{
+  "schema": "lab.owner-profile/v1",
+  "completedAt": "ISO-8601 timestamp",
+  "mbti": "4-letter type, e.g. INTP",
+  "mbtiAxes": { "EI": "int (+E / -I)", "SN": "int (+N / -S)", "TF": "int (+T / -F)", "JP": "int (+J / -P)" },
+  "buildTastesRanked": [{ "tag": "simulation|visualization|toy|audio|generative|tool|language|game", "score": "int -3..3" }],
+  "topBuildTastes": ["tags with score > 0, highest first"],
+  "topics": ["selected topic keys, e.g. music, city, math"],
+  "aesthetics": { "density": "minimal|balanced|maximal", "palette": "mono|pastel|vivid|natural", "mood": "retro|modern|analog|glitch", "motion": "int -3..3", "dark": "int -3..3" },
+  "workStyle": { "timePerExperiment": "hours|oneday|weekend|multi", "cadence": "weekly|biweekly|whenever", "stack": "vanilla|libs|either", "doneOverPerfect": "int", "showsForReaction": "int", "solo": "int" },
+  "freeText": { "dream": "string", "loves": "string", "curious": "string", "success": "string", "threeWords": "string" },
+  "rawAnswers": { "note": "every question id -> raw answer value" }
+}
