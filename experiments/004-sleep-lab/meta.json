@@ -1,0 +1,9 @@
+{
+  "id": 4,
+  "slug": "sleep-lab",
+  "title": "수면 실험실 · Sleep Lab",
+  "date": "2026-07-16",
+  "week": "2026-W29",
+  "tags": ["sleep", "tool", "data", "health"],
+  "oneliner": "밤 30초 기록 × 워치 데이터로 내 수면의 범인을 찾는 실험실 · nightly tags joined with watch data to find what breaks my sleep"
+}
