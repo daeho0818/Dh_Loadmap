@@ -156,43 +156,9 @@ function renderGrass(exps) {
   return cells.join('');
 }
 
-function computeStreak(exps) {
-  // consecutive weeks (ending at most recent experiment week) with >=1 experiment
-  const weeks = new Set();
-  for (const e of exps) {
-    let key = e.week;
-    if (!key && e.date) {
-      const [y, w] = isoWeekOf(new Date(e.date));
-      key = weekKey(y, w);
-    }
-    if (key) weeks.add(key);
-  }
-  if (!weeks.size) return 0;
-  // find latest week present, then walk backwards
-  const latest = [...weeks].sort().pop();
-  const [ly, lw] = latest.split('-W').map(Number);
-  let cursor = new Date();
-  // align cursor to the latest experiment's iso week by scanning back up to 60 weeks
-  let streak = 0;
-  // Build a walker from "latest" backwards using date arithmetic.
-  // Anchor: any date in the latest iso week — reconstruct via Jan 4 + weeks.
-  const jan4 = new Date(Date.UTC(ly, 0, 4));
-  const anchorDay = jan4.getUTCDay() || 7;
-  const week1Mon = new Date(jan4);
-  week1Mon.setUTCDate(jan4.getUTCDate() - (anchorDay - 1));
-  const anchor = new Date(week1Mon);
-  anchor.setUTCDate(week1Mon.getUTCDate() + (lw - 1) * 7);
-  cursor = anchor;
-  for (let i = 0; i < 200; i++) {
-    const [y, w] = isoWeekOf(cursor);
-    if (weeks.has(weekKey(y, w))) {
-      streak++;
-      cursor.setUTCDate(cursor.getUTCDate() - 7);
-    } else {
-      break;
-    }
-  }
-  return streak;
+function computeActiveDays(exps) {
+  // distinct dates with at least one experiment — accumulation, not a streak
+  return new Set(exps.filter((e) => e.date).map((e) => e.date)).size;
 }
 
 // --- main ------------------------------------------------------------------
@@ -211,7 +177,7 @@ function build() {
     .replace(/{{SITE_TAGLINE_EN}}/g, esc(config.taglineEn))
     .replace(/{{SITE_MOTTO}}/g, esc(config.motto))
     .replace(/{{STAT_COUNT}}/g, String(exps.length))
-    .replace(/{{STAT_STREAK}}/g, computeStreak(exps) + '주')
+    .replace(/{{STAT_DAYS}}/g, computeActiveDays(exps) + '일')
     .replace(/{{STAT_LATEST}}/g, esc(latestLabel))
     .replace(/{{GRASS}}/g, renderGrass(exps))
     .replace(/{{CARDS}}/g, renderCards(exps))

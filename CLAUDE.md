@@ -1,7 +1,8 @@
 # CLAUDE.md — 작업 가이드 (for Claude Code)
 
-개인 실험실 아카이브(Personal Lab Archive). 주말마다 작은 웹 실험을 하나씩
-번호를 붙여 쌓는 정적 사이트. 모토: **완성도보다 완료 (done over perfect).**
+개인 실험실 아카이브(Personal Lab Archive). 관심이 생길 때마다 작은 웹 실험을
+하나씩 번호를 붙여 쌓는 정적 사이트. 모토: **작게, 제대로.** (연속/주기 압박 없음 —
+통계도 스트릭이 아니라 누적으로 보여준다. 소유자 확정, 2026-07-15)
 
 자세한 비전은 [PROJECT_BRIEF.md](PROJECT_BRIEF.md) 참고.
 
