@@ -5,6 +5,9 @@ dist/
 # The digested summary (data/profile.summary.md) is committed; raw data is not.
 data/profile.json
 data/wants.json
+data/samsung-health/
+data/sleep-log*.json
+data/evidence*.json
 
 # node / os
 node_modules/
