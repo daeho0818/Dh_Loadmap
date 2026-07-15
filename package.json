@@ -1,0 +1,11 @@
+{
+  "name": "personal-lab-archive",
+  "version": "0.1.0",
+  "private": true,
+  "description": "주말마다 하나씩 쌓는 개인 실험 아카이브. 완성도보다 완료.",
+  "scripts": {
+    "build": "node site/build.js",
+    "serve": "node site/build.js && node -e \"const h=require('http'),f=require('fs'),p=require('path'),d='dist';h.createServer((q,s)=>{let u=q.url.split('?')[0];if(u.endsWith('/'))u+='index.html';const fp=p.join(d,decodeURIComponent(u));f.readFile(fp,(e,c)=>{if(e){s.writeHead(404);return s.end('404');}const t={'.html':'text/html','.css':'text/css','.js':'text/javascript','.svg':'image/svg+xml','.json':'application/json'}[p.extname(fp)]||'text/plain';s.writeHead(200,{'Content-Type':t+'; charset=utf-8'});s.end(c);});}).listen(8775,()=>console.log('http://localhost:8775'));\""
+  },
+  "engines": { "node": ">=18" }
+}
