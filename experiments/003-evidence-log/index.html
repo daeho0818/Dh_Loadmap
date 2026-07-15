@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>#003 남긴 것들 · Evidence Log</title>
+<meta name="description" content="오늘 남긴 것 하나를 벽돌로 쌓는 초경량 기록 도구. One line a day, stacked into a visible wall of evidence." />
+<style>
+  :root {
+    --bg: #17161a; --surface: #201f26; --surface-2: #26252e;
+    --border: #35343d; --border-strong: #4a4954;
+    --text: #ecebf2; --text-2: #b6b4c2; --muted: #83818f;
+    --accent: #f0997b; --accent-strong: #d85a30; --accent-dim: #4a1b0c;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
+    --mono: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+    --b1: #f5c4b3; --b2: #f0997b; --b3: #ed93b1; --b4: #afa9ec; --b5: #9fe1cb; --b6: #fac775; --b7: #85b7eb;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f4f3f0; --surface: #ffffff; --surface-2: #eceae5;
+      --border: #d9d6ce; --border-strong: #bdb9ae;
+      --text: #26241f; --text-2: #5c584f; --muted: #8f8a7e;
+      --accent: #d85a30; --accent-strong: #d85a30; --accent-dim: #f5c4b3;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 28px 18px 80px; }
+
+  .kicker { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  h1 { font-size: 24px; font-weight: 600; margin: 4px 0 6px; }
+  .lead { color: var(--text-2); font-size: 14px; margin: 0 0 2px; }
+  .lead-en { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+  .note { font-size: 13px; color: var(--muted); }
+  a { color: var(--accent); }
+
+  /* input */
+  .inrow { display: flex; gap: 8px; margin-bottom: 6px; }
+  input[type="text"] { flex: 1; min-width: 0; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text); font-family: var(--sans); font-size: 15px; padding: 12px 14px; }
+  input[type="text"]:focus { outline: none; border-color: var(--accent); }
+  input[type="date"] { background: var(--surface); border: 1px solid var(--border); border-radius: 10px;
+    color: var(--text-2); font-family: var(--mono); font-size: 12px; padding: 0 8px; }
+  button { font-family: var(--sans); font-size: 14px; font-weight: 600; cursor: pointer;
+    border-radius: 10px; padding: 10px 16px; border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--text); transition: all .12s; flex: none; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent-strong); color: #fff; border-color: var(--accent-strong); }
+
+  /* stats */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 16px 0; }
+  .stat { background: var(--surface); border-radius: 8px; padding: 8px 12px; }
+  .stat b { display: block; font-size: 20px; font-weight: 600; }
+  .stat span { font-size: 11.5px; color: var(--muted); }
+
+  /* wall */
+  .wall-box { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px;
+    padding: 16px; margin-bottom: 16px; }
+  .wall-title { font-size: 13px; color: var(--muted); font-family: var(--mono); margin-bottom: 12px;
+    display: flex; justify-content: space-between; }
+  .wall { display: flex; flex-direction: column; gap: 5px; min-height: 60px; justify-content: flex-end; }
+  .wk-row { display: flex; align-items: center; gap: 8px; }
+  .wk-label { font-family: var(--mono); font-size: 10px; color: var(--muted); width: 42px; flex: none; text-align: right; }
+  .bricks { display: flex; flex-wrap: wrap; gap: 4px; flex: 1; }
+  .brick { height: 22px; min-width: 34px; flex: 1 1 34px; max-width: 72px; border-radius: 4px;
+    cursor: pointer; border: none; padding: 0; transition: transform .1s; }
+  .brick:hover { transform: translateY(-2px) scale(1.04); border: none; }
+  .brick.new { animation: drop .45s cubic-bezier(.2,1.6,.4,1); }
+  @keyframes drop { 0% { transform: translateY(-46px) scale(.85); opacity: 0; }
+    60% { transform: translateY(2px) scale(1.03); opacity: 1; } 100% { transform: translateY(0) scale(1); } }
+  .empty { text-align: center; color: var(--muted); font-size: 13.5px; padding: 24px 8px; }
+
+  /* detail */
+  .detail { background: var(--surface-2); border-radius: 10px; padding: 12px 14px; margin-top: 12px;
+    display: flex; align-items: baseline; gap: 10px; font-size: 14px; }
+  .detail .d-date { font-family: var(--mono); font-size: 11.5px; color: var(--muted); flex: none; }
+  .detail .d-del { margin-left: auto; font-size: 12px; padding: 4px 10px; color: var(--muted); flex: none; }
+  .detail .d-del.arm { color: #fff; background: var(--accent-strong); border-color: var(--accent-strong); }
+
+  /* weeks / direction */
+  .wkcard { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 10px; }
+  .wkcard .wk-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 8px; }
+  .wkcard .wk-name { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  .wkcard .wk-count { font-size: 11.5px; color: var(--muted); }
+  .wkcard ul { margin: 0 0 10px; padding-left: 18px; font-size: 13.5px; color: var(--text-2); }
+  .wkcard li { margin: 2px 0; }
+  .wkcard li span { color: var(--muted); font-family: var(--mono); font-size: 11px; margin-right: 4px; }
+  .wk-note { width: 100%; background: var(--surface-2); border: 1px solid transparent; border-radius: 8px;
+    color: var(--text); font-family: var(--sans); font-size: 13.5px; padding: 8px 10px; }
+  .wk-note:focus { outline: none; border-color: var(--accent); }
+  .wk-note::placeholder { color: var(--muted); }
+
+  h2 { font-size: 16px; font-weight: 600; margin: 26px 0 10px; }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
+  .hidden { display: none !important; }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="kicker">experiment #003</div>
+  <h1>남긴 것들 · Evidence Log</h1>
+  <p class="lead">하루 한 줄, "오늘 남긴 것". 완료한 것, 만든 것, 끝낸 것 — 뭐든 벽돌 하나로 쌓입니다.</p>
+  <p class="lead-en">One line a day. Each thing you finished becomes a brick in a wall you can actually see.</p>
+
+  <div class="inrow">
+    <input type="text" id="entryText" maxlength="80" placeholder="오늘 남긴 것 하나 · one thing you left behind" autocomplete="off" />
+    <input type="date" id="entryDate" />
+    <button class="primary" id="addBtn">남기기</button>
+  </div>
+  <p class="note" style="margin:0 0 4px;">Enter로도 입력돼요 · 지난 날짜도 소급 가능</p>
+
+  <div class="stats">
+    <div class="stat"><b id="stTotal">0</b><span>벽돌 · bricks</span></div>
+    <div class="stat"><b id="stStreak">0</b><span>연속 일수 · streak</span></div>
+    <div class="stat"><b id="stWeek">0</b><span>이번 주 · this week</span></div>
+  </div>
+
+  <div class="wall-box">
+    <div class="wall-title"><span>증거의 벽 · the wall</span><span id="wallRange"></span></div>
+    <div class="wall" id="wall"></div>
+    <div class="empty hidden" id="emptyMsg">아직 벽돌이 없어요. 오늘 남긴 것 하나부터. <br><span style="font-size:12px;">The wall starts with one brick.</span></div>
+    <div class="detail hidden" id="detail"></div>
+  </div>
+
+  <h2>주간 지층 · weekly strata</h2>
+  <p class="note" style="margin:-4px 0 12px;">주마다 한 줄: 이번 주는 어디로 갔나. 기록들이 향하는 방향이 여기서 보입니다.</p>
+  <div id="weeks"></div>
+
+  <div class="row">
+    <button id="exportBtn">JSON 내보내기 · Export</button>
+    <button id="importBtn">가져오기 · Import</button>
+    <input type="file" id="importFile" accept="application/json" class="hidden" />
+  </div>
+  <p class="note" style="margin-top:14px;"><a href="../../">← 실험실로 · back to the lab</a></p>
+</main>
+
+<script>
+"use strict";
+
+const STORAGE_KEY = "lab.evidence.v1";
+const BRICK_COLORS = ["--b1","--b2","--b3","--b4","--b5","--b6","--b7"];
+
+let DB = { version: "v1", entries: [], weekNotes: {} };
+
+/* ---------- persistence ---------- */
+function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); } catch (e) {} }
+function load() {
+  try { const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { const d = JSON.parse(raw); if (d && Array.isArray(d.entries)) DB = d; } } catch (e) {}
+  if (!DB.weekNotes) DB.weekNotes = {};
+}
+
+/* ---------- date helpers ---------- */
+function todayStr() {
+  const d = new Date();
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+function isoWeek(dateStr) {
+  const [y, m, dd] = dateStr.split("-").map(Number);
+  const d = new Date(Date.UTC(y, m - 1, dd));
+  const day = d.getUTCDay() || 7;
+  d.setUTCDate(d.getUTCDate() + 4 - day);
+  const ys = new Date(Date.UTC(d.getUTCFullYear(), 0, 1));
+  const w = Math.ceil(((d - ys) / 86400000 + 1) / 7);
+  return d.getUTCFullYear() + "-W" + String(w).padStart(2, "0");
+}
+function addDays(dateStr, n) {
+  const [y, m, dd] = dateStr.split("-").map(Number);
+  const d = new Date(y, m - 1, dd + n);
+  return d.getFullYear() + "-" + String(d.getMonth()+1).padStart(2,"0") + "-" + String(d.getDate()).padStart(2,"0");
+}
+
+/* ---------- stats ---------- */
+function computeStreak() {
+  const days = new Set(DB.entries.map(e => e.date));
+  if (!days.size) return 0;
+  let cursor = todayStr();
+  if (!days.has(cursor)) cursor = addDays(cursor, -1); /* today not logged yet — streak survives */
+  let n = 0;
+  while (days.has(cursor)) { n++; cursor = addDays(cursor, -1); }
+  return n;
+}
+
+/* ---------- render ---------- */
+const $ = s => document.querySelector(s);
+function esc(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+let lastAddedId = null;
+
+function render() {
+  const entries = [...DB.entries].sort((a, b) => a.date.localeCompare(b.date) || a.ts - b.ts);
+  /* stats */
+  $("#stTotal").textContent = entries.length;
+  $("#stStreak").textContent = computeStreak();
+  const thisWk = isoWeek(todayStr());
+  $("#stWeek").textContent = entries.filter(e => isoWeek(e.date) === thisWk).length;
+
+  /* wall: weeks ascending; newest week rendered last then column-reverse puts it on top */
+  const byWeek = new Map();
+  for (const e of entries) {
+    const wk = isoWeek(e.date);
+    if (!byWeek.has(wk)) byWeek.set(wk, []);
+    byWeek.get(wk).push(e);
+  }
+  const weeks = [...byWeek.keys()].sort();
+  $("#emptyMsg").classList.toggle("hidden", entries.length > 0);
+  $("#wallRange").textContent = weeks.length ? weeks[0] + " → " + weeks[weeks.length-1] : "";
+  $("#wall").innerHTML = weeks.map(wk => {
+    const bricks = byWeek.get(wk).map(e => {
+      const ci = (e.id % BRICK_COLORS.length + BRICK_COLORS.length) % BRICK_COLORS.length;
+      const isNew = e.id === lastAddedId ? " new" : "";
+      return `<button class="brick${isNew}" style="background:var(${BRICK_COLORS[ci]});"
+        data-id="${e.id}" title="${esc(e.date)} · ${esc(e.text)}" aria-label="${esc(e.date)} ${esc(e.text)}"></button>`;
+    }).join("");
+    return `<div class="wk-row"><span class="wk-label">${wk.slice(5)}</span><div class="bricks">${bricks}</div></div>`;
+  }).reverse().join("");
+  lastAddedId = null;
+
+  /* weekly strata (newest first) */
+  $("#weeks").innerHTML = [...weeks].reverse().map(wk => {
+    const list = byWeek.get(wk).map(e =>
+      `<li><span>${e.date.slice(5)}</span>${esc(e.text)}</li>`).join("");
+    const note = DB.weekNotes[wk] || "";
+    return `<div class="wkcard"><div class="wk-head">
+        <span class="wk-name">${wk}</span><span class="wk-count">${byWeek.get(wk).length}장</span></div>
+      <ul>${list}</ul>
+      <input class="wk-note" data-wk="${wk}" value="${esc(note)}"
+        placeholder="이번 주는 어디로 갔나 · one line about where this week went" maxlength="100" /></div>`;
+  }).join("") || '<p class="note">기록이 쌓이면 주 단위로 여기에 정리됩니다.</p>';
+
+  /* wire */
+  document.querySelectorAll(".brick").forEach(b => b.onclick = () => showDetail(Number(b.dataset.id)));
+  document.querySelectorAll(".wk-note").forEach(inp => {
+    inp.onchange = () => { DB.weekNotes[inp.dataset.wk] = inp.value.trim(); save(); };
+  });
+}
+
+let armedDelete = null;
+function showDetail(id) {
+  const e = DB.entries.find(x => x.id === id);
+  if (!e) return;
+  armedDelete = null;
+  const d = $("#detail");
+  d.classList.remove("hidden");
+  d.innerHTML = `<span class="d-date">${esc(e.date)}</span><span>${esc(e.text)}</span>
+    <button class="d-del" id="delBtn">삭제</button>`;
+  $("#delBtn").onclick = () => {
+    if (armedDelete !== id) { armedDelete = id; $("#delBtn").textContent = "정말 삭제?"; $("#delBtn").classList.add("arm"); return; }
+    DB.entries = DB.entries.filter(x => x.id !== id);
+    save(); d.classList.add("hidden"); render();
+  };
+}
+
+/* ---------- actions ---------- */
+function addEntry() {
+  const text = $("#entryText").value.trim();
+  const date = $("#entryDate").value || todayStr();
+  if (!text) { $("#entryText").focus(); return; }
+  const id = Date.now();
+  DB.entries.push({ id, date, text, ts: Date.now() });
+  lastAddedId = id;
+  save();
+  $("#entryText").value = "";
+  $("#detail").classList.add("hidden");
+  render();
+  $("#entryText").focus();
+}
+
+function exportJSON() {
+  const out = {
+    schema: "lab.evidence/v1", exportedAt: new Date().toISOString(),
+    stats: { total: DB.entries.length, streak: computeStreak() },
+    entries: DB.entries, weekNotes: DB.weekNotes
+  };
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob); a.download = "evidence.json"; a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+let importArmed = false;
+function importJSON(file) {
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const d = JSON.parse(rd.result);
+      const incoming = Array.isArray(d.entries) ? d.entries : [];
+      const have = new Set(DB.entries.map(e => e.id));
+      let added = 0;
+      for (const e of incoming) {
+        if (e && typeof e.text === "string" && e.date && !have.has(e.id)) { DB.entries.push(e); added++; }
+      }
+      Object.assign(DB.weekNotes, d.weekNotes || {});
+      save(); render();
+      $("#importBtn").textContent = `가져옴 +${added}장`;
+    } catch (err) { $("#importBtn").textContent = "가져오기 실패 — JSON 확인"; }
+  };
+  rd.readAsText(file);
+}
+
+/* ---------- init ---------- */
+function init() {
+  load();
+  $("#entryDate").value = todayStr();
+  $("#entryDate").max = todayStr();
+  $("#addBtn").onclick = addEntry;
+  $("#entryText").addEventListener("keydown", e => { if (e.key === "Enter") addEntry(); });
+  $("#exportBtn").onclick = exportJSON;
+  $("#importBtn").onclick = () => $("#importFile").click();
+  $("#importFile").addEventListener("change", e => { if (e.target.files[0]) importJSON(e.target.files[0]); });
+  render();
+}
+init();
+</script>
+</body>
+</html>

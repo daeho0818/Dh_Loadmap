@@ -1,0 +1,19 @@
+<svg viewBox="0 0 200 90" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Evidence Log">
+  <rect width="200" height="90" fill="#2c1610"/>
+  <!-- brick wall strata, growing upward -->
+  <g>
+    <rect x="30" y="64" width="34" height="12" rx="3" fill="#f5c4b3"/>
+    <rect x="68" y="64" width="26" height="12" rx="3" fill="#f0997b"/>
+    <rect x="98" y="64" width="40" height="12" rx="3" fill="#ed93b1"/>
+    <rect x="142" y="64" width="28" height="12" rx="3" fill="#fac775"/>
+    <rect x="30" y="48" width="28" height="12" rx="3" fill="#afa9ec"/>
+    <rect x="62" y="48" width="38" height="12" rx="3" fill="#9fe1cb"/>
+    <rect x="104" y="48" width="30" height="12" rx="3" fill="#f0997b"/>
+    <rect x="30" y="32" width="42" height="12" rx="3" fill="#85b7eb"/>
+    <rect x="76" y="32" width="26" height="12" rx="3" fill="#f5c4b3"/>
+    <rect x="30" y="16" width="30" height="12" rx="3" fill="#9fe1cb" opacity="0.9">
+      <animateTransform attributeName="transform" type="translate" from="0 -8" to="0 0" dur="0.6s" repeatCount="1"/>
+    </rect>
+  </g>
+  <text x="100" y="86" text-anchor="middle" font-family="monospace" font-size="8" fill="#f0997b">what did you leave behind?</text>
+</svg>
