@@ -62,8 +62,8 @@
   .fcard .dimhint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 10px; }
   .fcard .ctext { font-size: 19px; font-weight: 500; line-height: 1.5; word-break: keep-all; }
   .fbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
-  .fbtns .pass { color: var(--bad); }
-  .fbtns .keep { color: var(--good); }
+  .fbtns .pass { color: var(--muted); }
+  .fbtns .keep { color: var(--accent); }
   .keyhint { text-align: center; font-size: 12px; color: var(--muted); margin-top: 12px; font-family: var(--mono); }
 
   /* phase 2 — duel */
@@ -114,10 +114,10 @@
   <section id="intro">
     <div class="kicker">experiment #002</div>
     <h1>원트 파인더 · Want Finder</h1>
-    <p class="lead">"내가 무엇을 원하는가"를 설문이 아니라 <strong>선택의 축적</strong>으로 알아내는 도구예요.
-      욕구 카드 48장을 직감으로 거르고, 남은 카드끼리 1:1 대결을 붙입니다.
-      수십 번의 선택이 끝나면 당신의 욕구 랭킹이 드러납니다.</p>
-    <p class="lead-en">Rate nothing. Just choose. Forced pairwise choices converge on a ranking of what you actually want.</p>
+    <p class="lead">"내가 무엇을 원하는가"는 결국 "무엇이 <strong>아쉬운가</strong>"의 문제예요.
+      1단계: 좋은 것 48장 중에서 <strong>요즘 충분히 채워지지 않는 것</strong>만 골라냅니다.
+      2단계: 아쉬운 것들끼리 1:1 대결 — 둘 중 더 고픈 쪽을 고르다 보면 결핍의 랭킹이 드러납니다.</p>
+    <p class="lead-en">Everything on these cards is good. The question is what's lacking — scarcity, then head-to-head choices, reveal what you actually want.</p>
     <p class="note">약 10분 · 거르기 48장 + 1:1 비교 · 진행 상황은 이 브라우저에 자동 저장 (서버 없음)</p>
     <div class="row" style="margin-top:18px;">
       <button class="primary" id="startBtn">시작하기 · Start</button>
@@ -128,19 +128,19 @@
   <section id="filter" class="hidden">
     <div class="stage">
       <div class="fcard" id="fcard">
-        <div class="dimhint">이거, 지금의 나에게 당기나?</div>
+        <div class="dimhint">좋은 건 알아. 그런데 — 요즘 내 삶에서 이게 충분히 채워지고 있나?</div>
         <div class="ctext" id="ftext"></div>
       </div>
       <div class="fbtns">
-        <button class="pass" id="passBtn">글쎄 · pass</button>
-        <button class="keep" id="keepBtn">당김 · keep</button>
+        <button class="pass" id="passBtn">충분해 · enough</button>
+        <button class="keep" id="keepBtn">아쉬워 · lacking</button>
       </div>
-      <div class="keyhint">키보드: ← 글쎄 · → 당김</div>
+      <div class="keyhint">키보드: ← 충분해 · → 아쉬워 <span id="keptCount"></span></div>
     </div>
   </section>
 
   <section id="duel" class="hidden">
-    <p class="note" style="text-align:center; margin-bottom:14px;">지금, 둘 중 더 원하는 쪽은?</p>
+    <p class="note" style="text-align:center; margin-bottom:14px;">둘 다 아쉽다. 지금 더 고픈 쪽은?</p>
     <div class="duel">
       <div class="dcard" id="dleft" role="button" tabindex="0"></div>
       <div class="dcard" id="dright" role="button" tabindex="0"></div>
@@ -288,6 +288,7 @@ function showFilterCard() {
   const el = $("#fcard");
   el.style.animation = "none"; void el.offsetWidth; el.style.animation = "";
   $("#ftext").textContent = c.text;
+  $("#keptCount").textContent = S.kept.length ? `· 아쉬움 ${S.kept.length}장` : "";
   setProgress();
 }
 function answerFilter(keep) {
@@ -413,10 +414,10 @@ function showResult() {
   $("#result").innerHTML = `
     <div class="kicker">experiment #002 · 결과</div>
     <h1>당신이 원하는 것 · What you want</h1>
-    <p class="note" style="margin-bottom:16px;">비교 ${r.comparisons}회 · 컷 통과 ${r.keptCount}장 / 탈락 ${r.discardedCount}장</p>
+    <p class="note" style="margin-bottom:16px;">비교 ${r.comparisons}회 · 아쉬움 ${r.keptCount}장 / 충분함 ${r.discardedCount}장</p>
     <div class="rcard"><h2>욕구 랭킹 톱 10</h2>${top10}</div>
     <div class="rcard"><h2>기저 욕구 프로필</h2>${bars}
-      <p class="note" style="margin:10px 0 0;">점수는 상대값(0–100). 컷에서 버린 카드도 낮은 신호로 반영됨.</p></div>
+      <p class="note" style="margin:10px 0 0;">점수는 상대값(0–100) — 높을수록 지금 결핍된 욕구. '충분해'로 넘긴 카드는 낮은 결핍 신호로 반영됨.</p></div>
     <div class="rcard"><h2>그렇다면, 이런 걸 — 제안</h2>${sugs}
       <p class="note" style="margin:4px 0 0;">상위 욕구 차원에서 도출. 랭킹 JSON을 저장소 <code>data/wants.json</code>에 두면
       다음 실험 로드맵에 반영됩니다.</p></div>
