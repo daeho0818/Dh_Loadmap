@@ -1,0 +1,490 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>#002 원트 파인더 · Want Finder</title>
+<meta name="description" content="양자택일을 쌓아 '내가 무엇을 원하는가'를 랭킹으로 드러내는 도구. Forced choices reveal what you actually want." />
+<style>
+  :root {
+    --bg: #17161a; --surface: #201f26; --surface-2: #26252e;
+    --border: #35343d; --border-strong: #4a4954;
+    --text: #ecebf2; --text-2: #b6b4c2; --muted: #83818f;
+    --accent: #afa9ec; --accent-strong: #7f77dd; --accent-dim: #3c3489;
+    --good: #9fe1cb; --bad: #f0997b;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
+    --mono: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f4f3f0; --surface: #ffffff; --surface-2: #eceae5;
+      --border: #d9d6ce; --border-strong: #bdb9ae;
+      --text: #26241f; --text-2: #5c584f; --muted: #8f8a7e;
+      --accent: #534ab7; --accent-strong: #7f77dd; --accent-dim: #cecbf6;
+      --good: #1d9e75; --bad: #d85a30;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 24px 18px 80px; }
+
+  .top { position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px); padding: 12px 0 10px; margin-bottom: 12px; }
+  .bar { height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 0; background: var(--accent-strong); transition: width .25s ease; }
+  .top-meta { display: flex; justify-content: space-between; font-family: var(--mono);
+    font-size: 12px; color: var(--muted); margin-top: 6px; }
+
+  .kicker { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  h1 { font-size: 24px; font-weight: 600; margin: 4px 0 6px; }
+  .lead { color: var(--text-2); font-size: 14px; margin: 0 0 4px; }
+  .lead-en { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .note { font-size: 13px; color: var(--muted); }
+  .hidden { display: none !important; }
+  a { color: var(--accent); }
+
+  button { font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer;
+    border-radius: 10px; padding: 11px 18px; border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--text); transition: all .12s; }
+  button:hover { border-color: var(--accent-strong); }
+  button.primary { background: var(--accent-strong); color: #fff; border-color: var(--accent-strong); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* phase 1 — filter */
+  .stage { min-height: 300px; display: flex; flex-direction: column; justify-content: center; }
+  .fcard { background: var(--surface); border: 0.5px solid var(--border); border-radius: 16px;
+    padding: 40px 24px; text-align: center; margin-bottom: 18px;
+    animation: pop .18s ease; }
+  @keyframes pop { from { transform: scale(.97); opacity: .4; } to { transform: scale(1); opacity: 1; } }
+  .fcard .dimhint { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-bottom: 10px; }
+  .fcard .ctext { font-size: 19px; font-weight: 500; line-height: 1.5; word-break: keep-all; }
+  .fbtns { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  .fbtns .pass { color: var(--bad); }
+  .fbtns .keep { color: var(--good); }
+  .keyhint { text-align: center; font-size: 12px; color: var(--muted); margin-top: 12px; font-family: var(--mono); }
+
+  /* phase 2 — duel */
+  .duel { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  @media (max-width: 480px) { .duel { grid-template-columns: 1fr; } }
+  .dcard { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px;
+    padding: 28px 18px; text-align: center; cursor: pointer; min-height: 130px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 16px; font-weight: 500; line-height: 1.5; word-break: keep-all;
+    transition: border-color .12s, transform .12s; animation: pop .18s ease; }
+  .dcard:hover { border-color: var(--accent-strong); transform: translateY(-2px); }
+  .tie { display: block; margin: 0 auto; font-size: 13px; font-weight: 400;
+    color: var(--muted); background: none; border: none; padding: 8px 14px; }
+  .tie:hover { color: var(--text-2); border: none; }
+
+  /* result */
+  .rcard { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px;
+    padding: 20px; margin-bottom: 14px; }
+  .rcard h2 { font-size: 15px; font-weight: 600; margin: 0 0 12px; }
+  .rank-item { display: flex; align-items: baseline; gap: 10px; padding: 7px 0;
+    border-bottom: 0.5px solid var(--border); font-size: 14px; }
+  .rank-item:last-child { border-bottom: none; }
+  .rank-n { font-family: var(--mono); font-size: 12px; color: var(--accent); min-width: 22px; }
+  .rank-dim { margin-left: auto; font-size: 11px; font-family: var(--mono); color: var(--muted);
+    background: var(--surface-2); padding: 2px 8px; border-radius: 99px; flex: none; }
+  .dimrow { display: flex; align-items: center; gap: 8px; margin-bottom: 7px; }
+  .dimrow .dlabel { font-size: 13px; color: var(--text-2); width: 92px; flex: none; }
+  .dimrow .dbar { flex: 1; height: 12px; background: var(--surface-2); border-radius: 4px; overflow: hidden; }
+  .dimrow .dbar > i { display: block; height: 100%; background: var(--accent); border-radius: 4px; }
+  .dimrow .dval { font-family: var(--mono); font-size: 11px; color: var(--muted); width: 30px; text-align: right; }
+  .sug { padding: 12px 14px; background: var(--surface-2); border-radius: 10px; margin-bottom: 10px; }
+  .sug .sug-dim { font-family: var(--mono); font-size: 11px; color: var(--accent); margin-bottom: 6px; }
+  .sug ul { margin: 0; padding-left: 18px; font-size: 13.5px; color: var(--text-2); }
+  .sug li { margin: 3px 0; }
+  .sug li b { color: var(--text); font-weight: 600; }
+  pre { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 10px;
+    padding: 12px; overflow-x: auto; font-family: var(--mono); font-size: 12px; color: var(--text-2); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="top">
+    <div class="bar"><i id="progFill"></i></div>
+    <div class="top-meta"><span id="progLabel">—</span><span id="phaseLabel"></span></div>
+  </div>
+
+  <section id="intro">
+    <div class="kicker">experiment #002</div>
+    <h1>원트 파인더 · Want Finder</h1>
+    <p class="lead">"내가 무엇을 원하는가"를 설문이 아니라 <strong>선택의 축적</strong>으로 알아내는 도구예요.
+      욕구 카드 48장을 직감으로 거르고, 남은 카드끼리 1:1 대결을 붙입니다.
+      수십 번의 선택이 끝나면 당신의 욕구 랭킹이 드러납니다.</p>
+    <p class="lead-en">Rate nothing. Just choose. Forced pairwise choices converge on a ranking of what you actually want.</p>
+    <p class="note">약 10분 · 거르기 48장 + 1:1 비교 · 진행 상황은 이 브라우저에 자동 저장 (서버 없음)</p>
+    <div class="row" style="margin-top:18px;">
+      <button class="primary" id="startBtn">시작하기 · Start</button>
+      <button id="resumeBtn" class="hidden">이어서 하기 · Resume</button>
+    </div>
+  </section>
+
+  <section id="filter" class="hidden">
+    <div class="stage">
+      <div class="fcard" id="fcard">
+        <div class="dimhint">이거, 지금의 나에게 당기나?</div>
+        <div class="ctext" id="ftext"></div>
+      </div>
+      <div class="fbtns">
+        <button class="pass" id="passBtn">글쎄 · pass</button>
+        <button class="keep" id="keepBtn">당김 · keep</button>
+      </div>
+      <div class="keyhint">키보드: ← 글쎄 · → 당김</div>
+    </div>
+  </section>
+
+  <section id="duel" class="hidden">
+    <p class="note" style="text-align:center; margin-bottom:14px;">지금, 둘 중 더 원하는 쪽은?</p>
+    <div class="duel">
+      <div class="dcard" id="dleft" role="button" tabindex="0"></div>
+      <div class="dcard" id="dright" role="button" tabindex="0"></div>
+    </div>
+    <button class="tie" id="tieBtn">비슷해요 · about the same</button>
+    <div class="keyhint">키보드: ← 왼쪽 · → 오른쪽 · ↓ 비슷</div>
+  </section>
+
+  <section id="result" class="hidden"></section>
+</main>
+
+<script>
+"use strict";
+
+/* ------------------------------------------------------------------ */
+/* deck: 48 cards, 8 dimensions x 6. simple noun-phrase style.        */
+/* ------------------------------------------------------------------ */
+const DIMS = {
+  conv:  { label: "편의·자동화", en: "convenience" },
+  grow:  { label: "성장·배움",   en: "growth" },
+  achv:  { label: "성취·증거",   en: "achievement" },
+  order: { label: "질서·정돈",   en: "order" },
+  flow:  { label: "몰입·재미",   en: "flow" },
+  conn:  { label: "연결·인정",   en: "connection" },
+  free:  { label: "자율·여유",   en: "freedom" },
+  mean:  { label: "의미·방향",   en: "meaning" }
+};
+
+const DECK = [
+  { id: "conv1", dim: "conv", text: "반복되는 집안일이 저절로 처리되는 것" },
+  { id: "conv2", dim: "conv", text: "매일 하는 사소한 결정(뭐 먹지, 뭐 입지)이 줄어드는 것" },
+  { id: "conv3", dim: "conv", text: "귀찮은 예약·신청·정산이 알아서 끝나 있는 것" },
+  { id: "conv4", dim: "conv", text: "자주 쓰는 것들이 늘 손 닿는 곳에 준비되어 있는 것" },
+  { id: "conv5", dim: "conv", text: "이동에 버리는 시간이 사라지는 것" },
+  { id: "conv6", dim: "conv", text: "한 번 만들어두면 계속 알아서 굴러가는 시스템" },
+  { id: "grow1", dim: "grow", text: "새 기술 하나를 제대로 익힌 상태" },
+  { id: "grow2", dim: "grow", text: "어제는 못 만들던 것을 오늘 만들 수 있게 되는 것" },
+  { id: "grow3", dim: "grow", text: "어렵던 개념이 어느 순간 이해되는 경험" },
+  { id: "grow4", dim: "grow", text: "배운 것을 실전에 써먹을 기회" },
+  { id: "grow5", dim: "grow", text: "나보다 잘하는 사람에게 배울 수 있는 환경" },
+  { id: "grow6", dim: "grow", text: "실력이 늘고 있다는 걸 눈으로 확인하는 것" },
+  { id: "achv1", dim: "achv", text: "하루가 끝날 때 '뭔가 남겼다'는 확실한 증거" },
+  { id: "achv2", dim: "achv", text: "완성해서 세상에 내놓은 결과물" },
+  { id: "achv3", dim: "achv", text: "시작한 것을 끝까지 마무리한 기록" },
+  { id: "achv4", dim: "achv", text: "차곡차곡 쌓여가는 포트폴리오" },
+  { id: "achv5", dim: "achv", text: "'이거 내가 만들었어'라고 말할 수 있는 것" },
+  { id: "achv6", dim: "achv", text: "과거의 내가 해낸 것들을 한눈에 보는 것" },
+  { id: "order1", dim: "order", text: "모든 물건과 파일이 제자리에 있는 상태" },
+  { id: "order2", dim: "order", text: "오늘 할 일이 명확하게 정리된 아침" },
+  { id: "order3", dim: "order", text: "어지럽던 것이 깔끔해지는 순간" },
+  { id: "order4", dim: "order", text: "예측 가능한 안정적인 일상 루틴" },
+  { id: "order5", dim: "order", text: "머릿속 생각이 구조로 정리되는 것" },
+  { id: "order6", dim: "order", text: "계획대로 흘러가는 하루" },
+  { id: "flow1", dim: "flow", text: "시간 가는 줄 모르고 빠져드는 몰입거리" },
+  { id: "flow2", dim: "flow", text: "누가 시키지 않아도 계속 하고 싶은 일" },
+  { id: "flow3", dim: "flow", text: "예상 못 한 재미를 발견하는 순간" },
+  { id: "flow4", dim: "flow", text: "손이 먼저 움직이는 즐거운 작업" },
+  { id: "flow5", dim: "flow", text: "게임처럼 빠져드는 도전 과제" },
+  { id: "flow6", dim: "flow", text: "지루할 틈이 없는 주말" },
+  { id: "conn1", dim: "conn", text: "내가 만든 걸 좋아해주는 사람" },
+  { id: "conn2", dim: "conn", text: "취향이 통하는 사람과의 대화" },
+  { id: "conn3", dim: "conn", text: "'덕분에 편해졌어'라는 말을 듣는 것" },
+  { id: "conn4", dim: "conn", text: "결과물에 달리는 반응과 피드백" },
+  { id: "conn5", dim: "conn", text: "같은 것을 좋아하는 사람들의 공간" },
+  { id: "conn6", dim: "conn", text: "내 노력을 알아봐주는 사람" },
+  { id: "free1", dim: "free", text: "아무것도 안 해도 되는 확보된 시간" },
+  { id: "free2", dim: "free", text: "눈치 보지 않고 내 속도로 움직이는 것" },
+  { id: "free3", dim: "free", text: "하기 싫은 걸 안 해도 되는 자유" },
+  { id: "free4", dim: "free", text: "급하지 않게 흘러가는 하루" },
+  { id: "free5", dim: "free", text: "내가 정한 규칙대로 사는 것" },
+  { id: "free6", dim: "free", text: "언제든 쉴 수 있다는 안심" },
+  { id: "mean1", dim: "mean", text: "지금 하는 일이 어디로 가는지 보이는 것" },
+  { id: "mean2", dim: "mean", text: "나에게 정말 중요한 것이 무엇인지 아는 상태" },
+  { id: "mean3", dim: "mean", text: "시간을 허투루 쓰지 않았다는 감각" },
+  { id: "mean4", dim: "mean", text: "미래의 나에게 도움이 될 것을 쌓는 것" },
+  { id: "mean5", dim: "mean", text: "왜 하는지 스스로 설명할 수 있는 일" },
+  { id: "mean6", dim: "mean", text: "삶이 한 방향으로 나아가고 있다는 느낌" }
+];
+
+/* suggestions per dimension: what to build (lab) + life-wide moves */
+const SUGGEST = {
+  conv: { build: ["반복 작업을 대신해주는 개인 자동화 도구 (알림/정리/집계 봇)", "하루의 반복 결정을 줄여주는 프리셋 대시보드"],
+          life: ["가장 자주 반복되는 귀찮음 1개를 골라 이번 달 안에 자동화/제거해보기"] },
+  grow: { build: ["실험마다 '처음 써보는 기술 1개' 규칙을 걸어 실험실 자체를 학습 장치로 만들기", "배운 것을 한 장으로 남기는 TIL 아카이브 페이지"],
+          life: ["배우고 싶은 기술을 큐로 관리 — 다음 실험이 곧 다음 수업이 되게"] },
+  achv: { build: ["완료한 것들이 자동으로 쌓여 보이는 '증거 아카이버' (이 실험실의 강화판)", "연말에 한 해의 완료 기록을 자동 요약하는 회고 생성 페이지"],
+          life: ["완료 기준을 미리 적고 시작하기 — '끝났다'를 선언할 수 있게"] },
+  order: { build: ["흩어진 메모/파일을 구조로 정리해주는 개인 정리 도구", "생각을 구조화하는 아웃라이너/그래프 실험"],
+          life: ["주 1회 15분 '리셋 루틴' — 디지털/물리 공간을 제자리로"] },
+  flow: { build: ["목적은 가볍지만 손맛 있는 작은 게임/인터랙티브 실험", "몰입 시간을 기록하고 패턴을 보여주는 몰입 트래커"],
+          life: ["몰입이 잘 터지는 시간대를 찾아 그 시간을 방해 없이 비워두기"] },
+  conn: { build: ["좋아하는 게임(명조/메이플) 커뮤니티가 실제로 쓸 유틸 만들기 — 반응이 확실한 영역", "만든 것을 공유하기 좋게 다듬는 쇼케이스 페이지"],
+          life: ["완성물을 올릴 채널 하나를 정해 꾸준히 공유하기"] },
+  free: { build: ["시간을 벌어주는 도구 — 자동화·단축·위임 계열 실험", "'오늘은 이것만' 한 가지 집중 선언 도구"],
+          life: ["일정에 '무계획 블록'을 먼저 넣고 나머지를 배치해보기"] },
+  mean: { build: ["가치·방향을 추적하는 개인 대시보드 (#005 '나 사용 설명서'의 씨앗)", "시간 사용을 욕구와 연결해 보여주는 '알찬 지도' (#004 후보)"],
+          life: ["주 1회 '이번 주는 어디로 갔나' 세 줄 회고"] }
+};
+
+const STORAGE_KEY = "lab.wants.v1";
+const START_RATING = 1500, K = 32;
+
+let S = null; /* state */
+
+/* ---------- state & persistence ---------- */
+function freshState() {
+  return { phase: "intro", fi: 0, kept: [], discarded: [],
+    ratings: {}, games: {}, pairs: {}, duelsDone: 0, budget: 0 };
+}
+function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(S)); } catch (e) {} }
+function load() {
+  try { const raw = localStorage.getItem(STORAGE_KEY); if (raw) { S = JSON.parse(raw); return; } } catch (e) {}
+  S = freshState();
+}
+
+const $ = s => document.querySelector(s);
+function esc(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function show(id) {
+  ["intro","filter","duel","result"].forEach(x => $("#"+x).classList.toggle("hidden", x !== id));
+}
+function card(id){ return DECK.find(c => c.id === id); }
+
+/* ---------- progress ---------- */
+function setProgress() {
+  let pct = 0, label = "—", phase = "";
+  if (S.phase === "filter") {
+    pct = S.fi / DECK.length * 50;
+    label = `${S.fi} / ${DECK.length}`;
+    phase = "1단계 거르기";
+  } else if (S.phase === "duel") {
+    pct = 50 + (S.duelsDone / S.budget * 50);
+    label = `${S.duelsDone} / ${S.budget}`;
+    phase = "2단계 토너먼트";
+  } else if (S.phase === "result") { pct = 100; label = "완료"; phase = "결과"; }
+  $("#progFill").style.width = pct + "%";
+  $("#progLabel").textContent = label;
+  $("#phaseLabel").textContent = phase;
+}
+
+/* ---------- phase 1: filter ---------- */
+function showFilterCard() {
+  if (S.fi >= DECK.length) { startDuel(); return; }
+  show("filter");
+  const c = DECK[S.fi];
+  const el = $("#fcard");
+  el.style.animation = "none"; void el.offsetWidth; el.style.animation = "";
+  $("#ftext").textContent = c.text;
+  setProgress();
+}
+function answerFilter(keep) {
+  const c = DECK[S.fi];
+  (keep ? S.kept : S.discarded).push(c.id);
+  S.fi++;
+  save();
+  showFilterCard();
+}
+
+/* ---------- phase 2: duel (Elo) ---------- */
+function startDuel() {
+  if (S.kept.length < 4) { S.phase = "result"; save(); showResult(); return; }
+  S.phase = "duel";
+  if (!S.budget) {
+    S.budget = Math.min(66, Math.max(24, S.kept.length * 3));
+    /* shuffle so pairing never follows deck (=dimension) order */
+    for (let i = S.kept.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [S.kept[i], S.kept[j]] = [S.kept[j], S.kept[i]];
+    }
+    S.kept.forEach(id => { S.ratings[id] = START_RATING; S.games[id] = 0; });
+  }
+  save();
+  nextDuel();
+}
+function pickPair() {
+  /* A = least-played card; B = fresh-ish opponent with a similar rating.
+     pair-history penalty + jitter prevent degenerate repeat matchups. */
+  const byGames = [...S.kept].sort((a, b) => S.games[a] - S.games[b]);
+  const a = byGames[0];
+  let best = null, bestScore = Infinity;
+  for (const b of S.kept) {
+    if (b === a) continue;
+    const played = S.pairs[[a, b].sort().join("|")] || 0;
+    const score = Math.abs(S.ratings[a] - S.ratings[b])
+      + S.games[b] * 10 + played * 400 + Math.random() * 120;
+    if (score < bestScore) { bestScore = score; best = b; }
+  }
+  return Math.random() < 0.5 ? [a, best] : [best, a];
+}
+let currentPair = null;
+function nextDuel() {
+  if (S.duelsDone >= S.budget) { S.phase = "result"; save(); showResult(); return; }
+  show("duel");
+  currentPair = pickPair();
+  [$("#dleft"), $("#dright")].forEach((el, i) => {
+    el.style.animation = "none"; void el.offsetWidth; el.style.animation = "";
+    el.textContent = card(currentPair[i]).text;
+  });
+  setProgress();
+}
+function elo(winner, loser, drawn) {
+  const ra = S.ratings[winner], rb = S.ratings[loser];
+  const ea = 1 / (1 + Math.pow(10, (rb - ra) / 400));
+  const sa = drawn ? 0.5 : 1;
+  S.ratings[winner] = ra + K * (sa - ea);
+  S.ratings[loser]  = rb + K * ((1 - sa) - (1 - ea));
+  S.games[winner]++; S.games[loser]++;
+}
+function answerDuel(pick) { /* 0=left, 1=right, -1=tie */
+  const [l, r] = currentPair;
+  if (pick === -1) elo(l, r, true);
+  else if (pick === 0) elo(l, r, false);
+  else elo(r, l, false);
+  const key = [l, r].sort().join("|");
+  S.pairs[key] = (S.pairs[key] || 0) + 1;
+  S.duelsDone++;
+  save();
+  nextDuel();
+}
+
+/* ---------- phase 3: result ---------- */
+function computeResult() {
+  const ranking = [...S.kept]
+    .sort((a, b) => (S.ratings[b] || 0) - (S.ratings[a] || 0))
+    .map(id => ({ id, text: card(id).text, dim: card(id).dim,
+      rating: Math.round(S.ratings[id] || START_RATING) }));
+
+  const dimScores = {};
+  for (const key of Object.keys(DIMS)) {
+    const vals = DECK.filter(c => c.dim === key).map(c =>
+      S.kept.includes(c.id) ? (S.ratings[c.id] || START_RATING) : 1300);
+    dimScores[key] = vals.reduce((s, v) => s + v, 0) / vals.length;
+  }
+  const lo = Math.min(...Object.values(dimScores));
+  const hi = Math.max(...Object.values(dimScores));
+  const dims = Object.keys(DIMS).map(key => ({
+    dim: key, label: DIMS[key].label,
+    score: hi === lo ? 50 : Math.round((dimScores[key] - lo) / (hi - lo) * 100)
+  })).sort((a, b) => b.score - a.score);
+
+  return {
+    schema: "lab.wants/v1",
+    completedAt: new Date().toISOString(),
+    comparisons: S.duelsDone,
+    keptCount: S.kept.length, discardedCount: S.discarded.length,
+    ranking, dimensions: dims,
+    topDimensions: dims.slice(0, 3).map(d => d.dim),
+    discardedIds: S.discarded
+  };
+}
+function showResult() {
+  const r = computeResult();
+  show("result");
+  setProgress();
+  const top10 = r.ranking.slice(0, 10).map((c, i) =>
+    `<div class="rank-item"><span class="rank-n">${i + 1}</span><span>${esc(c.text)}</span>
+     <span class="rank-dim">${DIMS[c.dim].label}</span></div>`).join("");
+  const bars = r.dimensions.map(d =>
+    `<div class="dimrow"><span class="dlabel">${d.label}</span>
+     <span class="dbar"><i style="width:${Math.max(6, d.score)}%"></i></span>
+     <span class="dval">${d.score}</span></div>`).join("");
+  const sugs = r.topDimensions.slice(0, 2).map(k => {
+    const s = SUGGEST[k];
+    return `<div class="sug"><div class="sug-dim">${DIMS[k].label} 상위</div><ul>
+      ${s.build.map(x => `<li><b>만들기</b> — ${esc(x)}</li>`).join("")}
+      ${s.life.map(x => `<li><b>삶에서</b> — ${esc(x)}</li>`).join("")}
+    </ul></div>`;
+  }).join("");
+  const json = JSON.stringify(r, null, 2);
+
+  $("#result").innerHTML = `
+    <div class="kicker">experiment #002 · 결과</div>
+    <h1>당신이 원하는 것 · What you want</h1>
+    <p class="note" style="margin-bottom:16px;">비교 ${r.comparisons}회 · 컷 통과 ${r.keptCount}장 / 탈락 ${r.discardedCount}장</p>
+    <div class="rcard"><h2>욕구 랭킹 톱 10</h2>${top10}</div>
+    <div class="rcard"><h2>기저 욕구 프로필</h2>${bars}
+      <p class="note" style="margin:10px 0 0;">점수는 상대값(0–100). 컷에서 버린 카드도 낮은 신호로 반영됨.</p></div>
+    <div class="rcard"><h2>그렇다면, 이런 걸 — 제안</h2>${sugs}
+      <p class="note" style="margin:4px 0 0;">상위 욕구 차원에서 도출. 랭킹 JSON을 저장소 <code>data/wants.json</code>에 두면
+      다음 실험 로드맵에 반영됩니다.</p></div>
+    <div class="rcard">
+      <div class="row" style="margin-bottom:12px;">
+        <button class="primary" id="dlBtn">JSON 다운로드 · Download</button>
+        <button id="copyBtn">클립보드 복사 · Copy</button>
+        <button id="retakeBtn">다시 하기 · Retake</button>
+      </div>
+      <pre id="jsonOut">${esc(json)}</pre>
+    </div>
+    <p class="note"><a href="../../">← 실험실로 · back to the lab</a></p>`;
+
+  $("#dlBtn").onclick = () => {
+    const blob = new Blob([json], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob); a.download = "wants.json"; a.click();
+    URL.revokeObjectURL(a.href);
+  };
+  $("#copyBtn").onclick = async () => {
+    try { await navigator.clipboard.writeText(json); $("#copyBtn").textContent = "복사됨 · Copied ✓"; }
+    catch (e) { $("#copyBtn").textContent = "복사 실패 — 직접 선택하세요"; }
+  };
+  $("#retakeBtn").onclick = () => {
+    if (!confirm("처음부터 다시 할까요? Reset and retake?")) return;
+    S = freshState(); save(); show("intro"); setProgress();
+    $("#resumeBtn").classList.add("hidden");
+  };
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+/* ---------- flow ---------- */
+function resume() {
+  if (S.phase === "filter") showFilterCard();
+  else if (S.phase === "duel") { show("duel"); nextDuel(); }
+  else if (S.phase === "result") showResult();
+  else { show("intro"); }
+  setProgress();
+}
+function init() {
+  load();
+  const inProgress = S.phase !== "intro";
+  if (inProgress) $("#resumeBtn").classList.remove("hidden");
+
+  $("#startBtn").onclick = () => {
+    if (inProgress && !confirm("이전 진행 기록이 있습니다. 처음부터 새로 시작할까요?")) { resume(); return; }
+    S = freshState(); S.phase = "filter"; save(); showFilterCard();
+  };
+  $("#resumeBtn").onclick = resume;
+  $("#keepBtn").onclick = () => answerFilter(true);
+  $("#passBtn").onclick = () => answerFilter(false);
+  $("#dleft").onclick = () => answerDuel(0);
+  $("#dright").onclick = () => answerDuel(1);
+  $("#tieBtn").onclick = () => answerDuel(-1);
+
+  document.addEventListener("keydown", e => {
+    if (S.phase === "filter" && !$("#filter").classList.contains("hidden")) {
+      if (e.key === "ArrowLeft") answerFilter(false);
+      if (e.key === "ArrowRight") answerFilter(true);
+    } else if (S.phase === "duel" && !$("#duel").classList.contains("hidden")) {
+      if (e.key === "ArrowLeft") answerDuel(0);
+      if (e.key === "ArrowRight") answerDuel(1);
+      if (e.key === "ArrowDown") answerDuel(-1);
+    }
+  });
+  setProgress();
+}
+init();
+</script>
+</body>
+</html>

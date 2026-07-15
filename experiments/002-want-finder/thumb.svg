@@ -1,0 +1,14 @@
+<svg viewBox="0 0 200 90" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Want Finder">
+  <rect width="200" height="90" fill="#26215C"/>
+  <!-- two duel cards -->
+  <rect x="22" y="22" width="66" height="46" rx="7" fill="none" stroke="#AFA9EC" stroke-width="2"/>
+  <rect x="112" y="22" width="66" height="46" rx="7" fill="none" stroke="#534AB7" stroke-width="1.5"/>
+  <!-- text lines -->
+  <rect x="34" y="36" width="42" height="4" rx="2" fill="#CECBF6"/>
+  <rect x="38" y="46" width="34" height="4" rx="2" fill="#7F77DD"/>
+  <rect x="124" y="36" width="42" height="4" rx="2" fill="#534AB7"/>
+  <rect x="128" y="46" width="34" height="4" rx="2" fill="#3C3489"/>
+  <!-- vs -->
+  <text x="100" y="49" text-anchor="middle" font-family="monospace" font-size="10" fill="#AFA9EC">vs</text>
+  <text x="100" y="82" text-anchor="middle" font-family="monospace" font-size="9" fill="#7F77DD">what do you want?</text>
+</svg>
