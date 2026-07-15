@@ -1,0 +1,52 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{{SITE_TITLE}}</title>
+  <meta name="description" content="{{SITE_MOTTO}}" />
+  <link rel="stylesheet" href="./style.css" />
+</head>
+<body>
+  <main class="wrap">
+    <h1 class="sr-only">{{SITE_TITLE}} — {{SITE_MOTTO}}</h1>
+
+    <header class="head">
+      <div class="head-row">
+        <span class="head-title">{{SITE_TITLE}}</span>
+        <span class="head-sub">{{SITE_TAGLINE_EN}}</span>
+      </div>
+      <p class="head-motto">{{SITE_MOTTO}}</p>
+    </header>
+
+    <section class="stats" aria-label="통계 / stats">
+      <div class="stat">
+        <div class="stat-label">실험 · experiments</div>
+        <div class="stat-value">{{STAT_COUNT}}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">연속 주말 · streak</div>
+        <div class="stat-value">{{STAT_STREAK}}</div>
+      </div>
+      <div class="stat">
+        <div class="stat-label">최근 실험 · latest</div>
+        <div class="stat-value">{{STAT_LATEST}}</div>
+      </div>
+    </section>
+
+    <section class="grass-wrap" aria-label="활동 잔디 / activity heatmap">
+      <div class="grass-title">지난 1년 · last 52 weeks</div>
+      <div class="grass" aria-hidden="true">{{GRASS}}</div>
+    </section>
+
+    <section aria-label="실험 목록 / experiments">
+      <div class="grid">{{CARDS}}</div>
+    </section>
+
+    <footer class="foot">
+      <div>{{STAT_COUNT}} experiments · built {{BUILD_DATE}}</div>
+      <div style="margin-top:4px;">주말마다 하나씩 · one per weekend</div>
+    </footer>
+  </main>
+</body>
+</html>
