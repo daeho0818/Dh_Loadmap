@@ -88,10 +88,6 @@
   .wkcard ul { margin: 0 0 10px; padding-left: 18px; font-size: 13.5px; color: var(--text-2); }
   .wkcard li { margin: 2px 0; }
   .wkcard li span { color: var(--muted); font-family: var(--mono); font-size: 11px; margin-right: 4px; }
-  .wk-note { width: 100%; background: var(--surface-2); border: 1px solid transparent; border-radius: 8px;
-    color: var(--text); font-family: var(--sans); font-size: 13.5px; padding: 8px 10px; }
-  .wk-note:focus { outline: none; border-color: var(--accent); }
-  .wk-note::placeholder { color: var(--muted); }
 
   h2 { font-size: 16px; font-weight: 600; margin: 26px 0 10px; }
   .row { display: flex; gap: 10px; flex-wrap: wrap; margin-top: 8px; }
@@ -127,7 +123,7 @@
   </div>
 
   <h2>주간 지층 · weekly strata</h2>
-  <p class="note" style="margin:-4px 0 12px;">주마다 한 줄: 이번 주는 어디로 갔나. 기록들이 향하는 방향이 여기서 보입니다.</p>
+  <p class="note" style="margin:-4px 0 12px;">벽돌들을 주 단위로 읽기 좋게 펼친 목록.</p>
   <div id="weeks"></div>
 
   <div class="row">
@@ -224,19 +220,13 @@ function render() {
   $("#weeks").innerHTML = [...weeks].reverse().map(wk => {
     const list = byWeek.get(wk).map(e =>
       `<li><span>${e.date.slice(5)}</span>${esc(e.text)}</li>`).join("");
-    const note = DB.weekNotes[wk] || "";
     return `<div class="wkcard"><div class="wk-head">
         <span class="wk-name">${wk}</span><span class="wk-count">${byWeek.get(wk).length}장</span></div>
-      <ul>${list}</ul>
-      <input class="wk-note" data-wk="${wk}" value="${esc(note)}"
-        placeholder="이번 주는 어디로 갔나 · one line about where this week went" maxlength="100" /></div>`;
+      <ul>${list}</ul></div>`;
   }).join("") || '<p class="note">기록이 쌓이면 주 단위로 여기에 정리됩니다.</p>';
 
   /* wire */
   document.querySelectorAll(".brick").forEach(b => b.onclick = () => showDetail(Number(b.dataset.id)));
-  document.querySelectorAll(".wk-note").forEach(inp => {
-    inp.onchange = () => { DB.weekNotes[inp.dataset.wk] = inp.value.trim(); save(); };
-  });
 }
 
 let armedDelete = null;
