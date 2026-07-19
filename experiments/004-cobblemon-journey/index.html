@@ -1,0 +1,323 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>#004 코블몬 여정 · Cobblemon Journey</title>
+<meta name="description" content="코블몬(Cobblemon) 설치 가이드, 플레이 가이드, 체크 가능한 도전과제 로드맵. Install, learn, and chart your Cobblemon journey." />
+<style>
+  :root {
+    --bg: #1a1517; --surface: #241d20; --surface-2: #2c2427;
+    --border: #3f3438; --border-strong: #57484d;
+    --text: #f2ebed; --text-2: #c9bcc0; --muted: #93848a;
+    --accent: #f09595; --accent-strong: #e24b4a; --accent-dim: #501313;
+    --green: #c0dd97; --cream: #faeeda; --blue: #b5d4f4;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
+    --mono: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f6f2f0; --surface: #ffffff; --surface-2: #efe8e6;
+      --border: #ded2d0; --border-strong: #c2b2b0;
+      --text: #2b2124; --text-2: #5f5257; --muted: #91838a;
+      --accent: #a32d2d; --accent-strong: #e24b4a; --accent-dim: #f7c1c1;
+      --green: #3b6d11; --cream: #854f0b; --blue: #185fa5;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 28px 18px 80px; }
+
+  .kicker { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  h1 { font-size: 25px; font-weight: 600; margin: 4px 0 6px; }
+  h2 { font-size: 18px; font-weight: 600; margin: 34px 0 4px; display: flex; align-items: center; gap: 8px; }
+  h2 .num { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  .lead { color: var(--text-2); font-size: 14px; margin: 0 0 2px; }
+  .lead-en { color: var(--muted); font-size: 13px; margin: 0 0 14px; }
+  .note { font-size: 12.5px; color: var(--muted); }
+  a { color: var(--accent); }
+  code { font-family: var(--mono); font-size: 0.92em; background: var(--surface-2);
+    padding: 1px 6px; border-radius: 5px; }
+
+  .card { background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: 14px; padding: 16px 18px; margin: 12px 0; }
+  .fix { border-left: 3px solid var(--accent-strong); border-radius: 0 14px 14px 0; }
+  .fix b.t { color: var(--accent); }
+
+  ol.steps { margin: 8px 0 0; padding-left: 22px; font-size: 14px; color: var(--text-2); }
+  ol.steps li { margin: 7px 0; }
+  ol.steps b { color: var(--text); font-weight: 600; }
+  ul.plain { margin: 8px 0 0; padding-left: 20px; font-size: 14px; color: var(--text-2); }
+  ul.plain li { margin: 6px 0; }
+  ul.plain b { color: var(--text); font-weight: 600; }
+
+  details { background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: 12px; padding: 12px 16px; margin: 10px 0; }
+  details summary { cursor: pointer; font-size: 14.5px; font-weight: 600; user-select: none; }
+  details summary:hover { color: var(--accent); }
+  details[open] summary { margin-bottom: 6px; }
+
+  table.vers { width: 100%; border-collapse: collapse; font-size: 13px; margin-top: 8px; }
+  table.vers th { text-align: left; font-size: 11.5px; color: var(--muted); font-weight: 500;
+    border-bottom: 0.5px solid var(--border); padding: 4px 6px; }
+  table.vers td { padding: 6px; border-bottom: 0.5px solid var(--border); color: var(--text-2); }
+
+  /* roadmap */
+  .progress-all { position: sticky; top: 0; z-index: 10; margin: 0 -18px; padding: 10px 18px;
+    background: color-mix(in srgb, var(--bg) 90%, transparent); backdrop-filter: blur(8px); }
+  .pbar { height: 8px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+  .pbar > i { display: block; height: 100%; width: 0; background: var(--accent-strong);
+    border-radius: 99px; transition: width .3s ease; }
+  .pmeta { display: flex; justify-content: space-between; font-family: var(--mono);
+    font-size: 11.5px; color: var(--muted); margin-top: 4px; }
+
+  .tier { margin: 18px 0; }
+  .tier-head { display: flex; align-items: baseline; gap: 10px; margin-bottom: 8px; }
+  .tier-head h3 { font-size: 15.5px; font-weight: 600; margin: 0; }
+  .tier-head .tp { font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  .tier-head .done-badge { font-size: 11px; color: var(--green); font-weight: 600; }
+  .quest { display: flex; gap: 10px; align-items: flex-start; padding: 9px 12px;
+    background: var(--surface); border: 0.5px solid var(--border); border-radius: 10px;
+    margin-bottom: 6px; cursor: pointer; transition: all .12s; user-select: none; }
+  .quest:hover { border-color: var(--border-strong); }
+  .quest .box { width: 20px; height: 20px; flex: none; border-radius: 6px; margin-top: 1px;
+    border: 1.5px solid var(--border-strong); display: flex; align-items: center;
+    justify-content: center; font-size: 13px; color: transparent; transition: all .12s; }
+  .quest.on .box { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+  .quest .q-text { font-size: 14px; }
+  .quest.on .q-text { color: var(--muted); text-decoration: line-through; text-decoration-thickness: 1px; }
+  .quest .q-hint { display: block; font-size: 12px; color: var(--muted); margin-top: 1px; }
+  .quest.on .q-hint { text-decoration: none; }
+
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: center; }
+  button { font-family: var(--sans); font-size: 13.5px; font-weight: 600; cursor: pointer;
+    border-radius: 10px; padding: 9px 14px; border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--text); transition: all .12s; }
+  button:hover { border-color: var(--accent); }
+  .toc { display: flex; gap: 8px; flex-wrap: wrap; margin: 14px 0 0; }
+  .toc a { font-size: 12.5px; padding: 6px 12px; border-radius: 99px; text-decoration: none;
+    background: var(--surface-2); color: var(--text-2); border: 0.5px solid var(--border); }
+  .toc a:hover { color: var(--accent); border-color: var(--accent); }
+  .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
+</style>
+</head>
+<body>
+<main class="wrap">
+  <div class="kicker">experiment #004</div>
+  <h1>코블몬 여정 · Cobblemon Journey</h1>
+  <p class="lead">마인크래프트 × 포켓몬(Cobblemon) — 설치부터 메가진화까지.
+    도전과제에 체크하며 나만의 여정을 기록하는 페이지.</p>
+  <p class="lead-en">Install guide, play guide, and a checkable quest roadmap for the Cobblemon mod.</p>
+  <nav class="toc">
+    <a href="#install">① 설치</a><a href="#play">② 플레이 가이드</a><a href="#quests">③ 도전과제 로드맵</a>
+  </nav>
+
+  <!-- ================= install ================= -->
+  <h2 id="install"><span class="num">①</span> 설치 가이드 (CurseForge 기반)</h2>
+
+  <div class="card fix">
+    <b class="t">⚠ 부팅 크래시 해결 — "Failed to load registries"</b>
+    <p style="font-size:13.5px; color:var(--text-2); margin:6px 0 0;">
+      싱글플레이 진입 시 <code>Errors in registry mega_showdown:mega</code>가 뜬다면
+      <b>호환 팩 세대 불일치</b>다. <code>AllTheMons x Mega Showdown [v2.8.1]</code>은 구버전
+      Mega Showdown용 — 모드가 <b>Mega Showdown 1.8.x</b>라면 팩도
+      <b><a href="https://modrinth.com/datapack/allthemons-x-mega-showdown-legacy" target="_blank" rel="noopener">v3.6.1</a></b>
+      (MSD 1.8.0+ 대응)으로 교체해야 한다.
+      <code>datapacks/</code>와 <code>resourcepacks/</code> <b>양쪽의 zip을 모두</b> 새 버전으로 바꾸면 끝.</p>
+  </div>
+
+  <div class="card">
+    <b>구성 요소 (검증된 조합)</b>
+    <table class="vers">
+      <tr><th>구성</th><th>버전</th><th>위치</th></tr>
+      <tr><td>Minecraft + Fabric</td><td>1.21.1</td><td>CurseForge 프로필</td></tr>
+      <tr><td>Cobblemon (본체)</td><td>1.7.3</td><td><code>mods/</code></td></tr>
+      <tr><td>Cobblemon: Mega Showdown</td><td>1.8.4</td><td><code>mods/</code></td></tr>
+      <tr><td>Cobblemon Smartphone</td><td>1.1.2</td><td><code>mods/</code></td></tr>
+      <tr><td>Global Packs (데이터팩 자동 적용)</td><td>—</td><td><code>mods/</code></td></tr>
+      <tr><td>AllTheMons x Mega Showdown</td><td><b>v3.6.1</b> (MSD 1.8+용)</td><td><code>datapacks/</code> + <code>resourcepacks/</code></td></tr>
+      <tr><td>MissingMon / MythsAndLegends</td><td>—</td><td><code>datapacks/</code></td></tr>
+    </table>
+    <p class="note" style="margin:8px 0 0;">규칙: <b>모드는 mods, 팩은 datapacks+resourcepacks 짝으로.</b>
+    팩 페이지의 "Compatible with Mega Showdown vX+" 표기를 항상 내 모드 버전과 대조할 것 — 이번 크래시의 교훈.</p>
+  </div>
+
+  <ol class="steps">
+    <li><b>CurseForge 앱</b> 설치 → Minecraft → <b>Create Custom Profile</b> → Fabric / 1.21.1.</li>
+    <li>프로필의 <b>Add More Content</b>(또는 폴더 열기 → <code>mods/</code>)에서 위 표의 모드들을 추가.
+      의존성(Fabric API 등)은 CurseForge가 같이 받아준다.</li>
+    <li>프로필 우클릭 → <b>Open Folder</b> → <code>datapacks/</code>, <code>resourcepacks/</code> 폴더에 팩 zip 배치.
+      (Global Packs 모드가 <code>datapacks/</code>를 모든 월드에 자동 적용해준다)</li>
+    <li>실행 → 리소스팩 화면에서 AllTheMons 팩 <b>활성화</b> → 싱글플레이 진입 확인.</li>
+    <li>크래시가 나면 <code>logs/latest.log</code>에서 <code>Registry loading errors</code> 위쪽을 볼 것 —
+      범인(어떤 팩의 어떤 파일인지)이 거기 적혀 있다.</li>
+  </ol>
+
+  <!-- ================= play ================= -->
+  <h2 id="play"><span class="num">②</span> 플레이 가이드</h2>
+  <p class="note" style="margin:0 0 10px;">정확한 조합법은 게임 안에서 확인하는 게 최신·확실 —
+  레시피북/JEI에서 아이템명 검색, 스폰 정보는 스마트폰 모드의 도감으로.</p>
+
+  <details open>
+    <summary>첫 1시간 — 포켓볼과 첫 포획</summary>
+    <ul class="plain">
+      <li><b>아프리콘(Apricorn)</b> 나무를 찾아 열매를 수확 — 포켓볼의 재료다. 묘목을 심어 농장을 만들면 두고두고 편하다.</li>
+      <li>아프리콘 + 구리/철 계열 재료로 <b>포켓볼 제작</b> (레시피북에서 "poke ball" 검색).</li>
+      <li>야생 포켓몬과 배틀해 <b>체력을 깎은 뒤</b> 포켓볼 투척 — 잔여 체력이 낮을수록, 상태이상일수록 잘 잡힌다. 초반 필드몬은 그냥 던져도 잘 들어간다.</li>
+      <li><b>힐링 머신</b>과 <b>PC</b>를 일찍 만들 것 — 회복과 보관의 거점. 거점 침대 옆에 두면 루틴이 잡힌다.</li>
+      <li>스타팅 포켓몬은 월드 시작 시 선택 — 성능보다 <b>애정</b>으로 고르자. 어차피 금방 여섯 마리가 된다.</li>
+    </ul>
+  </details>
+
+  <details>
+    <summary>성장 — 진화, 도감, 스마트폰</summary>
+    <ul class="plain">
+      <li>배틀 승리로 경험치 획득. <b>진화 조건</b>은 레벨 외에도 아이템·시간대·통신(링크 케이블) 등 다양 — 도감/위키 참고.</li>
+      <li><b>스마트폰 모드</b>: 도감·스폰 바이옴·시간대 확인이 게임 안에서 가능. "이 몬 어디서 나와?"는 폰부터.</li>
+      <li>포켓몬마다 <b>바이옴·시간·날씨 스폰 조건</b>이 있다 — 낮/밤, 비 오는 날, 특정 바이옴 원정이 자연스러운 탐험 루프가 된다.</li>
+      <li>낚싯대로 <b>물 포켓몬 낚시</b>, 땅속 화석은 <b>부활 장치</b>로 복원 — 채굴·낚시가 전부 포켓몬과 연결된다.</li>
+      <li>MissingMon·MythsAndLegends 팩이 추가 몬과 <b>전설 소환 구조물</b>을 더해준다 — 후반 콘텐츠.</li>
+    </ul>
+  </details>
+
+  <details>
+    <summary>메가진화 — Mega Showdown 핵심 루트</summary>
+    <ul class="plain">
+      <li><b>메가사이트(Megasite)</b>: 지하 <b>Y5~Y20</b>에 생성되는 전용 구조물. 중심부에서 <b>키스톤(Key Stone)</b>과 <b>원석 메가스톤</b>을 얻는다.</li>
+      <li><b>메가 브레슬릿 제작</b>: 철 주괴 5 + 다이아몬드 1 + 키스톤 1 + 아프리콘 2 (색상은 취향).</li>
+      <li>인벤토리의 <b>액세서리 슬롯</b>(왼쪽 Mega 슬롯)에 브레슬릿 장착.</li>
+      <li>포켓몬별 <b>전용 메가스톤</b>을 제작해 그 포켓몬에게 지니게 한다 (공유 불가).</li>
+      <li>배틀에서 Fight → 왼쪽 아래 <b>Mega Evolve 아이콘</b> → 기술 선택 → 그 턴에 메가진화.</li>
+      <li>예외: <b>레쿠자</b>는 메가스톤 없이 기술 "용의 승천"만 배우면 메가진화 가능.</li>
+    </ul>
+    <p class="note" style="margin:8px 0 0;">상세: <a href="https://megashowdown.miraheze.org/wiki/Mega_Evolution" target="_blank" rel="noopener">Mega Showdown 위키</a> ·
+    <a href="https://cobblemon.gg/guides/mega-evolutions" target="_blank" rel="noopener">cobblemon.gg 가이드</a></p>
+  </details>
+
+  <!-- ================= quests ================= -->
+  <h2 id="quests"><span class="num">③</span> 도전과제 로드맵</h2>
+  <p class="note" style="margin:0 0 10px;">클릭해서 체크 — 이 브라우저에 자동 저장됩니다. 순서는 자유, 여정은 당신 것.</p>
+
+  <div class="progress-all">
+    <div class="pbar"><i id="pAll"></i></div>
+    <div class="pmeta"><span id="pLabel">0 / 0</span><span id="pTier"></span></div>
+  </div>
+
+  <div id="tiers"></div>
+
+  <div class="row" style="margin-top:16px;">
+    <button id="resetBtn">전체 초기화 · reset</button>
+    <span class="note" id="resetMsg"></span>
+  </div>
+  <p class="note" style="margin-top:16px;"><a href="../../">← 실험실로 · back to the lab</a></p>
+</main>
+
+<script>
+"use strict";
+const STORAGE_KEY = "lab.cobblemon.v1";
+
+const TIERS = [
+  { id: "t1", name: "🌱 새싹 트레이너", quests: [
+    { id: "boot", text: "크래시 없이 월드 진입", hint: "여기까지가 제일 어려웠다는 전설이 있다" },
+    { id: "starter", text: "스타팅 포켓몬 선택", hint: "성능 말고 애정으로" },
+    { id: "apricorn", text: "아프리콘 첫 수확", hint: "포켓볼의 재료. 묘목도 챙기기" },
+    { id: "ball", text: "포켓볼 첫 제작", hint: "레시피북에서 poke ball 검색" },
+    { id: "catch1", text: "첫 야생 포켓몬 포획", hint: "체력을 깎고 던지면 확률 상승" },
+    { id: "healer", text: "힐링 머신 제작·설치", hint: "거점의 심장" },
+    { id: "pc", text: "PC 제작·설치", hint: "잡은 몬 보관·정리" },
+    { id: "party6", text: "파티 6마리 채우기", hint: "나만의 첫 팀 완성" }
+  ]},
+  { id: "t2", name: "🗺️ 여정", quests: [
+    { id: "evo1", text: "첫 진화 목격", hint: "레벨·아이템·통신 등 조건 다양" },
+    { id: "types5", text: "서로 다른 타입 5종 포획", hint: "바이옴을 바꿔가며" },
+    { id: "species15", text: "도감 15종 등록", hint: "스마트폰으로 진행도 확인" },
+    { id: "fish", text: "낚시로 물 포켓몬 포획", hint: "낚싯대를 물에" },
+    { id: "night", text: "밤에만 나오는 포켓몬 포획", hint: "스폰 조건엔 시간대도 있다" },
+    { id: "fossil", text: "화석 발굴·부활", hint: "채굴 중 화석을 찾아 부활 장치로" },
+    { id: "linkcable", text: "통신(링크 케이블) 진화 성공", hint: "통신교환 진화의 코블몬식 해법" },
+    { id: "shinysee", text: "색이 다른(Shiny) 포켓몬 조우", hint: "만나기만 해도 오늘은 운수 좋은 날" },
+    { id: "legendsee", text: "전설 포켓몬 조우", hint: "MythsAndLegends 구조물을 찾아라" },
+    { id: "lv50", text: "포켓몬 한 마리 Lv.50 달성", hint: "주력 몬을 키워보자" }
+  ]},
+  { id: "t3", name: "💠 메가의 길", quests: [
+    { id: "megasite", text: "메가사이트 발견", hint: "지하 Y5~20의 전용 구조물" },
+    { id: "keystone", text: "키스톤 획득", hint: "메가사이트 중심부에서" },
+    { id: "bracelet", text: "메가 브레슬릿 제작", hint: "철5 + 다이아1 + 키스톤1 + 아프리콘2" },
+    { id: "equip", text: "액세서리 슬롯에 브레슬릿 장착", hint: "인벤토리 왼쪽 Mega 슬롯" },
+    { id: "megastone", text: "첫 메가스톤 제작", hint: "포켓몬별 전용 — 공유 불가" },
+    { id: "mega1", text: "첫 메가진화 성공", hint: "Fight → 왼쪽 아래 Mega Evolve" },
+    { id: "megaspecial", text: "AllTheMons 특수 폼 메가 획득", hint: "팩이 추가한 특별한 메가들" },
+    { id: "rayquaza", text: "레쿠자에게 용의 승천 가르치기", hint: "유일하게 스톤 없이 메가진화" }
+  ]},
+  { id: "t4", name: "👑 도감 마스터", quests: [
+    { id: "dex50", text: "도감 50종", hint: "이제 몸이 풀렸다" },
+    { id: "dex100", text: "도감 100종", hint: "세 자리 진입" },
+    { id: "legendcatch", text: "전설 포켓몬 포획", hint: "조우를 넘어 내 손에" },
+    { id: "shinycatch", text: "Shiny 포획", hint: "놓치면 며칠 잠 못 잔다" },
+    { id: "fullteam", text: "메가 에이스를 포함한 풀육성 팀 완성", hint: "내 최애 6마리의 완성형" },
+    { id: "dex200", text: "도감 200종", hint: "AllTheMons의 진짜 스케일" },
+    { id: "livingdex", text: "리빙덱스 도전 시작", hint: "PC 한 박스씩, 전 종 보관" },
+    { id: "owngoal", text: "나만의 최종 목표 하나 정하기", hint: "여정의 끝은 스스로 정하는 것" }
+  ]}
+];
+
+let checks = {};
+function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify({ checks, updated: Date.now() })); } catch (e) {} }
+function load() {
+  try { const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) { const d = JSON.parse(raw); if (d && d.checks) checks = d.checks; } } catch (e) {}
+}
+const $ = s => document.querySelector(s);
+function esc(t){ return String(t).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+
+function render() {
+  const total = TIERS.reduce((s, t) => s + t.quests.length, 0);
+  const done = TIERS.reduce((s, t) => s + t.quests.filter(q => checks[q.id]).length, 0);
+  $("#pAll").style.width = (total ? done / total * 100 : 0) + "%";
+  $("#pLabel").textContent = done + " / " + total;
+  const curTier = TIERS.find(t => t.quests.some(q => !checks[q.id]));
+  $("#pTier").textContent = done === total ? "여정 완주! 🎉" : curTier ? "현재: " + curTier.name : "";
+
+  $("#tiers").innerHTML = TIERS.map(t => {
+    const d = t.quests.filter(q => checks[q.id]).length;
+    const all = d === t.quests.length;
+    return `<div class="tier">
+      <div class="tier-head"><h3>${t.name}</h3>
+        <span class="tp">${d}/${t.quests.length}</span>${all ? '<span class="done-badge">완료 ✓</span>' : ""}</div>
+      ${t.quests.map(q => `
+        <div class="quest ${checks[q.id] ? "on" : ""}" data-q="${q.id}" role="checkbox"
+          aria-checked="${!!checks[q.id]}" tabindex="0">
+          <span class="box">✓</span>
+          <span><span class="q-text">${esc(q.text)}</span><span class="q-hint">${esc(q.hint)}</span></span>
+        </div>`).join("")}
+    </div>`;
+  }).join("");
+
+  document.querySelectorAll(".quest").forEach(el => {
+    const toggle = () => { const id = el.dataset.q; checks[id] = !checks[id];
+      if (!checks[id]) delete checks[id]; save(); render(); };
+    el.onclick = toggle;
+    el.onkeydown = e => { if (e.key === " " || e.key === "Enter") { e.preventDefault(); toggle(); } };
+  });
+}
+
+let resetArmed = false;
+function init() {
+  load(); render();
+  $("#resetBtn").onclick = () => {
+    if (!resetArmed) { resetArmed = true; $("#resetBtn").textContent = "정말 초기화? · sure?";
+      setTimeout(() => { resetArmed = false; $("#resetBtn").textContent = "전체 초기화 · reset"; }, 3000);
+      return; }
+    checks = {}; save(); resetArmed = false;
+    $("#resetBtn").textContent = "전체 초기화 · reset";
+    $("#resetMsg").textContent = "초기화됨";
+    setTimeout(() => { $("#resetMsg").textContent = ""; }, 2000);
+    render();
+  };
+}
+init();
+</script>
+</body>
+</html>
