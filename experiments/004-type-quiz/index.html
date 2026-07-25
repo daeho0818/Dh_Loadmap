@@ -96,6 +96,7 @@
   .mchip.found { border-color: var(--accent-strong); color: var(--text);
     background: var(--accent-dim); font-weight: 600; animation: pop .18s ease; }
   .mchip.flash { outline: 2px solid var(--good); }
+  .mchip.found.bonus { border-style: dashed; border-color: var(--good); background: transparent; color: var(--good); }
   .mchip.missed { border-style: dashed; color: var(--bad); }
 
   /* ---- input ---- */
@@ -169,9 +170,10 @@
       <button class="primary" id="startBtn">시작 · Start</button>
     </div>
     <p class="note" style="margin-top:20px;">타입이 달라지는 리전 폼(알로라·가라르·히스이·팔데아)·메가진화·원시회귀·로토무
-      폼도 출제 — "히스이 윈디", "메가리자몽X"처럼 답하면 돼요. 쉬움·보통에선 타입이 같은
-      미진화체 이름도 최종 진화형으로 인정(주리비얀 → 샤로다). 한국어/영어 모두 인정,
-      띄어쓰기·기호는 무시. 맞추면 일러스트가 짠 하고 나타납니다.</p>
+      폼도 출제 — "히스이 윈디", "메가리자몽X"처럼 답하면 돼요. 쉬움·보통의 목록은 최종
+      진화형 기준이지만 <strong>타입이 일치하면 미진화체도 정답</strong> — 같은 타입 라인은
+      한 칸으로 묶이고(주리비얀 → 샤로다), 목록에 없는 라인은 +1 보너스(불꽃 단일의 뚜꾸리).
+      한국어/영어 모두 인정, 띄어쓰기·기호는 무시. 맞추면 일러스트가 짠 하고 나타납니다.</p>
   </section>
 
   <!-- ========== game ========== -->
@@ -379,26 +381,33 @@ function startGame() {
 
 function nextCombo() {
   if (S.cur) {
-    S.records.push({ combo: S.cur, found: new Set(S.found) });
+    S.records.push({ combo: S.cur, found: new Set(S.found), bonus: S.bonusFound });
   }
   S.idx++;
   if (S.idx >= S.combos.length) { finish(true); return; }
   S.cur = S.combos[S.idx];
   S.found = new Set();
+  S.bonusFound = [];      // 목록 밖 정답 (타입이 맞는 미진화체 등)
+  S.bonusFams = new Set();
   S.lookup = new Map();
   for (const m of S.cur) { S.lookup.set(norm(m[4]), m); S.lookup.set(norm(m[5]), m); }
-  // 주류만 출제되는 난이도에선, 같은 타입 조합의 미진화체 이름도
-  // 그 진화 라인의 칩(최종 진화형)으로 인정 (주리비얀/샤비 → 샤로다)
+  // 주류만 출제되는 난이도에서도, 타입이 이 조합과 일치하는 포켓몬은 전부 정답.
+  // - 진화 라인의 칩이 있으면 그 칩으로 인정 (주리비얀/샤비 → 샤로다)
+  // - 칩이 없는 라인이면(뚜꾸리: 최종 진화형이 불꽃/격투라 불꽃 단일 목록에 없음)
+  //   자기 자신이 보너스 정답이 된다. 라인당 한 번만.
   if (cfg.diff !== "hard" && S.cur[0].length >= 9) {
     const famToChip = new Map();
     for (const m of S.cur) if (!famToChip.has(m[8])) famToChip.set(m[8], m);
     const key = comboKey(S.cur[0]);
+    const genSet = new Set(cfg.gens);
     for (const m of D.mons) {
       if (comboKey(m) !== key) continue;
       const chip = famToChip.get(m[8]);
-      if (!chip || chip === m) continue;
+      if (chip === m) continue;
+      const target = chip || (genSet.has(m[1]) ? m : null); // 보너스는 선택 세대 안에서만
+      if (!target) continue;
       for (const n of [norm(m[4]), norm(m[5])])
-        if (!S.lookup.has(n)) S.lookup.set(n, chip);
+        if (!S.lookup.has(n)) S.lookup.set(n, target);
     }
   }
   preload(S.cur);
@@ -412,6 +421,7 @@ function nextCombo() {
 function chipHTML(m, state) {
   const img = `<img src="${SPRITE(m[6])}" alt="" loading="lazy" onerror="this.remove()" />`;
   if (state === "found") return `<span class="mchip found" data-id="${m[0]}">${img}${m[4]}</span>`;
+  if (state === "bonus") return `<span class="mchip found bonus" data-id="${m[0]}">${img}+${m[4]}</span>`;
   if (state === "missed") return `<span class="mchip missed">${img}${m[4]} · ${m[5]}</span>`;
   const parts = [];
   if (cfg.hintDex) parts.push("#" + String(m[0]).padStart(4, "0"));
@@ -420,9 +430,12 @@ function chipHTML(m, state) {
 }
 
 function renderChips() {
-  $("#comboCount").innerHTML = `<b>${S.found.size}</b> / ${S.cur.length}마리`;
+  const bonus = S.bonusFound.length;
+  $("#comboCount").innerHTML =
+    `<b>${S.found.size}</b>${bonus ? `<b>+${bonus}</b>` : ""} / ${S.cur.length}마리`;
   $("#chipsArea").innerHTML = S.cur.map((m) =>
-    chipHTML(m, S.found.has(m[0]) ? "found" : "hidden")).join("");
+    chipHTML(m, S.found.has(m[0]) ? "found" : "hidden")).join("")
+    + S.bonusFound.map((m) => chipHTML(m, "bonus")).join("");
 }
 
 function setFeedback(msg, cls, spriteId) {
@@ -450,13 +463,30 @@ function submitGuess() {
   if (!raw || !S) return;
   const m = S.lookup.get(norm(raw));
   S.attempts++;
+  const flashChip = (id) => {
+    const chip = document.querySelector(`#chipsArea .mchip[data-id="${id}"]`);
+    if (chip) { chip.classList.remove("flash"); void chip.offsetWidth; chip.classList.add("flash"); }
+  };
   if (!m) {
     shake();
     setFeedback(`"${raw}" — 이 조합에는 없어요 · not in this combo`, "bad");
+  } else if (!S.cur.includes(m)) {
+    // 목록 밖 정답: 타입은 일치하지만 칩이 없는 라인 (뚜꾸리 등) — 라인당 1회
+    if (S.bonusFams.has(m[8])) {
+      const prev = S.bonusFound.find((b) => b[8] === m[8]);
+      setFeedback(`${prev[4]} 라인은 이미 찾았어요 · already found`, "info");
+      flashChip(prev[0]);
+    } else {
+      S.bonusFams.add(m[8]);
+      S.bonusFound.push(m);
+      S.score++;
+      $("#scoreLabel").textContent = `${S.score}마리`;
+      renderChips();
+      setFeedback(`✓ ${m[4]} (${m[5]}) — 목록 밖 정답, +1!`, "good", m[6]);
+    }
   } else if (S.found.has(m[0])) {
     setFeedback(`${m[4]} — 이미 찾았어요 · already found`, "info");
-    const chip = document.querySelector(`#chipsArea .mchip[data-id="${m[0]}"]`);
-    if (chip) { chip.classList.remove("flash"); void chip.offsetWidth; chip.classList.add("flash"); }
+    flashChip(m[0]);
   } else {
     S.found.add(m[0]);
     S.score++;
@@ -488,7 +518,7 @@ function tick() {
 
 function finish(exhausted) {
   clearInterval(S.timer);
-  if (S.cur) S.records.push({ combo: S.cur, found: new Set(S.found) });
+  if (S.cur) S.records.push({ combo: S.cur, found: new Set(S.found), bonus: S.bonusFound });
   const cleared = S.records.filter((r) => r.found.size === r.combo.length).length;
   const acc = S.attempts ? Math.round((S.score / S.attempts) * 100) : 0;
 
@@ -509,12 +539,14 @@ function finish(exhausted) {
 
   $("#breakdown").innerHTML = S.records.map((r) => {
     const chips = r.combo.map((m) =>
-      chipHTML(m, r.found.has(m[0]) ? "found" : "missed")).join("");
+      chipHTML(m, r.found.has(m[0]) ? "found" : "missed")).join("")
+      + (r.bonus || []).map((m) => chipHTML(m, "bonus")).join("");
+    const bonusN = (r.bonus || []).length;
     return `<div class="rcard">
       <div class="rc-head">${r.combo[0][3]
         ? typeBadge(r.combo[0][2]) + typeBadge(r.combo[0][3])
         : typeBadge(r.combo[0][2])}
-        <span class="rc-stat">${r.found.size}/${r.combo.length}</span></div>
+        <span class="rc-stat">${r.found.size}${bonusN ? "+" + bonusN : ""}/${r.combo.length}</span></div>
       <div class="chips-area">${chips}</div>
     </div>`;
   }).join("");
