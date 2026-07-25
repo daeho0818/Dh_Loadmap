@@ -43,6 +43,8 @@
     background: var(--surface); color: var(--text); transition: all .12s; }
   button:hover { border-color: var(--accent-strong); }
   button.primary { background: var(--accent-strong); color: #fff; border-color: var(--accent-strong); }
+  button:disabled { opacity: .45; cursor: default; }
+  button:disabled:hover { border-color: var(--border-strong); }
   .row { display: flex; gap: 10px; flex-wrap: wrap; }
 
   /* ---- intro: settings ---- */
@@ -51,7 +53,11 @@
   .chips button { font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 99px; }
   .chips button.on { background: var(--accent-dim); border-color: var(--accent-strong); color: var(--text); }
   @media (prefers-color-scheme: light) { .chips button.on { color: var(--accent); } }
+  .diff-desc { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+  .gen-actions { margin-top: 8px; }
+  .gen-actions button { font-size: 12px; font-weight: 500; padding: 5px 12px; border-radius: 99px; color: var(--muted); }
   .pool-info { font-family: var(--mono); font-size: 12px; color: var(--muted); margin: 14px 0 20px; }
+  .pool-info.warn { color: var(--bad); }
   .best-line { font-size: 13px; color: var(--text-2); margin: 4px 0 16px; }
   .best-line b { color: var(--accent); }
 
@@ -84,12 +90,13 @@
   .mchip { font-size: 13px; padding: 5px 11px; border-radius: 99px;
     border: 1px solid var(--border); background: var(--surface); color: var(--muted);
     font-family: var(--mono); }
+  .mchip.found, .mchip.missed { display: inline-flex; align-items: center; gap: 5px;
+    font-family: var(--sans); padding: 4px 11px 4px 7px; }
+  .mchip img { width: 26px; height: 26px; margin: -3px 0; flex: none; }
   .mchip.found { border-color: var(--accent-strong); color: var(--text);
-    background: var(--accent-dim); font-family: var(--sans); font-weight: 600;
-    animation: pop .18s ease; }
-  @media (prefers-color-scheme: light) { .mchip.found { background: var(--accent-dim); } }
+    background: var(--accent-dim); font-weight: 600; animation: pop .18s ease; }
   .mchip.flash { outline: 2px solid var(--good); }
-  .mchip.missed { border-style: dashed; color: var(--bad); font-family: var(--sans); }
+  .mchip.missed { border-style: dashed; color: var(--bad); }
 
   /* ---- input ---- */
   .input-row { display: flex; gap: 8px; }
@@ -99,11 +106,13 @@
   .input-row input:focus { border-color: var(--accent-strong); }
   .input-row.shake { animation: shake .3s; }
   @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
-  .feedback { min-height: 22px; font-size: 13px; margin-top: 8px; text-align: center; }
+  .feedback { min-height: 60px; font-size: 13px; margin-top: 8px;
+    display: flex; align-items: center; justify-content: center; gap: 9px; text-align: center; }
+  .feedback img { width: 54px; height: 54px; flex: none; animation: pop .18s ease; }
   .feedback.good { color: var(--good); }
   .feedback.bad { color: var(--bad); }
   .feedback.info { color: var(--muted); }
-  .pass-hint { text-align: center; font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 14px; }
+  .pass-hint { text-align: center; font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 10px; }
 
   /* ---- result ---- */
   .big-score { text-align: center; margin: 24px 0 4px; }
@@ -111,7 +120,7 @@
   .big-score .u { font-size: 14px; color: var(--text-2); }
   .newbest { text-align: center; color: var(--good); font-size: 14px; font-weight: 600; margin-bottom: 4px; }
   .stat-row { display: flex; justify-content: center; gap: 22px; font-size: 13px;
-    color: var(--text-2); margin: 10px 0 24px; font-family: var(--mono); }
+    color: var(--text-2); margin: 10px 0 24px; font-family: var(--mono); flex-wrap: wrap; }
   .rcard { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px;
     padding: 16px; margin-bottom: 12px; }
   .rcard .rc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
@@ -131,25 +140,37 @@
   <section id="intro">
     <div class="kicker">experiment #004</div>
     <h1>포켓몬 타입 퀴즈 · Poké Type Quiz</h1>
-    <p class="lead">랜덤으로 뜨는 <strong>타입 두 개</strong>를 보고, 그 조합인 포켓몬을
+    <p class="lead">랜덤으로 뜨는 <strong>타입 조합</strong>을 보고, 그 조합인 포켓몬을
       제한 시간 안에 최대한 많이 외칩니다. 조합을 전부 맞추면 <strong>+5초</strong>와 함께
-      다음 조합으로. 막히면 패스.</p>
-    <p class="lead-en">Two random types appear — name every Pokémon with that exact combo.
+      다음 문제로. 막히면 패스.</p>
+    <p class="lead-en">Random types appear — name every Pokémon with that exact combo.
       Clear a combo for +5s. Pass when stuck.</p>
 
-    <div class="set-label">범위 · scope</div>
+    <div class="set-label">난이도 · difficulty</div>
+    <div class="chips" id="diffChips"></div>
+    <div class="diff-desc" id="diffDesc"></div>
+
+    <div class="set-label">출제 세대 · generations (다중 선택)</div>
     <div class="chips" id="genChips"></div>
+    <div class="chips gen-actions">
+      <button id="genAll">전체 선택</button>
+      <button id="genNone">전체 제거</button>
+    </div>
+
     <div class="set-label">제한 시간 · time limit</div>
     <div class="chips" id="durChips"></div>
-    <div class="pool-info" id="poolInfo">—</div>
 
+    <div class="set-label">힌트 · hints</div>
+    <div class="chips" id="hintChips"></div>
+
+    <div class="pool-info" id="poolInfo">—</div>
     <div class="best-line" id="bestLine"></div>
     <div class="row">
       <button class="primary" id="startBtn">시작 · Start</button>
     </div>
-    <p class="note" style="margin-top:20px;">듀얼 타입 포켓몬만 출제됩니다. 타입이 달라지는
-      리전 폼(알로라·가라르·히스이·팔데아)·메가진화·원시회귀·로토무 폼도 포함 —
-      "히스이 윈디", "메가리자몽X"처럼 답하면 돼요. 한국어/영어 모두 인정, 띄어쓰기·기호는 무시.</p>
+    <p class="note" style="margin-top:20px;">타입이 달라지는 리전 폼(알로라·가라르·히스이·팔데아)·메가진화·원시회귀·로토무
+      폼도 출제 — "히스이 윈디", "메가리자몽X"처럼 답하면 돼요. 한국어/영어 모두 인정,
+      띄어쓰기·기호는 무시. 맞추면 일러스트가 짠 하고 나타납니다.</p>
   </section>
 
   <!-- ========== game ========== -->
@@ -196,7 +217,7 @@
     </div>
   </section>
 
-  <footer><a href="../../">← 실험실 · lab archive</a> · data: <a href="https://pokeapi.co" target="_blank" rel="noopener">PokéAPI</a></footer>
+  <footer><a href="../../">← 실험실 · lab archive</a> · data &amp; sprites: <a href="https://pokeapi.co" target="_blank" rel="noopener">PokéAPI</a></footer>
 </main>
 
 <script src="data.js"></script>
@@ -204,6 +225,7 @@
 "use strict";
 const $ = (s) => document.querySelector(s);
 const D = window.POKEDATA;
+// mons: [dexNo, gen, type1, type2(0=단일), koName, enName, pokeId, main]
 
 /* ---- 타입 색 (공식 타입 컬러 근사) ---- */
 const TYPE_COLORS = { 1:"#A8A77A", 2:"#C22E28", 3:"#A98FF3", 4:"#A33EA1", 5:"#E2BF65",
@@ -215,57 +237,105 @@ const darkText = (hex) => {
   return r * 0.299 + g * 0.587 + b * 0.114 > 165;
 };
 
+const SPRITE = (pid) => `https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/${pid}.png`;
+
 /* ---- 이름 정규화: 대소문자·공백·기호·악센트 무시 ---- */
 const norm = (s) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").normalize("NFC")
   .toLowerCase().replace(/[\s.\-'’‘:·!?%♂♀]/g, "");
 
 /* ---- 설정 ---- */
-const GEN_PRESETS = [[2, "~2세대"], [4, "~4세대"], [6, "~6세대"], [9, "전체 1~9세대"]];
+const GENS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
+const DIFF_PRESETS = [
+  ["easy", "쉬움", "단일 + 듀얼 타입 출제 · 주류(최종 진화·전설) 위주"],
+  ["normal", "보통", "듀얼 타입만 · 주류(최종 진화·전설) 위주"],
+  ["hard", "어려움", "듀얼 타입만 · 진화 전 단계까지 전부 출제"],
+];
 const DUR_PRESETS = [[60, "1분"], [120, "2분"], [180, "3분"]];
+const HINT_PRESETS = [["hintDex", "도감 번호 표시"], ["hintGen", "세대 표시"]];
 const CLEAR_BONUS = 5000;
-let cfg = { gen: 9, dur: 120 };
-try { Object.assign(cfg, JSON.parse(localStorage.getItem("ptq.settings") || "{}")); } catch (e) {}
 
-const bestKey = () => `ptq.best.${cfg.gen}.${cfg.dur}`;
+let cfg = { diff: "normal", gens: [...GENS], dur: 120, hintDex: true, hintGen: false };
+try {
+  const saved = JSON.parse(localStorage.getItem("ptq.settings") || "{}");
+  if (Array.isArray(saved.gens)) cfg.gens = saved.gens.filter((g) => GENS.includes(g));
+  else if (saved.gen) cfg.gens = GENS.filter((g) => g <= saved.gen); // 구버전 설정 이전
+  if (DUR_PRESETS.some((p) => p[0] === saved.dur)) cfg.dur = saved.dur;
+  if (DIFF_PRESETS.some((p) => p[0] === saved.diff)) cfg.diff = saved.diff;
+  if (typeof saved.hintDex === "boolean") cfg.hintDex = saved.hintDex;
+  if (typeof saved.hintGen === "boolean") cfg.hintGen = saved.hintGen;
+} catch (e) {}
+const saveCfg = () => localStorage.setItem("ptq.settings", JSON.stringify(cfg));
+
+const bestKey = () => `ptq.best.${cfg.diff}.${[...cfg.gens].sort().join("")}.${cfg.dur}.${cfg.hintDex ? 1 : 0}${cfg.hintGen ? 1 : 0}`;
 const getBest = () => { try { return JSON.parse(localStorage.getItem(bestKey())); } catch (e) { return null; } };
 
-function buildPool(genMax) {
+/* 문제 풀: 듀얼은 타입 쌍으로, (쉬움일 때) 단일은 타입 하나로 묶는다 */
+function buildPool() {
+  const genSet = new Set(cfg.gens);
   const groups = new Map();
   for (const m of D.mons) {
-    if (m[1] > genMax) continue;
-    const key = [m[2], m[3]].sort((a, b) => a - b).join("-");
+    if (!genSet.has(m[1])) continue;
+    if (cfg.diff !== "hard" && !m[7]) continue; // 주류만
+    let key;
+    if (m[3]) key = [m[2], m[3]].sort((a, b) => a - b).join("-");
+    else if (cfg.diff === "easy") key = "mono-" + m[2];
+    else continue; // 보통/어려움: 듀얼만
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(m);
   }
   return [...groups.values()].filter((g) => g.length >= 2);
 }
 
+/* ---- 설정 UI ---- */
 function renderSettings() {
-  const mk = (el, presets, key) => {
-    el.innerHTML = "";
-    for (const [val, label] of presets) {
-      const b = document.createElement("button");
-      b.textContent = label;
-      b.classList.toggle("on", cfg[key] === val);
-      b.onclick = () => { cfg[key] = val; localStorage.setItem("ptq.settings", JSON.stringify(cfg)); renderSettings(); };
-      el.appendChild(b);
-    }
+  const chip = (label, on, onclick) => {
+    const b = document.createElement("button");
+    b.textContent = label;
+    b.classList.toggle("on", on);
+    b.onclick = () => { onclick(); saveCfg(); renderSettings(); };
+    return b;
   };
-  mk($("#genChips"), GEN_PRESETS, "gen");
-  mk($("#durChips"), DUR_PRESETS, "dur");
-  const pool = buildPool(cfg.gen);
+  const diffEl = $("#diffChips"); diffEl.innerHTML = "";
+  for (const [val, label] of DIFF_PRESETS)
+    diffEl.appendChild(chip(label, cfg.diff === val, () => { cfg.diff = val; }));
+  $("#diffDesc").textContent = DIFF_PRESETS.find((p) => p[0] === cfg.diff)[2];
+
+  const genEl = $("#genChips"); genEl.innerHTML = "";
+  for (const g of GENS)
+    genEl.appendChild(chip(`${g}세대`, cfg.gens.includes(g), () => {
+      cfg.gens = cfg.gens.includes(g) ? cfg.gens.filter((x) => x !== g) : [...cfg.gens, g];
+    }));
+
+  const durEl = $("#durChips"); durEl.innerHTML = "";
+  for (const [val, label] of DUR_PRESETS)
+    durEl.appendChild(chip(label, cfg.dur === val, () => { cfg.dur = val; }));
+
+  const hintEl = $("#hintChips"); hintEl.innerHTML = "";
+  for (const [key, label] of HINT_PRESETS)
+    hintEl.appendChild(chip(label, cfg[key], () => { cfg[key] = !cfg[key]; }));
+
+  const pool = buildPool();
   const monCount = pool.reduce((n, g) => n + g.length, 0);
-  $("#poolInfo").textContent = `이 설정의 출제 범위: 조합 ${pool.length}개 · ${monCount}마리`;
+  const empty = pool.length === 0;
+  $("#poolInfo").textContent = empty
+    ? "출제할 문제가 없어요 — 세대를 선택해 주세요 · pick at least one generation"
+    : `이 설정의 출제 범위: 문제 ${pool.length}개 · ${monCount}마리`;
+  $("#poolInfo").classList.toggle("warn", empty);
+  $("#startBtn").disabled = empty;
+
   const best = getBest();
   $("#bestLine").innerHTML = best
     ? `이 설정의 최고 기록 · best: <b>${best.score}마리</b> <span class="note">(${best.date})</span>`
     : `이 설정의 최고 기록 · best: <span class="note">아직 없음</span>`;
 }
 
+$("#genAll").onclick = () => { cfg.gens = [...GENS]; saveCfg(); renderSettings(); };
+$("#genNone").onclick = () => { cfg.gens = []; saveCfg(); renderSettings(); };
+
 /* ---- 게임 상태 ---- */
 let S = null; // {combos, idx, cur, found, lookup, records, score, attempts, endAt, timer}
 
-function typeBadge(id, small) {
+function typeBadge(id) {
   const [ko, en] = D.types[id];
   const bg = TYPE_COLORS[id];
   const fg = darkText(bg) ? "rgba(20,18,10,.9)" : "#fff";
@@ -273,8 +343,21 @@ function typeBadge(id, small) {
   return `<span class="tbadge" style="background:${bg};color:${fg};text-shadow:${shadow};">${ko}<small>${en.toUpperCase()}</small></span>`;
 }
 
+function comboBadgesHTML(group) {
+  const m = group[0];
+  return m[3]
+    ? typeBadge(m[2]) + '<span class="x">×</span>' + typeBadge(m[3])
+    : typeBadge(m[2]) + '<span class="x">단일 · mono</span>';
+}
+
+function preload(group) {
+  if (!group) return;
+  for (const m of group) { const img = new Image(); img.src = SPRITE(m[6]); }
+}
+
 function startGame() {
-  const combos = buildPool(cfg.gen);
+  const combos = buildPool();
+  if (!combos.length) return;
   for (let i = combos.length - 1; i > 0; i--) { // shuffle
     const j = Math.floor(Math.random() * (i + 1));
     [combos[i], combos[j]] = [combos[j], combos[i]];
@@ -301,26 +384,41 @@ function nextCombo() {
   S.found = new Set();
   S.lookup = new Map();
   for (const m of S.cur) { S.lookup.set(norm(m[4]), m); S.lookup.set(norm(m[5]), m); }
-  $("#comboBadges").innerHTML =
-    typeBadge(S.cur[0][2]) + '<span class="x">×</span>' + typeBadge(S.cur[0][3]);
+  preload(S.cur);
+  preload(S.combos[S.idx + 1]); // 다음 문제 이미지도 미리
+  $("#comboBadges").innerHTML = comboBadgesHTML(S.cur);
   renderChips();
   setFeedback("", "");
   $("#guessInput").value = "";
 }
 
+function chipHTML(m, state) {
+  const img = `<img src="${SPRITE(m[6])}" alt="" loading="lazy" onerror="this.remove()" />`;
+  if (state === "found") return `<span class="mchip found" data-id="${m[0]}">${img}${m[4]}</span>`;
+  if (state === "missed") return `<span class="mchip missed">${img}${m[4]} · ${m[5]}</span>`;
+  const parts = [];
+  if (cfg.hintDex) parts.push("#" + String(m[0]).padStart(4, "0"));
+  if (cfg.hintGen) parts.push(m[1] + "세대");
+  return `<span class="mchip" data-id="${m[0]}">${parts.join(" · ") || "?"}</span>`;
+}
+
 function renderChips() {
   $("#comboCount").innerHTML = `<b>${S.found.size}</b> / ${S.cur.length}마리`;
   $("#chipsArea").innerHTML = S.cur.map((m) =>
-    S.found.has(m[0])
-      ? `<span class="mchip found" data-id="${m[0]}">${m[4]}</span>`
-      : `<span class="mchip" data-id="${m[0]}">#${String(m[0]).padStart(4, "0")}</span>`
-  ).join("");
+    chipHTML(m, S.found.has(m[0]) ? "found" : "hidden")).join("");
 }
 
-function setFeedback(msg, cls) {
+function setFeedback(msg, cls, spriteId) {
   const f = $("#feedback");
   f.textContent = msg;
   f.className = "feedback " + cls;
+  if (spriteId) {
+    const img = document.createElement("img");
+    img.src = SPRITE(spriteId);
+    img.alt = "";
+    img.onerror = () => img.remove();
+    f.prepend(img);
+  }
 }
 
 function shake() {
@@ -340,7 +438,7 @@ function submitGuess() {
     setFeedback(`"${raw}" — 이 조합에는 없어요 · not in this combo`, "bad");
   } else if (S.found.has(m[0])) {
     setFeedback(`${m[4]} — 이미 찾았어요 · already found`, "info");
-    const chip = document.querySelector(`.mchip[data-id="${m[0]}"]`);
+    const chip = document.querySelector(`#chipsArea .mchip[data-id="${m[0]}"]`);
     if (chip) { chip.classList.remove("flash"); void chip.offsetWidth; chip.classList.add("flash"); }
   } else {
     S.found.add(m[0]);
@@ -349,10 +447,10 @@ function submitGuess() {
     renderChips();
     if (S.found.size === S.cur.length) {
       S.endAt += CLEAR_BONUS;
-      setFeedback(`✨ 조합 클리어! +${CLEAR_BONUS / 1000}초 · combo clear`, "good");
-      setTimeout(() => { if (S) nextCombo(); }, 650);
+      setFeedback(`✨ 조합 클리어! +${CLEAR_BONUS / 1000}초 · combo clear`, "good", m[6]);
+      setTimeout(() => { if (S) nextCombo(); }, 700);
     } else {
-      setFeedback(`✓ ${m[4]} (${m[5]})`, "good");
+      setFeedback(`✓ ${m[4]} (${m[5]})`, "good", m[6]);
     }
   }
   $("#guessInput").value = "";
@@ -392,19 +490,22 @@ function finish(exhausted) {
   $("#statBest").textContent = `최고 ${best ? best.score : 0}마리`;
 
   $("#breakdown").innerHTML = S.records.map((r) => {
-    const chips = r.combo.map((m) => r.found.has(m[0])
-      ? `<span class="mchip found">${m[4]}</span>`
-      : `<span class="mchip missed">${m[4]} · ${m[5]}</span>`).join("");
+    const chips = r.combo.map((m) =>
+      chipHTML(m, r.found.has(m[0]) ? "found" : "missed")).join("");
     return `<div class="rcard">
-      <div class="rc-head">${typeBadge(r.combo[0][2])}${typeBadge(r.combo[0][3])}
+      <div class="rc-head">${r.combo[0][3]
+        ? typeBadge(r.combo[0][2]) + typeBadge(r.combo[0][3])
+        : typeBadge(r.combo[0][2])}
         <span class="rc-stat">${r.found.size}/${r.combo.length}</span></div>
       <div class="chips-area">${chips}</div>
     </div>`;
   }).join("");
 
-  const genLabel = GEN_PRESETS.find((p) => p[0] === cfg.gen)[1];
+  const diffLabel = DIFF_PRESETS.find((p) => p[0] === cfg.diff)[1];
+  const genLabel = cfg.gens.length === GENS.length
+    ? "전체 세대" : [...cfg.gens].sort().join("·") + "세대";
   $("#copyBtn").onclick = () => {
-    const txt = `포켓몬 타입 퀴즈 🔍 ${S.score}마리 (조합 클리어 ${cleared}) · ${genLabel} · ${cfg.dur}초`;
+    const txt = `포켓몬 타입 퀴즈 🔍 ${S.score}마리 (조합 클리어 ${cleared}) · ${diffLabel} · ${genLabel} · ${cfg.dur}초`;
     navigator.clipboard.writeText(txt).then(() => {
       $("#copyBtn").textContent = "복사됨! · Copied";
       setTimeout(() => { $("#copyBtn").textContent = "결과 복사 · Copy"; }, 1500);
