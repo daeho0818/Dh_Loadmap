@@ -7,7 +7,11 @@
    이름 자체는 Nintendo/Game Freak 소유 — 팬 프로젝트 비상업 사용)
 
    추출 규칙:
-   - 기본 폼(is_default=1)만. 리전 폼/메가 등 변형은 제외 (퀴즈 단순화).
+   - 기본 폼(is_default=1) + 타입이 달라지는 변형 폼:
+     리전 폼(알로라/가라르/히스이/팔데아), 메가진화(X/Y 포함), 원시회귀,
+     로토무 폼체인지. 기본 폼과 타입 조합이 같은 변형(예: 메가이상해꽃)은
+     중복 정답만 늘리므로 제외. 변형의 세대는 등장 세대로 덮어쓴다
+     (히스이 윈디 = 8세대, 1세대 아님).
    - 타입이 정확히 2개인 포켓몬만 (듀얼 타입 퀴즈이므로).
    - 이름은 한국어(language 3) + 영어(language 9) 둘 다 담는다.
    ========================================================================== */
@@ -77,16 +81,58 @@ for (const t of ptypes) {
   typesOf.set(t.pokemon_id, arr);
 }
 
+// 변형 폼 규칙: [identifier 접미사, 이름 변환, 등장 세대]
+const FORM_RULES = [
+  ['-mega-x', (ko, en) => [`메가${ko}X`, `Mega ${en} X`], 6],
+  ['-mega-y', (ko, en) => [`메가${ko}Y`, `Mega ${en} Y`], 6],
+  ['-mega', (ko, en) => [`메가${ko}`, `Mega ${en}`], 6],
+  ['-primal', (ko, en) => [`원시${ko}`, `Primal ${en}`], 6],
+  ['-alola', (ko, en) => [`알로라 ${ko}`, `Alolan ${en}`], 7],
+  ['-galar', (ko, en) => [`가라르 ${ko}`, `Galarian ${en}`], 8],
+  ['-hisui', (ko, en) => [`히스이 ${ko}`, `Hisuian ${en}`], 8],
+  ['-paldea', (ko, en) => [`팔데아 ${ko}`, `Paldean ${en}`], 9],
+];
+// 접미사 규칙으로 못 만드는 고유 명칭 폼 (identifier → [ko, en, gen])
+const EXTRA_FORMS = {
+  'rotom-heat': ['히트로토무', 'Heat Rotom', 4],
+  'rotom-wash': ['워시로토무', 'Wash Rotom', 4],
+  'rotom-frost': ['프로스트로토무', 'Frost Rotom', 4],
+  'rotom-fan': ['스핀로토무', 'Fan Rotom', 4],
+  'rotom-mow': ['커트로토무', 'Mow Rotom', 4],
+};
+
+const defaultOf = new Map(); // species_id -> default pokemon row
+for (const p of pokemon) if (p.is_default === '1') defaultOf.set(p.species_id, p);
+const pairKey = (tt) => [...tt].sort((a, b) => a - b).join('-');
+
 const mons = [];
 let skipped = 0;
 for (const p of pokemon) {
-  if (p.is_default !== '1') continue;
   const tt = typesOf.get(p.id) || [];
-  if (tt.length !== 2) continue; // 듀얼 타입만
   const nm = names.get(p.species_id);
   const gen = genOf.get(p.species_id);
   if (!nm?.ko || !nm?.en || !gen) { skipped++; continue; }
-  mons.push([Number(p.species_id), gen, tt[0], tt[1], nm.ko, nm.en]);
+
+  if (p.is_default === '1') {
+    if (tt.length !== 2) continue; // 듀얼 타입만
+    mons.push([Number(p.species_id), gen, tt[0], tt[1], nm.ko, nm.en]);
+    continue;
+  }
+
+  // 변형 폼: 규칙에 맞고, 기본 폼과 타입 조합이 다를 때만
+  let name2 = null, formGen = null;
+  if (EXTRA_FORMS[p.identifier]) {
+    const [ko, en, g] = EXTRA_FORMS[p.identifier];
+    name2 = [ko, en]; formGen = g;
+  } else {
+    const rule = FORM_RULES.find(([suf]) => p.identifier.endsWith(suf));
+    if (rule) { name2 = rule[1](nm.ko, nm.en); formGen = rule[2]; }
+  }
+  if (!name2 || tt.length !== 2) continue;
+  const base = defaultOf.get(p.species_id);
+  const baseTT = base ? typesOf.get(base.id) || [] : [];
+  if (pairKey(tt) === pairKey(baseTT)) continue; // 타입 그대로면 제외
+  mons.push([Number(p.species_id), formGen, tt[0], tt[1], name2[0], name2[1]]);
 }
 mons.sort((a, b) => a[0] - b[0]);
 
