@@ -1,0 +1,9 @@
+{
+  "id": 4,
+  "slug": "type-quiz",
+  "title": "포켓몬 타입 퀴즈 · Poké Type Quiz",
+  "date": "2026-07-26",
+  "week": "2026-W30",
+  "tags": ["game", "quiz", "pokemon"],
+  "oneliner": "랜덤 타입 조합을 보고 제한 시간 안에 그 조합의 포켓몬을 전부 맞추는 스피드 퀴즈 · name every Pokémon of a random type combo before time runs out"
+}

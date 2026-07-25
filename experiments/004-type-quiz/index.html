@@ -1,0 +1,439 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>#004 포켓몬 타입 퀴즈 · Poké Type Quiz</title>
+<meta name="description" content="랜덤 타입 조합을 보고 제한 시간 안에 해당 포켓몬을 최대한 많이 맞추는 퀴즈. Name every Pokémon of a random type combo before time runs out." />
+<style>
+  :root {
+    --bg: #17161a; --surface: #201f26; --surface-2: #26252e;
+    --border: #35343d; --border-strong: #4a4954;
+    --text: #ecebf2; --text-2: #b6b4c2; --muted: #83818f;
+    --accent: #afa9ec; --accent-strong: #7f77dd; --accent-dim: #3c3489;
+    --good: #9fe1cb; --bad: #f0997b;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
+    --mono: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f4f3f0; --surface: #ffffff; --surface-2: #eceae5;
+      --border: #d9d6ce; --border-strong: #bdb9ae;
+      --text: #26241f; --text-2: #5c584f; --muted: #8f8a7e;
+      --accent: #534ab7; --accent-strong: #7f77dd; --accent-dim: #cecbf6;
+      --good: #1d9e75; --bad: #d85a30;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 640px; margin: 0 auto; padding: 24px 18px 80px; }
+
+  .kicker { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  h1 { font-size: 24px; font-weight: 600; margin: 4px 0 6px; }
+  .lead { color: var(--text-2); font-size: 14px; margin: 0 0 4px; word-break: keep-all; }
+  .lead-en { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .note { font-size: 13px; color: var(--muted); }
+  .hidden { display: none !important; }
+  a { color: var(--accent); }
+
+  button { font-family: var(--sans); font-size: 15px; font-weight: 600; cursor: pointer;
+    border-radius: 10px; padding: 11px 18px; border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--text); transition: all .12s; }
+  button:hover { border-color: var(--accent-strong); }
+  button.primary { background: var(--accent-strong); color: #fff; border-color: var(--accent-strong); }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  /* ---- intro: settings ---- */
+  .set-label { font-family: var(--mono); font-size: 11px; color: var(--muted); margin: 18px 0 8px; }
+  .chips { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chips button { font-size: 13px; font-weight: 500; padding: 7px 14px; border-radius: 99px; }
+  .chips button.on { background: var(--accent-dim); border-color: var(--accent-strong); color: var(--text); }
+  @media (prefers-color-scheme: light) { .chips button.on { color: var(--accent); } }
+  .pool-info { font-family: var(--mono); font-size: 12px; color: var(--muted); margin: 14px 0 20px; }
+  .best-line { font-size: 13px; color: var(--text-2); margin: 4px 0 16px; }
+  .best-line b { color: var(--accent); }
+
+  /* ---- top bar (game) ---- */
+  .top { position: sticky; top: 0; z-index: 10;
+    background: color-mix(in srgb, var(--bg) 88%, transparent);
+    backdrop-filter: blur(8px); padding: 12px 0 10px; margin-bottom: 16px; }
+  .bar { height: 6px; background: var(--surface-2); border-radius: 99px; overflow: hidden; }
+  .bar > i { display: block; height: 100%; width: 100%; background: var(--accent-strong); transition: width .2s linear; }
+  .bar > i.low { background: var(--bad); }
+  .top-meta { display: flex; justify-content: space-between; font-family: var(--mono);
+    font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .top-meta .score { color: var(--accent); }
+
+  /* ---- type badges ---- */
+  .combo { display: flex; gap: 10px; justify-content: center; align-items: center; margin: 6px 0 4px; }
+  .tbadge { display: inline-flex; flex-direction: column; align-items: center; gap: 1px;
+    min-width: 96px; padding: 10px 18px; border-radius: 12px;
+    font-weight: 700; font-size: 18px; color: #fff; text-shadow: 0 1px 2px rgba(0,0,0,.35);
+    animation: pop .18s ease; }
+  .tbadge small { font-size: 10px; font-weight: 500; font-family: var(--mono); opacity: .85; }
+  .combo .x { font-family: var(--mono); color: var(--muted); font-size: 14px; }
+  .combo-count { text-align: center; font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .combo-count b { color: var(--text-2); }
+  @keyframes pop { from { transform: scale(.94); opacity: .4; } to { transform: scale(1); opacity: 1; } }
+
+  /* ---- answer chips ---- */
+  .chips-area { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center;
+    min-height: 74px; align-content: flex-start; margin-bottom: 16px; }
+  .mchip { font-size: 13px; padding: 5px 11px; border-radius: 99px;
+    border: 1px solid var(--border); background: var(--surface); color: var(--muted);
+    font-family: var(--mono); }
+  .mchip.found { border-color: var(--accent-strong); color: var(--text);
+    background: var(--accent-dim); font-family: var(--sans); font-weight: 600;
+    animation: pop .18s ease; }
+  @media (prefers-color-scheme: light) { .mchip.found { background: var(--accent-dim); } }
+  .mchip.flash { outline: 2px solid var(--good); }
+  .mchip.missed { border-style: dashed; color: var(--bad); font-family: var(--sans); }
+
+  /* ---- input ---- */
+  .input-row { display: flex; gap: 8px; }
+  .input-row input { flex: 1; min-width: 0; font-family: var(--sans); font-size: 16px;
+    padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--text); outline: none; }
+  .input-row input:focus { border-color: var(--accent-strong); }
+  .input-row.shake { animation: shake .3s; }
+  @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
+  .feedback { min-height: 22px; font-size: 13px; margin-top: 8px; text-align: center; }
+  .feedback.good { color: var(--good); }
+  .feedback.bad { color: var(--bad); }
+  .feedback.info { color: var(--muted); }
+  .pass-hint { text-align: center; font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 14px; }
+
+  /* ---- result ---- */
+  .big-score { text-align: center; margin: 24px 0 4px; }
+  .big-score .n { font-size: 56px; font-weight: 700; color: var(--accent); font-family: var(--mono); line-height: 1.1; }
+  .big-score .u { font-size: 14px; color: var(--text-2); }
+  .newbest { text-align: center; color: var(--good); font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+  .stat-row { display: flex; justify-content: center; gap: 22px; font-size: 13px;
+    color: var(--text-2); margin: 10px 0 24px; font-family: var(--mono); }
+  .rcard { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px;
+    padding: 16px; margin-bottom: 12px; }
+  .rcard .rc-head { display: flex; align-items: center; gap: 8px; margin-bottom: 10px; }
+  .rcard .rc-head .tbadge { min-width: 0; padding: 4px 12px; font-size: 13px; border-radius: 8px; }
+  .rcard .rc-head .tbadge small { display: none; }
+  .rcard .rc-stat { margin-left: auto; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .rcard .chips-area { justify-content: flex-start; min-height: 0; margin-bottom: 0; }
+  .result-btns { margin: 20px 0; justify-content: center; }
+
+  footer { margin-top: 40px; font-size: 12px; color: var(--muted); }
+</style>
+</head>
+<body>
+<main class="wrap">
+
+  <!-- ========== intro ========== -->
+  <section id="intro">
+    <div class="kicker">experiment #004</div>
+    <h1>포켓몬 타입 퀴즈 · Poké Type Quiz</h1>
+    <p class="lead">랜덤으로 뜨는 <strong>타입 두 개</strong>를 보고, 그 조합인 포켓몬을
+      제한 시간 안에 최대한 많이 외칩니다. 조합을 전부 맞추면 <strong>+5초</strong>와 함께
+      다음 조합으로. 막히면 패스.</p>
+    <p class="lead-en">Two random types appear — name every Pokémon with that exact combo.
+      Clear a combo for +5s. Pass when stuck.</p>
+
+    <div class="set-label">범위 · scope</div>
+    <div class="chips" id="genChips"></div>
+    <div class="set-label">제한 시간 · time limit</div>
+    <div class="chips" id="durChips"></div>
+    <div class="pool-info" id="poolInfo">—</div>
+
+    <div class="best-line" id="bestLine"></div>
+    <div class="row">
+      <button class="primary" id="startBtn">시작 · Start</button>
+    </div>
+    <p class="note" style="margin-top:20px;">기본 폼 · 듀얼 타입 포켓몬만 출제됩니다 (리전 폼·메가 제외).
+      한국어/영어 이름 모두 인정. 띄어쓰기·기호는 무시해요.</p>
+  </section>
+
+  <!-- ========== game ========== -->
+  <section id="game" class="hidden">
+    <div class="top">
+      <div class="bar"><i id="timeFill"></i></div>
+      <div class="top-meta">
+        <span class="score" id="scoreLabel">0마리</span>
+        <span id="timeLabel">0:00</span>
+      </div>
+    </div>
+
+    <div class="combo" id="comboBadges"></div>
+    <div class="combo-count" id="comboCount"></div>
+    <div class="chips-area" id="chipsArea"></div>
+
+    <div class="input-row" id="inputRow">
+      <input id="guessInput" type="text" placeholder="포켓몬 이름…" autocomplete="off"
+        autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go" />
+      <button id="submitBtn">확인</button>
+      <button id="passBtn">패스 →</button>
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="pass-hint">Enter 확인 · Esc 패스</div>
+  </section>
+
+  <!-- ========== result ========== -->
+  <section id="result" class="hidden">
+    <div class="kicker">result</div>
+    <div class="big-score"><span class="n" id="finalScore">0</span> <span class="u">마리</span></div>
+    <div class="newbest hidden" id="newBest">🎉 신기록! · new best</div>
+    <div class="stat-row">
+      <span id="statCleared"></span>
+      <span id="statAcc"></span>
+      <span id="statBest"></span>
+    </div>
+
+    <div id="breakdown"></div>
+
+    <div class="row result-btns">
+      <button class="primary" id="retryBtn">다시 · Retry</button>
+      <button id="copyBtn">결과 복사 · Copy</button>
+      <button id="setupBtn">설정으로</button>
+    </div>
+  </section>
+
+  <footer><a href="../../">← 실험실 · lab archive</a> · data: <a href="https://pokeapi.co" target="_blank" rel="noopener">PokéAPI</a></footer>
+</main>
+
+<script src="data.js"></script>
+<script>
+"use strict";
+const $ = (s) => document.querySelector(s);
+const D = window.POKEDATA;
+
+/* ---- 타입 색 (공식 타입 컬러 근사) ---- */
+const TYPE_COLORS = { 1:"#A8A77A", 2:"#C22E28", 3:"#A98FF3", 4:"#A33EA1", 5:"#E2BF65",
+  6:"#B6A136", 7:"#A6B91E", 8:"#735797", 9:"#B7B7CE", 10:"#EE8130", 11:"#6390F0",
+  12:"#7AC74C", 13:"#F7D02C", 14:"#F95587", 15:"#96D9D6", 16:"#6F35FC", 17:"#705746", 18:"#D685AD" };
+// 밝은 배지(전기·얼음·강철·땅)는 어두운 글자
+const darkText = (hex) => {
+  const [r, g, b] = [1, 3, 5].map((i) => parseInt(hex.slice(i, i + 2), 16));
+  return r * 0.299 + g * 0.587 + b * 0.114 > 165;
+};
+
+/* ---- 이름 정규화: 대소문자·공백·기호·악센트 무시 ---- */
+const norm = (s) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").normalize("NFC")
+  .toLowerCase().replace(/[\s.\-'’‘:·!?%♂♀]/g, "");
+
+/* ---- 설정 ---- */
+const GEN_PRESETS = [[2, "~2세대"], [4, "~4세대"], [6, "~6세대"], [9, "전체 1~9세대"]];
+const DUR_PRESETS = [[60, "1분"], [120, "2분"], [180, "3분"]];
+const CLEAR_BONUS = 5000;
+let cfg = { gen: 9, dur: 120 };
+try { Object.assign(cfg, JSON.parse(localStorage.getItem("ptq.settings") || "{}")); } catch (e) {}
+
+const bestKey = () => `ptq.best.${cfg.gen}.${cfg.dur}`;
+const getBest = () => { try { return JSON.parse(localStorage.getItem(bestKey())); } catch (e) { return null; } };
+
+function buildPool(genMax) {
+  const groups = new Map();
+  for (const m of D.mons) {
+    if (m[1] > genMax) continue;
+    const key = [m[2], m[3]].sort((a, b) => a - b).join("-");
+    if (!groups.has(key)) groups.set(key, []);
+    groups.get(key).push(m);
+  }
+  return [...groups.values()].filter((g) => g.length >= 2);
+}
+
+function renderSettings() {
+  const mk = (el, presets, key) => {
+    el.innerHTML = "";
+    for (const [val, label] of presets) {
+      const b = document.createElement("button");
+      b.textContent = label;
+      b.classList.toggle("on", cfg[key] === val);
+      b.onclick = () => { cfg[key] = val; localStorage.setItem("ptq.settings", JSON.stringify(cfg)); renderSettings(); };
+      el.appendChild(b);
+    }
+  };
+  mk($("#genChips"), GEN_PRESETS, "gen");
+  mk($("#durChips"), DUR_PRESETS, "dur");
+  const pool = buildPool(cfg.gen);
+  const monCount = pool.reduce((n, g) => n + g.length, 0);
+  $("#poolInfo").textContent = `이 설정의 출제 범위: 조합 ${pool.length}개 · ${monCount}마리`;
+  const best = getBest();
+  $("#bestLine").innerHTML = best
+    ? `이 설정의 최고 기록 · best: <b>${best.score}마리</b> <span class="note">(${best.date})</span>`
+    : `이 설정의 최고 기록 · best: <span class="note">아직 없음</span>`;
+}
+
+/* ---- 게임 상태 ---- */
+let S = null; // {combos, idx, cur, found, lookup, records, score, attempts, endAt, timer}
+
+function typeBadge(id, small) {
+  const [ko, en] = D.types[id];
+  const bg = TYPE_COLORS[id];
+  const fg = darkText(bg) ? "rgba(20,18,10,.9)" : "#fff";
+  const shadow = darkText(bg) ? "none" : "0 1px 2px rgba(0,0,0,.35)";
+  return `<span class="tbadge" style="background:${bg};color:${fg};text-shadow:${shadow};">${ko}<small>${en.toUpperCase()}</small></span>`;
+}
+
+function startGame() {
+  const combos = buildPool(cfg.gen);
+  for (let i = combos.length - 1; i > 0; i--) { // shuffle
+    const j = Math.floor(Math.random() * (i + 1));
+    [combos[i], combos[j]] = [combos[j], combos[i]];
+  }
+  S = { combos, idx: -1, cur: null, found: new Set(), lookup: new Map(),
+    records: [], score: 0, attempts: 0, endAt: Date.now() + cfg.dur * 1000, timer: null };
+  $("#intro").classList.add("hidden");
+  $("#result").classList.add("hidden");
+  $("#game").classList.remove("hidden");
+  $("#scoreLabel").textContent = "0마리";
+  nextCombo();
+  S.timer = setInterval(tick, 100);
+  tick();
+  $("#guessInput").focus();
+}
+
+function nextCombo() {
+  if (S.cur) {
+    S.records.push({ combo: S.cur, found: new Set(S.found) });
+  }
+  S.idx++;
+  if (S.idx >= S.combos.length) { finish(true); return; }
+  S.cur = S.combos[S.idx];
+  S.found = new Set();
+  S.lookup = new Map();
+  for (const m of S.cur) { S.lookup.set(norm(m[4]), m); S.lookup.set(norm(m[5]), m); }
+  $("#comboBadges").innerHTML =
+    typeBadge(S.cur[0][2]) + '<span class="x">×</span>' + typeBadge(S.cur[0][3]);
+  renderChips();
+  setFeedback("", "");
+  $("#guessInput").value = "";
+}
+
+function renderChips() {
+  $("#comboCount").innerHTML = `<b>${S.found.size}</b> / ${S.cur.length}마리`;
+  $("#chipsArea").innerHTML = S.cur.map((m) =>
+    S.found.has(m[0])
+      ? `<span class="mchip found" data-id="${m[0]}">${m[4]}</span>`
+      : `<span class="mchip" data-id="${m[0]}">#${String(m[0]).padStart(4, "0")}</span>`
+  ).join("");
+}
+
+function setFeedback(msg, cls) {
+  const f = $("#feedback");
+  f.textContent = msg;
+  f.className = "feedback " + cls;
+}
+
+function shake() {
+  const r = $("#inputRow");
+  r.classList.remove("shake");
+  void r.offsetWidth; // restart animation
+  r.classList.add("shake");
+}
+
+function submitGuess() {
+  const raw = $("#guessInput").value.trim();
+  if (!raw || !S) return;
+  const m = S.lookup.get(norm(raw));
+  S.attempts++;
+  if (!m) {
+    shake();
+    setFeedback(`"${raw}" — 이 조합에는 없어요 · not in this combo`, "bad");
+  } else if (S.found.has(m[0])) {
+    setFeedback(`${m[4]} — 이미 찾았어요 · already found`, "info");
+    const chip = document.querySelector(`.mchip[data-id="${m[0]}"]`);
+    if (chip) { chip.classList.remove("flash"); void chip.offsetWidth; chip.classList.add("flash"); }
+  } else {
+    S.found.add(m[0]);
+    S.score++;
+    $("#scoreLabel").textContent = `${S.score}마리`;
+    renderChips();
+    if (S.found.size === S.cur.length) {
+      S.endAt += CLEAR_BONUS;
+      setFeedback(`✨ 조합 클리어! +${CLEAR_BONUS / 1000}초 · combo clear`, "good");
+      setTimeout(() => { if (S) nextCombo(); }, 650);
+    } else {
+      setFeedback(`✓ ${m[4]} (${m[5]})`, "good");
+    }
+  }
+  $("#guessInput").value = "";
+  $("#guessInput").focus();
+}
+
+function tick() {
+  const left = S.endAt - Date.now();
+  if (left <= 0) { finish(false); return; }
+  const pct = Math.min(100, (left / (cfg.dur * 1000)) * 100);
+  const fill = $("#timeFill");
+  fill.style.width = pct + "%";
+  fill.classList.toggle("low", left < 10000);
+  const s = Math.ceil(left / 1000);
+  $("#timeLabel").textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+}
+
+function finish(exhausted) {
+  clearInterval(S.timer);
+  if (S.cur) S.records.push({ combo: S.cur, found: new Set(S.found) });
+  const cleared = S.records.filter((r) => r.found.size === r.combo.length).length;
+  const acc = S.attempts ? Math.round((S.score / S.attempts) * 100) : 0;
+
+  const prev = getBest();
+  const isBest = !prev || S.score > prev.score;
+  if (isBest && S.score > 0) {
+    localStorage.setItem(bestKey(), JSON.stringify({ score: S.score, date: new Date().toLocaleDateString("sv-SE") }));
+  }
+
+  $("#game").classList.add("hidden");
+  $("#result").classList.remove("hidden");
+  $("#finalScore").textContent = S.score;
+  $("#newBest").classList.toggle("hidden", !(isBest && S.score > 0));
+  $("#statCleared").textContent = `조합 클리어 ${cleared}/${S.records.length}${exhausted ? " (전부 소진!)" : ""}`;
+  $("#statAcc").textContent = `정확도 ${acc}%`;
+  const best = getBest();
+  $("#statBest").textContent = `최고 ${best ? best.score : 0}마리`;
+
+  $("#breakdown").innerHTML = S.records.map((r) => {
+    const chips = r.combo.map((m) => r.found.has(m[0])
+      ? `<span class="mchip found">${m[4]}</span>`
+      : `<span class="mchip missed">${m[4]} · ${m[5]}</span>`).join("");
+    return `<div class="rcard">
+      <div class="rc-head">${typeBadge(r.combo[0][2])}${typeBadge(r.combo[0][3])}
+        <span class="rc-stat">${r.found.size}/${r.combo.length}</span></div>
+      <div class="chips-area">${chips}</div>
+    </div>`;
+  }).join("");
+
+  const genLabel = GEN_PRESETS.find((p) => p[0] === cfg.gen)[1];
+  $("#copyBtn").onclick = () => {
+    const txt = `포켓몬 타입 퀴즈 🔍 ${S.score}마리 (조합 클리어 ${cleared}) · ${genLabel} · ${cfg.dur}초`;
+    navigator.clipboard.writeText(txt).then(() => {
+      $("#copyBtn").textContent = "복사됨! · Copied";
+      setTimeout(() => { $("#copyBtn").textContent = "결과 복사 · Copy"; }, 1500);
+    });
+  };
+}
+
+function passCombo() {
+  if (!S || $("#game").classList.contains("hidden")) return;
+  nextCombo();
+  $("#guessInput").focus();
+}
+
+/* ---- wiring ---- */
+$("#startBtn").onclick = startGame;
+$("#retryBtn").onclick = startGame;
+$("#setupBtn").onclick = () => {
+  S = null;
+  $("#result").classList.add("hidden");
+  $("#intro").classList.remove("hidden");
+  renderSettings();
+};
+$("#submitBtn").onclick = submitGuess;
+$("#passBtn").onclick = passCombo;
+$("#guessInput").addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.isComposing) submitGuess();
+  if (e.key === "Escape") passCombo();
+});
+
+renderSettings();
+</script>
+</body>
+</html>

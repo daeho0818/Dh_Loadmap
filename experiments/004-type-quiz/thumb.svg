@@ -1,0 +1,17 @@
+<svg viewBox="0 0 200 90" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Poké Type Quiz">
+  <rect width="200" height="90" fill="#1c2536"/>
+  <!-- two type badges -->
+  <rect x="26" y="18" width="60" height="24" rx="8" fill="#6390F0"/>
+  <text x="56" y="34" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="#fff">물</text>
+  <text x="100" y="34" text-anchor="middle" font-family="monospace" font-size="11" fill="#83818f">×</text>
+  <rect x="114" y="18" width="60" height="24" rx="8" fill="#A98FF3"/>
+  <text x="144" y="34" text-anchor="middle" font-family="sans-serif" font-size="11" font-weight="700" fill="#fff">비행</text>
+  <!-- answer chips: some found, some unknown -->
+  <rect x="30" y="54" width="42" height="15" rx="7.5" fill="#3c3489"/>
+  <text x="51" y="65" text-anchor="middle" font-family="sans-serif" font-size="8.5" fill="#ecebf2">갸라도스</text>
+  <rect x="78" y="54" width="34" height="15" rx="7.5" fill="none" stroke="#4a4954"/>
+  <text x="95" y="65" text-anchor="middle" font-family="monospace" font-size="8" fill="#83818f">#0278</text>
+  <rect x="118" y="54" width="34" height="15" rx="7.5" fill="none" stroke="#4a4954"/>
+  <text x="135" y="65" text-anchor="middle" font-family="monospace" font-size="8" fill="#83818f">#0279</text>
+  <text x="100" y="83" text-anchor="middle" font-family="monospace" font-size="8.5" fill="#7f77dd">who's that pokémon?</text>
+</svg>
