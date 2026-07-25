@@ -220,7 +220,7 @@
   <footer><a href="../../">← 실험실 · lab archive</a> · data &amp; sprites: <a href="https://pokeapi.co" target="_blank" rel="noopener">PokéAPI</a></footer>
 </main>
 
-<script src="data.js"></script>
+<script src="data.js?v=202607251709"></script>
 <script>
 "use strict";
 const $ = (s) => document.querySelector(s);
@@ -275,7 +275,8 @@ function buildPool() {
   const groups = new Map();
   for (const m of D.mons) {
     if (!genSet.has(m[1])) continue;
-    if (cfg.diff !== "hard" && !m[7]) continue; // 주류만
+    // m[7] 없는 구버전 data.js가 캐시로 들어와도 빈 풀이 되지 않게 주류 취급
+    if (cfg.diff !== "hard" && m.length >= 8 && !m[7]) continue; // 주류만
     let key;
     if (m[3]) key = [m[2], m[3]].sort((a, b) => a - b).join("-");
     else if (cfg.diff === "easy") key = "mono-" + m[2];
