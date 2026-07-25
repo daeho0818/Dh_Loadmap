@@ -170,7 +170,8 @@
       <button class="primary" id="startBtn">시작 · Start</button>
     </div>
     <p class="note" style="margin-top:20px;">타입이 달라지는 리전 폼(알로라·가라르·히스이·팔데아)·메가진화·원시회귀·로토무
-      폼도 출제 — "히스이 윈디", "메가리자몽X"처럼 답하면 돼요. 쉬움·보통의 목록은 최종
+      폼도 출제 — 리전 폼은 접두어 없이 "윈디"만 써도 타입이 맞으면 인정됩니다.
+      쉬움·보통의 목록은 최종
       진화형 기준이지만 <strong>타입이 일치하면 미진화체도 정답</strong> — 같은 타입 라인은
       한 칸으로 묶이고(주리비얀 → 샤로다), 목록에 없는 라인은 +1 보너스(불꽃 단일의 뚜꾸리).
       한국어/영어 모두 인정, 띄어쓰기·기호는 무시. 맞추면 일러스트가 짠 하고 나타납니다.</p>
@@ -274,6 +275,13 @@ const getBest = () => { try { return JSON.parse(localStorage.getItem(bestKey()))
 
 /* 타입 조합 키: 듀얼은 타입 쌍, 단일은 타입 하나 */
 const comboKey = (m) => m[3] ? [m[2], m[3]].sort((a, b) => a - b).join("-") : "mono-" + m[2];
+
+/* 리전 폼이면 접두어 뗀 이름 반환 ("히스이 윈디" → ["윈디","Arcanine"]), 아니면 null */
+function stripRegion(ko, en) {
+  const k = ko.replace(/^(알로라|가라르|히스이|팔데아)\s+/, "");
+  return k === ko ? null
+    : [k, en.replace(/^(Alolan|Galarian|Hisuian|Paldean)\s+/, "")];
+}
 
 /* 문제 풀: 듀얼은 타입 쌍으로, (쉬움일 때) 단일은 타입 하나로 묶는다 */
 function buildPool() {
@@ -390,7 +398,15 @@ function nextCombo() {
   S.bonusFound = [];      // 목록 밖 정답 (타입이 맞는 미진화체 등)
   S.bonusFams = new Set();
   S.lookup = new Map();
-  for (const m of S.cur) { S.lookup.set(norm(m[4]), m); S.lookup.set(norm(m[5]), m); }
+  const addAliases = (m, target) => {
+    // 정식 이름 우선, 리전 접두어 뗀 이름("윈디" → 히스이 윈디)은 빈 자리에만
+    for (const n of [norm(m[4]), norm(m[5])])
+      if (!S.lookup.has(n)) S.lookup.set(n, target);
+    const s = stripRegion(m[4], m[5]);
+    if (s) for (const n of [norm(s[0]), norm(s[1])])
+      if (!S.lookup.has(n)) S.lookup.set(n, target);
+  };
+  for (const m of S.cur) addAliases(m, m);
   // 주류만 출제되는 난이도에서도, 타입이 이 조합과 일치하는 포켓몬은 전부 정답.
   // - 진화 라인의 칩이 있으면 그 칩으로 인정 (주리비얀/샤비 → 샤로다)
   // - 칩이 없는 라인이면(뚜꾸리: 최종 진화형이 불꽃/격투라 불꽃 단일 목록에 없음)
@@ -405,9 +421,7 @@ function nextCombo() {
       const chip = famToChip.get(m[8]);
       if (chip === m) continue;
       const target = chip || (genSet.has(m[1]) ? m : null); // 보너스는 선택 세대 안에서만
-      if (!target) continue;
-      for (const n of [norm(m[4]), norm(m[5])])
-        if (!S.lookup.has(n)) S.lookup.set(n, target);
+      if (target) addAliases(m, target);
     }
   }
   preload(S.cur);
