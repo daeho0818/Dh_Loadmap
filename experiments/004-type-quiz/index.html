@@ -169,7 +169,8 @@
       <button class="primary" id="startBtn">시작 · Start</button>
     </div>
     <p class="note" style="margin-top:20px;">타입이 달라지는 리전 폼(알로라·가라르·히스이·팔데아)·메가진화·원시회귀·로토무
-      폼도 출제 — "히스이 윈디", "메가리자몽X"처럼 답하면 돼요. 한국어/영어 모두 인정,
+      폼도 출제 — "히스이 윈디", "메가리자몽X"처럼 답하면 돼요. 쉬움·보통에선 타입이 같은
+      미진화체 이름도 최종 진화형으로 인정(주리비얀 → 샤로다). 한국어/영어 모두 인정,
       띄어쓰기·기호는 무시. 맞추면 일러스트가 짠 하고 나타납니다.</p>
   </section>
 
@@ -220,7 +221,7 @@
   <footer><a href="../../">← 실험실 · lab archive</a> · data &amp; sprites: <a href="https://pokeapi.co" target="_blank" rel="noopener">PokéAPI</a></footer>
 </main>
 
-<script src="data.js?v=202607251709"></script>
+<script src="data.js?v=202607251713"></script>
 <script>
 "use strict";
 const $ = (s) => document.querySelector(s);
@@ -269,6 +270,9 @@ const saveCfg = () => localStorage.setItem("ptq.settings", JSON.stringify(cfg));
 const bestKey = () => `ptq.best.${cfg.diff}.${[...cfg.gens].sort().join("")}.${cfg.dur}.${cfg.hintDex ? 1 : 0}${cfg.hintGen ? 1 : 0}`;
 const getBest = () => { try { return JSON.parse(localStorage.getItem(bestKey())); } catch (e) { return null; } };
 
+/* 타입 조합 키: 듀얼은 타입 쌍, 단일은 타입 하나 */
+const comboKey = (m) => m[3] ? [m[2], m[3]].sort((a, b) => a - b).join("-") : "mono-" + m[2];
+
 /* 문제 풀: 듀얼은 타입 쌍으로, (쉬움일 때) 단일은 타입 하나로 묶는다 */
 function buildPool() {
   const genSet = new Set(cfg.gens);
@@ -277,10 +281,8 @@ function buildPool() {
     if (!genSet.has(m[1])) continue;
     // m[7] 없는 구버전 data.js가 캐시로 들어와도 빈 풀이 되지 않게 주류 취급
     if (cfg.diff !== "hard" && m.length >= 8 && !m[7]) continue; // 주류만
-    let key;
-    if (m[3]) key = [m[2], m[3]].sort((a, b) => a - b).join("-");
-    else if (cfg.diff === "easy") key = "mono-" + m[2];
-    else continue; // 보통/어려움: 듀얼만
+    if (!m[3] && cfg.diff !== "easy") continue; // 보통/어려움: 듀얼만
+    const key = comboKey(m);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(m);
   }
@@ -385,6 +387,20 @@ function nextCombo() {
   S.found = new Set();
   S.lookup = new Map();
   for (const m of S.cur) { S.lookup.set(norm(m[4]), m); S.lookup.set(norm(m[5]), m); }
+  // 주류만 출제되는 난이도에선, 같은 타입 조합의 미진화체 이름도
+  // 그 진화 라인의 칩(최종 진화형)으로 인정 (주리비얀/샤비 → 샤로다)
+  if (cfg.diff !== "hard" && S.cur[0].length >= 9) {
+    const famToChip = new Map();
+    for (const m of S.cur) if (!famToChip.has(m[8])) famToChip.set(m[8], m);
+    const key = comboKey(S.cur[0]);
+    for (const m of D.mons) {
+      if (comboKey(m) !== key) continue;
+      const chip = famToChip.get(m[8]);
+      if (!chip || chip === m) continue;
+      for (const n of [norm(m[4]), norm(m[5])])
+        if (!S.lookup.has(n)) S.lookup.set(n, chip);
+    }
+  }
   preload(S.cur);
   preload(S.combos[S.idx + 1]); // 다음 문제 이미지도 미리
   $("#comboBadges").innerHTML = comboBadgesHTML(S.cur);
@@ -451,7 +467,8 @@ function submitGuess() {
       setFeedback(`✨ 조합 클리어! +${CLEAR_BONUS / 1000}초 · combo clear`, "good", m[6]);
       setTimeout(() => { if (S) nextCombo(); }, 700);
     } else {
-      setFeedback(`✓ ${m[4]} (${m[5]})`, "good", m[6]);
+      const alias = norm(raw) !== norm(m[4]) && norm(raw) !== norm(m[5]);
+      setFeedback(alias ? `✓ ${raw} → ${m[4]} 라인 인정!` : `✓ ${m[4]} (${m[5]})`, "good", m[6]);
     }
   }
   $("#guessInput").value = "";
