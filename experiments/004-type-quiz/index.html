@@ -96,7 +96,6 @@
   .mchip.found { border-color: var(--accent-strong); color: var(--text);
     background: var(--accent-dim); font-weight: 600; animation: pop .18s ease; }
   .mchip.flash { outline: 2px solid var(--good); }
-  .mchip.found.bonus { border-style: dashed; border-color: var(--good); background: transparent; color: var(--good); }
   .mchip.missed { border-style: dashed; color: var(--bad); }
 
   /* ---- input ---- */
@@ -147,10 +146,6 @@
     <p class="lead-en">Random types appear — name every Pokémon with that exact combo.
       Clear a combo for +5s. Pass when stuck.</p>
 
-    <div class="set-label">난이도 · difficulty</div>
-    <div class="chips" id="diffChips"></div>
-    <div class="diff-desc" id="diffDesc"></div>
-
     <div class="set-label">출제 세대 · generations (다중 선택)</div>
     <div class="chips" id="genChips"></div>
     <div class="chips gen-actions">
@@ -169,12 +164,11 @@
     <div class="row">
       <button class="primary" id="startBtn">시작 · Start</button>
     </div>
-    <p class="note" style="margin-top:20px;">타입이 달라지는 리전 폼(알로라·가라르·히스이·팔데아)·메가진화·원시회귀·로토무
-      폼도 출제 — 리전 폼은 접두어 없이 "윈디"만 써도 타입이 맞으면 인정됩니다.
-      쉬움·보통의 목록은 최종
-      진화형 기준이지만 <strong>타입이 일치하면 미진화체도 정답</strong> — 같은 타입 라인은
-      한 칸으로 묶이고(주리비얀 → 샤로다), 목록에 없는 라인은 +1 보너스(불꽃 단일의 뚜꾸리).
-      한국어/영어 모두 인정, 띄어쓰기·기호는 무시. 맞추면 일러스트가 짠 하고 나타납니다.</p>
+    <p class="note" style="margin-top:20px;">단일 타입과 듀얼 타입 문제가 섞여 나오고,
+      모든 진화 단계가 각자 정답입니다. 타입이 달라지는 리전 폼(알로라·가라르·히스이·팔데아)·
+      메가진화·원시회귀·로토무 폼도 출제 — 리전 폼은 접두어 없이 "윈디"만 써도 타입이 맞으면
+      인정됩니다. 한국어/영어 모두 인정, 띄어쓰기·기호는 무시.
+      맞추면 일러스트가 짠 하고 나타납니다.</p>
   </section>
 
   <!-- ========== game ========== -->
@@ -249,28 +243,22 @@ const norm = (s) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").normalize("NFC")
 
 /* ---- 설정 ---- */
 const GENS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
-const DIFF_PRESETS = [
-  ["easy", "쉬움", "단일 + 듀얼 타입 출제 · 주류(최종 진화·전설) 위주"],
-  ["normal", "보통", "듀얼 타입만 · 주류(최종 진화·전설) 위주"],
-  ["hard", "어려움", "듀얼 타입만 · 진화 전 단계까지 전부 출제"],
-];
 const DUR_PRESETS = [[60, "1분"], [120, "2분"], [180, "3분"]];
 const HINT_PRESETS = [["hintDex", "도감 번호 표시"], ["hintGen", "세대 표시"]];
 const CLEAR_BONUS = 5000;
 
-let cfg = { diff: "normal", gens: [...GENS], dur: 120, hintDex: true, hintGen: false };
+let cfg = { gens: [...GENS], dur: 120, hintDex: true, hintGen: false };
 try {
   const saved = JSON.parse(localStorage.getItem("ptq.settings") || "{}");
   if (Array.isArray(saved.gens)) cfg.gens = saved.gens.filter((g) => GENS.includes(g));
   else if (saved.gen) cfg.gens = GENS.filter((g) => g <= saved.gen); // 구버전 설정 이전
   if (DUR_PRESETS.some((p) => p[0] === saved.dur)) cfg.dur = saved.dur;
-  if (DIFF_PRESETS.some((p) => p[0] === saved.diff)) cfg.diff = saved.diff;
   if (typeof saved.hintDex === "boolean") cfg.hintDex = saved.hintDex;
   if (typeof saved.hintGen === "boolean") cfg.hintGen = saved.hintGen;
 } catch (e) {}
 const saveCfg = () => localStorage.setItem("ptq.settings", JSON.stringify(cfg));
 
-const bestKey = () => `ptq.best.${cfg.diff}.${[...cfg.gens].sort().join("")}.${cfg.dur}.${cfg.hintDex ? 1 : 0}${cfg.hintGen ? 1 : 0}`;
+const bestKey = () => `ptq.best.all.${[...cfg.gens].sort().join("")}.${cfg.dur}.${cfg.hintDex ? 1 : 0}${cfg.hintGen ? 1 : 0}`;
 const getBest = () => { try { return JSON.parse(localStorage.getItem(bestKey())); } catch (e) { return null; } };
 
 /* 타입 조합 키: 듀얼은 타입 쌍, 단일은 타입 하나 */
@@ -283,15 +271,12 @@ function stripRegion(ko, en) {
     : [k, en.replace(/^(Alolan|Galarian|Hisuian|Paldean)\s+/, "")];
 }
 
-/* 문제 풀: 듀얼은 타입 쌍으로, (쉬움일 때) 단일은 타입 하나로 묶는다 */
+/* 문제 풀: 듀얼은 타입 쌍으로, 단일은 타입 하나로 묶는다 (모든 진화 단계 포함) */
 function buildPool() {
   const genSet = new Set(cfg.gens);
   const groups = new Map();
   for (const m of D.mons) {
     if (!genSet.has(m[1])) continue;
-    // m[7] 없는 구버전 data.js가 캐시로 들어와도 빈 풀이 되지 않게 주류 취급
-    if (cfg.diff !== "hard" && m.length >= 8 && !m[7]) continue; // 주류만
-    if (!m[3] && cfg.diff !== "easy") continue; // 보통/어려움: 듀얼만
     const key = comboKey(m);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(m);
@@ -308,11 +293,6 @@ function renderSettings() {
     b.onclick = () => { onclick(); saveCfg(); renderSettings(); };
     return b;
   };
-  const diffEl = $("#diffChips"); diffEl.innerHTML = "";
-  for (const [val, label] of DIFF_PRESETS)
-    diffEl.appendChild(chip(label, cfg.diff === val, () => { cfg.diff = val; }));
-  $("#diffDesc").textContent = DIFF_PRESETS.find((p) => p[0] === cfg.diff)[2];
-
   const genEl = $("#genChips"); genEl.innerHTML = "";
   for (const g of GENS)
     genEl.appendChild(chip(`${g}세대`, cfg.gens.includes(g), () => {
@@ -368,12 +348,25 @@ function preload(group) {
   for (const m of group) { const img = new Image(); img.src = SPRITE(m[6]); }
 }
 
-function startGame() {
-  const combos = buildPool();
-  if (!combos.length) return;
-  for (let i = combos.length - 1; i > 0; i--) { // shuffle
+function shuffle(a) {
+  for (let i = a.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [combos[i], combos[j]] = [combos[j], combos[i]];
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function startGame() {
+  const pool = buildPool();
+  if (!pool.length) return;
+  // 단일 타입은 조합 수가 적어(타입 18 vs 듀얼 조합 ~120) 순수 랜덤이면 드물게 나온다.
+  // 듀얼 2문제마다 단일 1문제꼴로 끼워 적절히 섞는다.
+  const monos = shuffle(pool.filter((g) => !g[0][3]));
+  const duals = shuffle(pool.filter((g) => g[0][3]));
+  const combos = [];
+  while (duals.length || monos.length) {
+    for (let k = 0; k < 2 && duals.length; k++) combos.push(duals.shift());
+    if (monos.length) combos.push(monos.shift());
   }
   S = { combos, idx: -1, cur: null, found: new Set(), lookup: new Map(),
     records: [], score: 0, attempts: 0, endAt: Date.now() + cfg.dur * 1000, timer: null };
@@ -389,14 +382,12 @@ function startGame() {
 
 function nextCombo() {
   if (S.cur) {
-    S.records.push({ combo: S.cur, found: new Set(S.found), bonus: S.bonusFound });
+    S.records.push({ combo: S.cur, found: new Set(S.found) });
   }
   S.idx++;
   if (S.idx >= S.combos.length) { finish(true); return; }
   S.cur = S.combos[S.idx];
   S.found = new Set();
-  S.bonusFound = [];      // 목록 밖 정답 (타입이 맞는 미진화체 등)
-  S.bonusFams = new Set();
   S.lookup = new Map();
   const addAliases = (m, target) => {
     // 정식 이름 우선, 리전 접두어 뗀 이름("윈디" → 히스이 윈디)은 빈 자리에만
@@ -407,23 +398,6 @@ function nextCombo() {
       if (!S.lookup.has(n)) S.lookup.set(n, target);
   };
   for (const m of S.cur) addAliases(m, m);
-  // 주류만 출제되는 난이도에서도, 타입이 이 조합과 일치하는 포켓몬은 전부 정답.
-  // - 진화 라인의 칩이 있으면 그 칩으로 인정 (주리비얀/샤비 → 샤로다)
-  // - 칩이 없는 라인이면(뚜꾸리: 최종 진화형이 불꽃/격투라 불꽃 단일 목록에 없음)
-  //   자기 자신이 보너스 정답이 된다. 라인당 한 번만.
-  if (cfg.diff !== "hard" && S.cur[0].length >= 9) {
-    const famToChip = new Map();
-    for (const m of S.cur) if (!famToChip.has(m[8])) famToChip.set(m[8], m);
-    const key = comboKey(S.cur[0]);
-    const genSet = new Set(cfg.gens);
-    for (const m of D.mons) {
-      if (comboKey(m) !== key) continue;
-      const chip = famToChip.get(m[8]);
-      if (chip === m) continue;
-      const target = chip || (genSet.has(m[1]) ? m : null); // 보너스는 선택 세대 안에서만
-      if (target) addAliases(m, target);
-    }
-  }
   preload(S.cur);
   preload(S.combos[S.idx + 1]); // 다음 문제 이미지도 미리
   $("#comboBadges").innerHTML = comboBadgesHTML(S.cur);
@@ -435,7 +409,6 @@ function nextCombo() {
 function chipHTML(m, state) {
   const img = `<img src="${SPRITE(m[6])}" alt="" loading="lazy" onerror="this.remove()" />`;
   if (state === "found") return `<span class="mchip found" data-id="${m[0]}">${img}${m[4]}</span>`;
-  if (state === "bonus") return `<span class="mchip found bonus" data-id="${m[0]}">${img}+${m[4]}</span>`;
   if (state === "missed") return `<span class="mchip missed">${img}${m[4]} · ${m[5]}</span>`;
   const parts = [];
   if (cfg.hintDex) parts.push("#" + String(m[0]).padStart(4, "0"));
@@ -444,12 +417,9 @@ function chipHTML(m, state) {
 }
 
 function renderChips() {
-  const bonus = S.bonusFound.length;
-  $("#comboCount").innerHTML =
-    `<b>${S.found.size}</b>${bonus ? `<b>+${bonus}</b>` : ""} / ${S.cur.length}마리`;
+  $("#comboCount").innerHTML = `<b>${S.found.size}</b> / ${S.cur.length}마리`;
   $("#chipsArea").innerHTML = S.cur.map((m) =>
-    chipHTML(m, S.found.has(m[0]) ? "found" : "hidden")).join("")
-    + S.bonusFound.map((m) => chipHTML(m, "bonus")).join("");
+    chipHTML(m, S.found.has(m[0]) ? "found" : "hidden")).join("");
 }
 
 function setFeedback(msg, cls, spriteId) {
@@ -484,20 +454,6 @@ function submitGuess() {
   if (!m) {
     shake();
     setFeedback(`"${raw}" — 이 조합에는 없어요 · not in this combo`, "bad");
-  } else if (!S.cur.includes(m)) {
-    // 목록 밖 정답: 타입은 일치하지만 칩이 없는 라인 (뚜꾸리 등) — 라인당 1회
-    if (S.bonusFams.has(m[8])) {
-      const prev = S.bonusFound.find((b) => b[8] === m[8]);
-      setFeedback(`${prev[4]} 라인은 이미 찾았어요 · already found`, "info");
-      flashChip(prev[0]);
-    } else {
-      S.bonusFams.add(m[8]);
-      S.bonusFound.push(m);
-      S.score++;
-      $("#scoreLabel").textContent = `${S.score}마리`;
-      renderChips();
-      setFeedback(`✓ ${m[4]} (${m[5]}) — 목록 밖 정답, +1!`, "good", m[6]);
-    }
   } else if (S.found.has(m[0])) {
     setFeedback(`${m[4]} — 이미 찾았어요 · already found`, "info");
     flashChip(m[0]);
@@ -512,7 +468,7 @@ function submitGuess() {
       setTimeout(() => { if (S) nextCombo(); }, 700);
     } else {
       const alias = norm(raw) !== norm(m[4]) && norm(raw) !== norm(m[5]);
-      setFeedback(alias ? `✓ ${raw} → ${m[4]} 라인 인정!` : `✓ ${m[4]} (${m[5]})`, "good", m[6]);
+      setFeedback(alias ? `✓ ${raw} → ${m[4]} 인정!` : `✓ ${m[4]} (${m[5]})`, "good", m[6]);
     }
   }
   $("#guessInput").value = "";
@@ -532,7 +488,7 @@ function tick() {
 
 function finish(exhausted) {
   clearInterval(S.timer);
-  if (S.cur) S.records.push({ combo: S.cur, found: new Set(S.found), bonus: S.bonusFound });
+  if (S.cur) S.records.push({ combo: S.cur, found: new Set(S.found) });
   const cleared = S.records.filter((r) => r.found.size === r.combo.length).length;
   const acc = S.attempts ? Math.round((S.score / S.attempts) * 100) : 0;
 
@@ -553,23 +509,20 @@ function finish(exhausted) {
 
   $("#breakdown").innerHTML = S.records.map((r) => {
     const chips = r.combo.map((m) =>
-      chipHTML(m, r.found.has(m[0]) ? "found" : "missed")).join("")
-      + (r.bonus || []).map((m) => chipHTML(m, "bonus")).join("");
-    const bonusN = (r.bonus || []).length;
+      chipHTML(m, r.found.has(m[0]) ? "found" : "missed")).join("");
     return `<div class="rcard">
       <div class="rc-head">${r.combo[0][3]
         ? typeBadge(r.combo[0][2]) + typeBadge(r.combo[0][3])
         : typeBadge(r.combo[0][2])}
-        <span class="rc-stat">${r.found.size}${bonusN ? "+" + bonusN : ""}/${r.combo.length}</span></div>
+        <span class="rc-stat">${r.found.size}/${r.combo.length}</span></div>
       <div class="chips-area">${chips}</div>
     </div>`;
   }).join("");
 
-  const diffLabel = DIFF_PRESETS.find((p) => p[0] === cfg.diff)[1];
   const genLabel = cfg.gens.length === GENS.length
     ? "전체 세대" : [...cfg.gens].sort().join("·") + "세대";
   $("#copyBtn").onclick = () => {
-    const txt = `포켓몬 타입 퀴즈 🔍 ${S.score}마리 (조합 클리어 ${cleared}) · ${diffLabel} · ${genLabel} · ${cfg.dur}초`;
+    const txt = `포켓몬 타입 퀴즈 🔍 ${S.score}마리 (조합 클리어 ${cleared}) · ${genLabel} · ${cfg.dur}초`;
     navigator.clipboard.writeText(txt).then(() => {
       $("#copyBtn").textContent = "복사됨! · Copied";
       setTimeout(() => { $("#copyBtn").textContent = "결과 복사 · Copy"; }, 1500);
