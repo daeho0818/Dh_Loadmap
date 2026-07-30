@@ -1,0 +1,1285 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>#005 밑바닥 AI · AI from Scratch</title>
+<meta name="description" content="라이브러리 없이 제로베이스에서 AI를 직접 만드는 25스텝 학습 지도. A 25-step roadmap to build AI from scratch — no libraries, working demos included." />
+<style>
+  :root {
+    --bg: #14151b; --surface: #1c1e26; --surface-2: #23252f; --surface-3: #2a2c38;
+    --border: #31333f; --border-strong: #454857;
+    --text: #eceef5; --text-2: #b3b6c4; --muted: #7e8192;
+    --accent: #a9b8f5; --accent-strong: #5f6fe8; --accent-dim: #262a52;
+    --ok: #8fdcbb; --ok-dim: #1b3a30;
+    --warn: #f0b57b; --pink: #ee9ec0;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
+    --mono: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f5f5f7; --surface: #ffffff; --surface-2: #eeeff3; --surface-3: #e5e6ec;
+      --border: #dcdde3; --border-strong: #bdbfc9;
+      --text: #1e1f26; --text-2: #55586a; --muted: #85889a;
+      --accent: #4b5bd6; --accent-strong: #4b5bd6; --accent-dim: #e2e5fb;
+      --ok: #2c8f6c; --ok-dim: #d8f0e6;
+      --warn: #b5701f; --pink: #c1548b;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); }
+  .wrap { max-width: 1120px; margin: 0 auto; padding: 26px 18px 90px; }
+
+  /* ---------- header ---------- */
+  .kicker { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  h1 { font-size: 25px; font-weight: 600; margin: 4px 0 6px; letter-spacing: -.3px; }
+  .lead { color: var(--text-2); font-size: 14.5px; margin: 0 0 2px; }
+  .lead-en { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+
+  .rules { background: var(--surface); border: 0.5px solid var(--border); border-left: 3px solid var(--accent-strong);
+    border-radius: 10px; padding: 12px 16px; margin: 0 0 18px; font-size: 13.5px; color: var(--text-2); }
+  .rules b { color: var(--text); font-weight: 600; }
+  .rules ol { margin: 6px 0 0; padding-left: 20px; }
+  .rules li { margin: 3px 0; }
+
+  /* ---------- progress ---------- */
+  .prog { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 18px; }
+  .prog-top { display: flex; align-items: baseline; gap: 14px; flex-wrap: wrap; margin-bottom: 10px; }
+  .prog-top b { font-size: 21px; font-weight: 600; }
+  .prog-top span { font-size: 12.5px; color: var(--muted); }
+  .prog-top .spacer { flex: 1; }
+  .bar { height: 8px; border-radius: 5px; background: var(--surface-3); overflow: hidden; display: flex; }
+  .bar i { display: block; background: var(--accent-strong); transition: width .35s ease; }
+  .bar i.part { background: var(--ok); opacity: .55; }
+  .track { display: flex; gap: 3px; margin-top: 10px; }
+  .track b { flex: 1; height: 6px; border-radius: 3px; background: var(--surface-3); cursor: pointer; transition: transform .1s; }
+  .track b:hover { transform: scaleY(1.7); }
+  .track b.part { background: var(--accent-dim); }
+  .track b.done { background: var(--ok); }
+  .track b.cur { background: var(--accent-strong); }
+
+  /* ---------- layout ---------- */
+  .cols { display: grid; grid-template-columns: 268px 1fr; gap: 20px; align-items: start; }
+  @media (max-width: 860px) { .cols { grid-template-columns: 1fr; } }
+
+  /* ---------- sidebar ---------- */
+  .toc-toggle { display: none; width: 100%; margin-bottom: 12px; }
+  aside { position: sticky; top: 14px; max-height: calc(100vh - 28px); overflow-y: auto;
+    background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px; padding: 10px; }
+  @media (max-width: 860px) {
+    aside { position: static; max-height: 62vh; margin-bottom: 14px; }
+    aside.collapsed { display: none; }
+    .toc-toggle { display: block; }
+  }
+  .part-h { font-family: var(--mono); font-size: 11px; color: var(--muted); text-transform: uppercase;
+    letter-spacing: .06em; padding: 12px 8px 5px; }
+  .part-h:first-child { padding-top: 4px; }
+  .snav { display: flex; align-items: center; gap: 8px; width: 100%; text-align: left; cursor: pointer;
+    background: none; border: none; color: var(--text-2); font-family: var(--sans); font-size: 13px;
+    padding: 6px 8px; border-radius: 7px; line-height: 1.35; }
+  .snav:hover { background: var(--surface-2); color: var(--text); }
+  .snav.active { background: var(--accent-dim); color: var(--text); }
+  .snav .dot { flex: none; width: 15px; height: 15px; border-radius: 50%; border: 1.5px solid var(--border-strong);
+    font-size: 9px; display: grid; place-items: center; color: var(--bg); }
+  .snav.done .dot { background: var(--ok); border-color: var(--ok); }
+  .snav.part .dot { border-color: var(--accent); background: linear-gradient(90deg, var(--accent) 50%, transparent 50%); }
+  .snav .n { font-family: var(--mono); font-size: 10.5px; color: var(--muted); flex: none; }
+
+  /* ---------- step panel ---------- */
+  main.panel { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px; padding: 20px 22px 22px; min-width: 0; }
+  @media (max-width: 560px) { main.panel { padding: 16px 15px 18px; } }
+  .p-tag { display: inline-block; font-family: var(--mono); font-size: 11px; color: var(--accent);
+    background: var(--accent-dim); border-radius: 5px; padding: 2px 7px; }
+  .p-eff { font-family: var(--mono); font-size: 11px; color: var(--muted); margin-left: 6px; }
+  h2.s-title { font-size: 20px; font-weight: 600; margin: 10px 0 2px; letter-spacing: -.2px; }
+  .s-en { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-bottom: 14px; }
+  .why { font-size: 14.5px; color: var(--text-2); background: var(--surface-2); border-radius: 10px;
+    padding: 12px 14px; margin-bottom: 18px; }
+
+  h3 { font-size: 13px; font-weight: 600; margin: 20px 0 8px; color: var(--text);
+    display: flex; align-items: center; gap: 7px; }
+  h3 em { font-style: normal; font-family: var(--mono); font-size: 11px; color: var(--muted); font-weight: 400; }
+  ul.plain { margin: 0; padding-left: 18px; font-size: 14px; color: var(--text-2); }
+  ul.plain li { margin: 4px 0; }
+  ul.plain code, .why code, .buildlist code { font-family: var(--mono); font-size: 12.5px;
+    background: var(--surface-3); border-radius: 4px; padding: 1px 5px; color: var(--text); }
+
+  .buildlist { display: flex; flex-direction: column; gap: 2px; }
+  .bitem { display: flex; gap: 10px; align-items: flex-start; padding: 8px 10px; border-radius: 9px;
+    cursor: pointer; font-size: 14px; color: var(--text-2); border: 0.5px solid transparent; }
+  .bitem:hover { background: var(--surface-2); }
+  .bitem .box { flex: none; width: 17px; height: 17px; margin-top: 2px; border-radius: 5px;
+    border: 1.5px solid var(--border-strong); display: grid; place-items: center; font-size: 11px;
+    color: transparent; transition: all .12s; }
+  .bitem.on .box { background: var(--ok); border-color: var(--ok); color: var(--bg); }
+  .bitem.on { color: var(--muted); }
+  .bitem.on .btxt { text-decoration: line-through; text-decoration-color: var(--border-strong); }
+
+  .verdict { background: var(--ok-dim); border-radius: 10px; padding: 11px 14px; font-size: 14px; color: var(--text); }
+  .verdict b { color: var(--ok); font-weight: 600; }
+  .traps { border-left: 2px solid var(--warn); padding-left: 12px; }
+  .traps li { color: var(--text-2); }
+  .keys { display: flex; flex-wrap: wrap; gap: 6px; }
+  .keys span { font-family: var(--mono); font-size: 11.5px; color: var(--text-2);
+    background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 6px; padding: 3px 8px; }
+
+  textarea { width: 100%; min-height: 74px; resize: vertical; background: var(--surface-2);
+    border: 1px solid var(--border); border-radius: 10px; color: var(--text); font-family: var(--sans);
+    font-size: 13.5px; padding: 10px 12px; line-height: 1.5; }
+  textarea:focus { outline: none; border-color: var(--accent); }
+
+  .navrow { display: flex; gap: 8px; margin-top: 24px; padding-top: 16px; border-top: 0.5px solid var(--border); }
+  button { font-family: var(--sans); font-size: 13.5px; font-weight: 500; cursor: pointer;
+    border-radius: 9px; padding: 9px 14px; border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--text); transition: all .12s; }
+  button:hover:not(:disabled) { border-color: var(--accent); }
+  button:disabled { opacity: .4; cursor: default; }
+  button.primary { background: var(--accent-strong); color: #fff; border-color: var(--accent-strong); }
+  .navrow .spacer { flex: 1; }
+
+  /* ---------- demos ---------- */
+  .demo { background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 12px;
+    padding: 14px 15px; margin-top: 8px; }
+  .demo-h { font-family: var(--mono); font-size: 11px; color: var(--accent); margin-bottom: 10px; }
+  .drow { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-bottom: 10px; }
+  .drow label { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+  input[type="text"] { background: var(--surface); border: 1px solid var(--border); border-radius: 9px;
+    color: var(--text); font-family: var(--sans); font-size: 14px; padding: 9px 12px; min-width: 0; flex: 1; }
+  input[type="text"]:focus { outline: none; border-color: var(--accent); }
+  input[type="range"] { accent-color: var(--accent-strong); }
+  select { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; color: var(--text);
+    font-family: var(--mono); font-size: 12.5px; padding: 6px 8px; }
+  canvas { width: 100%; height: auto; display: block; border-radius: 9px; background: var(--surface); }
+
+  .chips { display: flex; flex-wrap: wrap; gap: 5px; }
+  .chip { font-family: var(--mono); font-size: 12px; background: var(--surface); border: 0.5px solid var(--border);
+    border-radius: 6px; padding: 3px 7px; display: flex; flex-direction: column; align-items: center; line-height: 1.25; }
+  .chip i { font-style: normal; font-size: 9.5px; color: var(--accent); }
+  .chip.unk i { color: var(--warn); }
+
+  table.nb { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.nb td { padding: 4px 6px; vertical-align: middle; }
+  table.nb td.w { font-family: var(--mono); width: 34%; color: var(--text); }
+  table.nb td.s { font-family: var(--mono); width: 52px; text-align: right; color: var(--muted); font-size: 11.5px; }
+  .simbar { height: 8px; border-radius: 4px; background: var(--accent-strong); min-width: 2px; }
+  .vecstrip { display: flex; gap: 1px; height: 22px; margin: 8px 0 4px; border-radius: 4px; overflow: hidden; }
+  .vecstrip b { flex: 1; display: block; }
+  .dnote { font-size: 11.5px; color: var(--muted); margin-top: 8px; }
+  .mono-out { font-family: var(--mono); font-size: 12px; color: var(--text-2); white-space: pre-wrap;
+    background: var(--surface); border-radius: 8px; padding: 9px 11px; }
+
+  .foot { margin-top: 26px; font-size: 13px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">experiment #005</div>
+  <h1>밑바닥 AI · AI from Scratch</h1>
+  <p class="lead">숫자 배열 하나에서 시작해 미니 GPT까지. 라이브러리 없이, 전부 직접.</p>
+  <p class="lead-en">From a bare number array to a working mini-GPT — 25 steps, zero libraries, every line yours.</p>
+
+  <div class="rules">
+    <b>이 지도의 규칙 · house rules</b>
+    <ol>
+      <li>외부 라이브러리 금지. 허용되는 건 언어 내장 기능뿐 (JS면 <code>Float32Array</code>, Python이면 순수 <code>list</code>/<code>math</code>).</li>
+      <li>한 스텝 = <b>돌아가는 코드 한 덩어리</b>. 읽기만 한 스텝은 안 한 스텝이다.</li>
+      <li>각 스텝의 <b>성공 판정</b>을 테스트로 통과시켜야 체크. 통과 못 하면 다음으로 넘어가지 않는다.</li>
+      <li>막히면 스텝을 더 잘게 쪼갠다. 순서를 건너뛰지는 않는다.</li>
+    </ol>
+  </div>
+
+  <div class="prog">
+    <div class="prog-top">
+      <b id="pgSteps">0 / 25</b><span>스텝 완료 · steps</span>
+      <b id="pgChecks">0</b><span>완료한 과제 · builds shipped</span>
+      <span class="spacer"></span>
+      <span id="pgPct">0%</span>
+    </div>
+    <div class="bar"><i id="barDone" style="width:0"></i><i id="barPart" class="part" style="width:0"></i></div>
+    <div class="track" id="track"></div>
+  </div>
+
+  <button class="toc-toggle" id="tocToggle">목차 열기 · contents</button>
+  <div class="cols">
+    <aside id="toc" class="collapsed"></aside>
+    <main class="panel" id="panel"></main>
+  </div>
+
+  <p class="foot">
+    <a href="../../">← 실험실로 · back to the lab</a>
+    <span>진행 상황은 이 브라우저에만 저장됩니다 · progress stays in your browser</span>
+    <a href="#" id="resetLink">진행 초기화 · reset</a>
+  </p>
+</div>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   #005 밑바닥 AI — 커리큘럼 데이터 + 진행 저장 + 인라인 데모 3종
+   ========================================================================== */
+
+const STORE_KEY = "lab.ai005.v1";
+
+const PARTS = [
+  { id: "P0", label: "0부 · 바닥 다지기 — Ground" },
+  { id: "P1", label: "1부 · 언어를 숫자로 — Text → Numbers" },
+  { id: "P2", label: "2부 · 학습하는 벡터 — Learned Vectors" },
+  { id: "P3", label: "3부 · 다음 단어를 맞히는 기계 — Language Model" },
+  { id: "P4", label: "4부 · 문맥을 기억하기 — Sequence" },
+  { id: "P5", label: "5부 · 어텐션과 트랜스포머 — The Real Thing" },
+];
+
+const STEPS = [
+/* ---------------- P0 ---------------- */
+{
+  id: "S01", part: "P0", eff: "반나절",
+  title: "벡터라는 이름의 숫자 배열",
+  en: "Vectors are just number arrays",
+  why: "AI의 모든 것은 결국 숫자 배열 하나와, 그 배열에 하는 대여섯 가지 연산이다. 지금 만드는 함수들을 마지막 미니 GPT까지 그대로 쓴다. 버릴 코드가 아니다.",
+  concepts: [
+    "<code>Float32Array</code>로 벡터 만들기 — 왜 일반 배열보다 나은가",
+    "덧셈 · 스칼라배 · 뺄셈 = 방향의 이동",
+    "<b>내적(dot)</b> = 두 벡터가 얼마나 같은 곳을 보는가",
+    "노름(길이)과 정규화 — 길이를 1로 만들면 남는 건 방향뿐",
+    "<b>코사인 유사도</b> = 길이를 버리고 각도만 비교 (뒤에서 계속 쓴다)",
+    "유클리드 거리와 코사인의 차이 — 언제 뭐가 맞나",
+  ],
+  build: [
+    "<code>vec.js</code>: add, sub, scale, dot, norm, normalize, cosine, distance 구현",
+    "직접 만든 미니 테스트 러너(<code>assertClose(a,b,eps)</code>)로 손계산 값과 대조",
+    "2D 벡터 두 개를 캔버스에 화살표로 그리고, 사이 각도와 코사인을 숫자로 표시",
+  ],
+  verdict: "<code>cosine([1,0],[0,1]) === 0</code>, <code>cosine([1,1],[2,2]) === 1</code>이 테스트로 통과한다. 그리고 화면의 화살표를 돌리면 코사인 값이 함께 움직인다.",
+  traps: [
+    "코사인은 길이를 버린다 → 빈도 정보가 사라진다는 뜻. 좋을 때도 나쁠 때도 있다.",
+    "0벡터를 정규화하면 NaN. 방어 코드 없으면 나중에 학습이 조용히 죽는다.",
+    "부동소수를 <code>===</code>로 비교하지 말 것. 오차 허용 비교를 처음부터 습관화.",
+  ],
+  keys: ["dot product", "L2 norm", "cosine similarity", "Float32Array"],
+},
+{
+  id: "S02", part: "P0", eff: "반나절 ~ 1일",
+  title: "행렬 = 벡터들의 사전",
+  en: "A matrix is a dictionary of vectors",
+  why: "단어 하나 = 벡터 하나. 단어 1만 개 = 행이 1만 개인 행렬 하나. 네가 말한 그 '벡터 사전'의 정체가 바로 이거다. 그리고 행렬곱은 그 사전에서 여러 개를 한 번에 꺼내 섞는 연산이다.",
+  concepts: [
+    "2D를 1D flat 배열 + <code>i*cols+j</code>로 표현하는 이유 (속도, 단순함, 나중에 GPU)",
+    "<code>matmul</code> 삼중 루프 — 그리고 루프 순서가 속도를 바꾼다",
+    "transpose, rowSlice — 행 하나 꺼내기가 곧 '단어 하나의 의미 벡터' 꺼내기",
+    "shape을 머릿속에 항상 들고 다니기: (B,T,C) 같은 표기에 익숙해지기",
+  ],
+  build: [
+    "<code>Matrix {rows, cols, data: Float32Array}</code> + matmul, transpose, row, fill, map",
+    "3×4 · 4×2 를 손으로 계산한 답과 대조하는 테스트",
+    "500×500 행렬곱 시간 재기 → 루프 순서(i-j-k vs i-k-j)를 바꿔 다시 재기",
+  ],
+  verdict: "500×500 곱이 내 컴퓨터에서 몇 ms인지 말할 수 있고, 루프 순서만 바꿔서 몇 배 빨라지는지 직접 봤다.",
+  traps: [
+    "row-major / column-major 혼동 — 한 번 정하고 문서에 적어두기.",
+    "스텝마다 새 배열을 할당하면 GC가 학습 속도를 잡아먹는다. 출력 버퍼 재사용 습관.",
+    "shape 불일치는 에러가 아니라 '이상한 숫자'로 나타난다. 생성자에서 검사할 것.",
+  ],
+  keys: ["row-major", "strides", "GEMM", "cache locality", "shape"],
+},
+{
+  id: "S03", part: "P0", eff: "반나절",
+  title: "기울기 따라 내려가기",
+  en: "Gradient descent, by hand",
+  why: "학습이란 '손실을 줄이는 방향으로 숫자를 조금씩 옮기는 일'이 전부다. 이 루프 하나가 word2vec부터 GPT까지 완전히 동일하다. 여기서 그 감각을 눈으로 확인해둔다.",
+  concepts: [
+    "손실 함수 = 지금 얼마나 틀렸는지를 숫자 하나로",
+    "수치미분 <code>(f(x+h) - f(x-h)) / 2h</code> — 느리지만 언제나 옳다",
+    "갱신 규칙 <code>x -= lr * grad</code> — 부호가 왜 마이너스인가",
+    "학습률이 크면 발산, 작으면 기어감 — 그 사이 어딘가",
+    "국소 최소 · 안장점, 그리고 고차원에서는 왜 덜 무서운가",
+  ],
+  build: [
+    "1변수 함수를 최소화하는 루프 (예: <code>f(x) = (x-3)² + 2</code>)",
+    "2변수로 확장 → 등고선 위에 이동 경로 그리기",
+    "학습률 슬라이더를 달아 발산하는 장면 재현하기",
+  ],
+  verdict: "학습률을 올렸을 때 값이 튀면서 발산하는 장면을 내 눈으로 봤다. 왜 그런지 한 문장으로 설명할 수 있다.",
+  traps: [
+    "<code>h</code>가 너무 작으면 부동소수 오차, 너무 크면 부정확. 1e-4 근처가 무난.",
+    "수치미분은 파라미터 하나당 함수 2번 호출 — 파라미터 100만 개면 불가능. 그래서 S10의 역전파가 필요하다.",
+  ],
+  keys: ["loss", "finite difference", "learning rate", "divergence"],
+  demo: "gd",
+},
+/* ---------------- P1 ---------------- */
+{
+  id: "S04", part: "P1", eff: "반나절",
+  title: "텍스트를 토큰으로, 토큰을 인덱스로",
+  en: "Tokenizer & vocabulary",
+  why: "컴퓨터는 글자를 모른다. 모델의 첫 관문은 언제나 '문자열 → 정수 배열'이다. 여기서 만드는 사전이 곧 모델의 입력 크기 V를 결정하고, 인덱스는 다음 스텝에서 그대로 '벡터 사전의 행 번호'가 된다.",
+  concepts: [
+    "정규화: 소문자화, 문장부호 처리, 유니코드 정규화(NFC)",
+    "분해 단위: 공백 / 문자 / 서브워드 — 각각 뭘 잃고 뭘 얻나",
+    "<code>stoi</code>(word→id)와 <code>itos</code>(id→word) 두 개의 맵",
+    "빈도 컷과 <code>&lt;unk&gt;</code>, 특수 토큰 <code>&lt;pad&gt; &lt;bos&gt; &lt;eos&gt;</code>",
+    "한국어는 왜 공백 분리가 안 통하나 — 교착어와 조사 (그래서 뒤에 BPE)",
+  ],
+  build: [
+    "<code>tokenize(text) → string[]</code> + <code>buildVocab(docs, minCount) → {stoi, itos, counts}</code>",
+    "<code>encode</code> / <code>decode</code> 왕복 테스트 — unk를 뺀 텍스트는 완전 복원되어야 한다",
+    "minCount를 1→2→5로 올리며 어휘 크기와 unk 비율이 어떻게 변하는지 표로 뽑기",
+  ],
+  verdict: "내 텍스트 파일을 넣으면 어휘 크기, 상위 빈도 20개, unk 비율이 바로 나온다.",
+  traps: [
+    "학습 때와 추론 때 정규화 규칙이 다르면 성능이 조용히 무너진다. 함수 하나로 통일할 것.",
+    "id 0을 pad로 쓸지 미리 정하기. 나중에 바꾸면 저장된 모든 게 어긋난다.",
+    "빈도 컷을 안 하면 어휘가 폭발하고, 오타 하나하나가 학습 대상이 된다.",
+  ],
+  keys: ["tokenization", "vocabulary", "stoi/itos", "unk", "Zipf's law"],
+  demo: "tok",
+},
+{
+  id: "S05", part: "P1", eff: "2~3시간",
+  title: "인덱스가 곧 주소다",
+  en: "One-hot, and why we never build it",
+  why: "'임베딩 레이어'가 무슨 마법처럼 들리지만, 실체는 <b>행 하나 꺼내기</b>다. 원-핫 벡터에 행렬을 곱하면 그 행이 나온다는 걸 손으로 확인하면, 이후 모든 모델 코드가 갑자기 단순해진다.",
+  concepts: [
+    "원-핫 표현: 길이 V, i번째만 1",
+    "<code>onehot(i) · E === E.row(i)</code> — 곱셈이 아니라 인덱싱인 이유",
+    "희소(sparse) vs 밀집(dense) 표현",
+    "메모리 계산 감각: V=50,000 / d=256 이면 임베딩 행렬은 몇 MB인가",
+  ],
+  build: [
+    "<code>onehot(i, V)</code>를 실제로 만들어 E와 곱하고, <code>E.row(i)</code>와 값이 같은지 검증",
+    "두 방식의 실행 시간 비교 (V가 커질수록 격차가 어떻게 벌어지나)",
+    "임베딩 행렬 메모리 계산기 — V, d를 넣으면 MB가 나오는 함수 3줄",
+  ],
+  verdict: "\"임베딩 레이어 = 룩업 테이블\"을 코드 세 줄로 남에게 증명해 보일 수 있다.",
+  traps: [
+    "원-핫을 진짜로 만들어 곱하면 V배 낭비. 교육용으로 한 번만 해보고 버릴 것.",
+    "역전파에서는 꺼낸 그 행에만 기울기가 간다 — S10~S11에서 결정적으로 중요해진다.",
+  ],
+  keys: ["one-hot", "embedding lookup", "sparse vs dense"],
+},
+{
+  id: "S06", part: "P1", eff: "1일",
+  title: "같이 나온 단어를 세다",
+  en: "The co-occurrence matrix",
+  why: "의미를 숫자로 만드는 가장 오래되고 정직한 방법. \"비슷한 문맥에 나타나는 단어는 비슷한 의미다\"라는 분포 가설을 그대로 코드로 옮기면, 학습 없이도 첫 의미 벡터가 나온다.",
+  concepts: [
+    "분포 가설 (distributional hypothesis)",
+    "윈도우 크기 — 2면 문법적으로 비슷한 단어, 10이면 주제가 비슷한 단어가 묶인다",
+    "V×V 카운트 행렬, 그 <b>행 하나 = 그 단어의 첫 의미 벡터</b>",
+    "거리 가중치(1/d), 문장 경계 처리, 대칭성",
+  ],
+  build: [
+    "<code>buildCooc(docs, window) → V×V</code> (희소 Map 버전도 함께)",
+    "특정 단어의 행을 상위 문맥 단어로 정렬해 출력",
+    "윈도우 2와 10의 결과를 나란히 비교하는 화면",
+  ],
+  verdict: "\"cat\"의 행 상위에 eats / sleeps / my 같은 진짜 문맥이 뜬다. 우연이 아니라 데이터가 그렇다는 걸 확인했다.",
+  traps: [
+    "V=20,000이면 행렬 칸이 4억 개. 처음부터 희소 자료구조를 고민할 것.",
+    "문장 경계를 넘어서 세면 엉뚱한 쌍이 생긴다.",
+    "the / is 같은 고빈도어가 모든 행을 지배한다 → 그래서 다음 스텝이 있다.",
+  ],
+  keys: ["distributional hypothesis", "context window", "co-occurrence"],
+  demo: "emb",
+},
+{
+  id: "S07", part: "P1", eff: "1주말",
+  title: "방향이 곧 의미다",
+  en: "PPMI + cosine neighbors",
+  why: "네가 궁금해했던 바로 그 지점. 단어를 인덱스로 바꾸고 → 벡터 사전에서 방향을 꺼내고 → 그 방향이 가리키는 이웃 단어를 찾는다. 학습도, 신경망도 아직 없다. 그런데도 king과 queen이 붙는다.",
+  concepts: [
+    "raw count가 왜 안 되나 — 흔한 단어가 모든 유사도를 먹는다",
+    "PMI = <code>log( p(a,b) / (p(a)·p(b)) )</code> — '우연보다 얼마나 자주 같이 나오나'",
+    "음수를 잘라 PPMI로 (드물게 함께 안 나온다는 정보는 노이즈에 가깝다)",
+    "코사인으로 top-k 이웃 검색 = 의미 검색의 원형",
+    "이 벡터의 한계: 다의어 하나에 벡터 하나뿐이다",
+  ],
+  build: [
+    "<code>ppmi(cooc)</code> → 가중 행렬",
+    "<code>mostSimilar(word, k)</code> + 유사도 막대 렌더링",
+    "기능어(the, a, is…) 제외 토글을 넣고 결과가 어떻게 바뀌는지 관찰",
+    "내가 좋아하는 텍스트(게임 위키, 내 일기 등)를 넣어 이웃 목록 뽑아보기",
+  ],
+  verdict: "내 코드, 내 코퍼스에서 king↔queen, man↔woman 같은 쌍이 상위에 뜬다. 화면 캡처를 남겨둔다 — 이게 첫 번째 증거물이다.",
+  traps: [
+    "저빈도 쌍의 PMI가 과대평가된다. count &lt; 3 정도는 버리기.",
+    "<code>log(0)</code> 방지. 그리고 log의 밑은 아무거나 좋지만 일관되게.",
+    "코퍼스가 너무 작으면 이웃이 그냥 노이즈다. 최소 수십만 토큰은 있어야 재미있어진다.",
+  ],
+  keys: ["PMI", "PPMI", "nearest neighbors", "semantic search"],
+  demo: "emb",
+},
+{
+  id: "S08", part: "P1", eff: "1주말",
+  title: "차원을 접다",
+  en: "SVD by power iteration",
+  why: "V차원 희소 벡터를 100~300차원 밀집 벡터로 접으면 노이즈가 줄고 계산이 빨라진다. 2차원까지 접으면 눈으로 볼 수 있다. 시각화는 '내가 만든 게 진짜 되고 있다'는 가장 강력한 증거다.",
+  concepts: [
+    "왜 차원을 줄이나 — 노이즈 제거, 일반화, 메모리",
+    "특이값 분해의 직관: 데이터가 가장 많이 퍼진 방향부터 순서대로",
+    "power iteration으로 주성분을 하나씩 뽑는 법 + deflation",
+    "축소 후에도 코사인 이웃이 유지되는가 (오히려 좋아지기도 한다)",
+  ],
+  build: [
+    "<code>powerIteration(M, k)</code> → 상위 k개 성분",
+    "PPMI 행렬을 2차원으로 투영해 산점도 그리기 (단어 라벨 포함)",
+    "축소 전/후의 이웃 목록을 나란히 비교",
+  ],
+  verdict: "산점도에서 동물 / 도시 / 음식이 눈에 보이게 뭉친다. 라이브러리 없이 뽑은 좌표다.",
+  traps: [
+    "평균 빼기(중심화)를 빼먹으면 첫 성분이 그냥 '평균 방향'이 된다.",
+    "수렴 판정 없이 무한 반복하지 말 것 (변화량 < ε 로 종료).",
+    "고유벡터의 부호는 임의다. 그림이 뒤집혀도 틀린 게 아니다.",
+  ],
+  keys: ["SVD", "PCA", "power iteration", "dimensionality reduction"],
+},
+/* ---------------- P2 ---------------- */
+{
+  id: "S09", part: "P2", eff: "1일",
+  title: "최소 신경망 — 순전파",
+  en: "Linear + softmax + cross-entropy (forward)",
+  why: "여기까지는 '세기(counting)'였다. 여기서부터 '학습(learning)'이다. 그리고 모든 신경망은 결국 이 세 블록의 반복 조립이다. 트랜스포머도 예외가 아니다.",
+  concepts: [
+    "선형층 <code>y = x·W + b</code> — 회전 + 확대 + 이동",
+    "비선형(ReLU/tanh)이 없으면 층을 쌓아도 여전히 선형인 이유",
+    "softmax: 점수 → 확률 (그리고 max를 빼는 수치 안정 트릭)",
+    "교차엔트로피 <code>-log p(정답)</code> — 왜 이 모양이 자연스러운가",
+    "레이어를 <code>{forward, params}</code> 인터페이스로 통일하기",
+  ],
+  build: [
+    "Linear · ReLU · Softmax · CrossEntropy의 forward 구현",
+    "무작위 초기화 상태의 손실이 <code>ln(V)</code>에 가까운지 확인",
+    "softmax 출력 합이 1인지, 큰 값(1000) 입력에도 NaN이 안 나는지 테스트",
+  ],
+  verdict: "초기 손실 ≈ ln(클래스 수). 이 값이 안 나오면 어딘가 틀렸다는 뜻 — 평생 쓰게 될 sanity check을 손에 넣었다.",
+  traps: [
+    "softmax 오버플로 → 반드시 max를 빼고 exp.",
+    "<code>log(0)</code> → 작은 값으로 클램프.",
+    "손실은 배치 평균인가 합인가. 기울기 크기가 배치 크기에 딸려 움직인다.",
+  ],
+  keys: ["linear layer", "ReLU", "softmax", "cross-entropy", "logits"],
+},
+{
+  id: "S10", part: "P2", eff: "2주말 (여기서 오래 걸리는 게 정상)",
+  title: "역전파를 손으로",
+  en: "Backprop, and gradient checking",
+  why: "이 스텝이 진짜 관문이다. 여기를 넘으면 나머지는 대부분 '조립'이다. 프레임워크를 안 쓰겠다고 한 이상, autograd를 대신할 사람은 나뿐이다.",
+  concepts: [
+    "연쇄법칙을 층 단위로: <code>backward(dOut) → {dIn, dW, db}</code>",
+    "선형층의 기울기: <code>dW = xᵀ·dOut</code>, <code>dIn = dOut·Wᵀ</code> — 손으로 유도해볼 것",
+    "softmax + cross-entropy를 합치면 미분이 <code>(p - y)</code>로 깔끔해지는 이유",
+    "계산 그래프와 파라미터/기울기 저장 구조 (<code>zeroGrad</code>가 왜 필요한가)",
+    "(선택) 아주 작은 autograd 엔진 만들어보기 — Value 클래스 + 위상정렬",
+  ],
+  build: [
+    "각 층에 backward 추가 + <code>zeroGrad</code> / <code>step(lr)</code>",
+    "<b>gradient check</b>: 수치미분과 해석 기울기의 상대오차 &lt; 1e-5 확인 (float64로)",
+    "XOR 문제를 2층 MLP로 100% 학습시키기",
+  ],
+  verdict: "모든 층에서 gradient check가 통과하고, XOR이 학습된다. 이 순간부터 나는 어떤 모델이든 만들 수 있다.",
+  traps: [
+    "배치 차원 축 실수 — 기울기 합/평균의 축을 매번 명시.",
+    "<code>dW</code>에 학습률을 미리 곱해두면 나중에 옵티마이저에서 이중 적용된다.",
+    "<code>zeroGrad</code> 누락 → 기울기가 누적되며 서서히 이상해진다. 가장 찾기 어려운 버그.",
+    "gradient check를 float32로 하면 통과 못 한다. 검증만은 float64로.",
+  ],
+  keys: ["backpropagation", "chain rule", "gradient check", "autograd"],
+},
+{
+  id: "S11", part: "P2", eff: "1~2주말",
+  title: "문맥으로 벡터를 배우다",
+  en: "word2vec — skip-gram",
+  why: "S07에서는 세어서 벡터를 만들었다. 이제는 <b>맞히면서</b> 만든다. '주변 단어를 예측하도록 벡터를 조금씩 밀어주면 의미가 생긴다' — 현대 AI의 첫 번째 마법이 여기서 나온다.",
+  concepts: [
+    "skip-gram: 중심 단어로 주변 단어 맞히기 (CBOW는 반대)",
+    "입력 임베딩 W_in과 출력 임베딩 W_out — 두 개인 이유",
+    "학습 신호가 임베딩 행에 어떻게 흘러 들어가는가 (S05의 그 이야기)",
+    "학습 쌍(pair) 생성: 윈도우 안에서 (center, context) 만들기",
+    "서브샘플링: 너무 흔한 단어를 확률적으로 버리기",
+  ],
+  build: [
+    "(center, context) 쌍 생성기 + 셔플",
+    "임베딩 → 내적 → softmax → CE 로 이어지는 학습 루프 (아직 느려도 됨)",
+    "학습 손실 곡선을 그리고, 100 에폭마다 특정 단어의 이웃을 출력해 변해가는 걸 관찰",
+  ],
+  verdict: "학습이 진행될수록 이웃 목록이 점점 그럴듯해지는 과정을 로그로 남겼다. 카운트 기반(S07)과 결과를 나란히 비교했다.",
+  traps: [
+    "전체 softmax는 V에 비례해 느리다 — 작은 어휘(수천)로 시작하고, 다음 스텝에서 해결한다.",
+    "학습률이 크면 벡터가 폭발한다. 노름을 로그로 찍어볼 것.",
+    "쌍을 섞지 않으면 코퍼스 순서를 그대로 외운다.",
+  ],
+  keys: ["skip-gram", "CBOW", "word2vec", "subsampling"],
+},
+{
+  id: "S12", part: "P2", eff: "1주말",
+  title: "전부 계산하지 않는 법",
+  en: "Negative sampling",
+  why: "어휘가 5만이면 정답 하나를 위해 5만 개 점수를 매번 계산해야 한다. 여기서 배우는 '정답 1개 + 가짜 몇 개만 비교한다'는 발상은 이후 대조학습(contrastive learning) 전반에 그대로 이어진다.",
+  concepts: [
+    "다중 분류 → 이진 분류들로 근사",
+    "시그모이드 + 이진 교차엔트로피",
+    "네거티브 분포 <code>p(w) ∝ count^0.75</code> — 0.75가 하는 일",
+    "(비교) 계층적 softmax는 어떤 방식인가",
+    "빠른 샘플링: 누적분포 + 이진탐색, 또는 alias table",
+  ],
+  build: [
+    "unigram^0.75 분포에서 샘플링하는 함수 + 분포가 맞는지 히스토그램으로 검증",
+    "네거티브 샘플링 손실로 학습 루프 교체",
+    "이전 버전과 <b>속도 · 손실 · 이웃 품질</b> 3가지를 비교 표로 정리",
+  ],
+  verdict: "같은 코퍼스에서 학습이 몇 배 빨라졌고, 이웃 품질은 유지되거나 좋아졌다. 숫자로 증명했다.",
+  traps: [
+    "네거티브에 정답이 섞이는 경우 처리(재추출 또는 무시).",
+    "네거티브 개수 k는 작은 데이터면 10~20, 큰 데이터면 2~5.",
+    "시그모이드도 오버플로 대비 필요.",
+  ],
+  keys: ["negative sampling", "noise contrastive estimation", "sigmoid BCE", "alias method"],
+},
+{
+  id: "S13", part: "P2", eff: "1일",
+  title: "벡터 산술과 평가",
+  en: "king − man + woman, and honest evaluation",
+  why: "만든 걸 '느낌'이 아니라 숫자로 평가하는 습관을 여기서 들인다. 그리고 벡터 공간이 의미의 <b>방향</b>을 담고 있다는 걸 직접 확인한다 — 네가 처음에 말한 그 '방향'의 정체.",
+  concepts: [
+    "유추(analogy) 문제: a:b = c:? 를 벡터 덧셈으로",
+    "3CosAdd vs 3CosMul, 그리고 입력 단어를 결과에서 제외해야 하는 이유",
+    "정량 평가: 유사도 데이터셋과의 순위 상관 (Spearman)",
+    "정성 평가: 내가 아는 도메인 단어로 직접 확인하는 게 제일 정직하다",
+    "임베딩 저장/불러오기 포맷 정하기 (다음 파트에서 재사용)",
+  ],
+  build: [
+    "<code>analogy(a, b, c, k)</code> 구현 + 내가 만든 유추 문제 20개로 정확도 측정",
+    "카운트(S07) vs 학습(S12) 임베딩의 정확도 비교",
+    "임베딩을 파일로 저장하고 다시 읽어 같은 결과가 나오는지 확인",
+  ],
+  verdict: "유추 정확도라는 숫자가 하나 남았다. 이후 어떤 개선을 해도 이 숫자와 비교할 수 있다.",
+  traps: [
+    "유추가 잘 되는 건 데이터에 그 패턴이 많을 때뿐. 안 된다고 코드가 틀린 게 아니다.",
+    "평가 문제를 학습 데이터에서 만들면 자기 자신을 채점하는 꼴.",
+  ],
+  keys: ["analogy", "3CosAdd", "Spearman correlation", "evaluation"],
+},
+/* ---------------- P3 ---------------- */
+{
+  id: "S14", part: "P3", eff: "1일",
+  title: "다음 단어 맞히기, 세는 방식으로",
+  en: "n-gram language model + perplexity",
+  why: "'언어모델 = 다음 단어의 확률 분포'라는 정의를 가장 단순한 형태로 체득한다. 그리고 여기서 만든 퍼플렉시티가 앞으로 모든 모델을 재는 자가 된다.",
+  concepts: [
+    "조건부 확률과 연쇄 규칙 <code>p(w1..wn) = Π p(wi | 이전)</code>",
+    "bigram/trigram 카운트 → 확률 표",
+    "스무딩 (add-k, backoff) 없이는 왜 확률이 0이 되나",
+    "<b>퍼플렉시티</b> = 모델이 헷갈리는 정도 (= exp(평균 손실))",
+    "학습/검증 분리 — 자기 데이터에서의 점수는 의미가 없다",
+  ],
+  build: [
+    "bigram 카운트 테이블 + add-k 스무딩",
+    "<code>generate(n)</code> — 첫 문장 생성기 (엉망이어도 감동적이다)",
+    "검증셋 퍼플렉시티 측정 함수",
+  ],
+  verdict: "내 모델이 만든 첫 문장이 화면에 찍혔고, 퍼플렉시티 숫자가 하나 남았다.",
+  traps: [
+    "n을 키우면 표가 폭발하고 대부분이 0 — 이게 신경망이 필요한 이유다.",
+    "확률의 곱은 언더플로. 로그 공간에서 더할 것.",
+    "문장 시작/끝 토큰 처리 빼먹지 말기.",
+  ],
+  keys: ["n-gram", "smoothing", "perplexity", "log-space"],
+},
+{
+  id: "S15", part: "P3", eff: "1주말",
+  title: "신경 언어모델",
+  en: "NNLM — embedding → MLP → next word",
+  why: "S11의 임베딩과 S10의 역전파를 처음으로 합친다. 카운트 표가 못 하던 일반화 — 본 적 없는 조합에도 그럴듯한 확률을 주는 능력 — 이 여기서 생긴다.",
+  concepts: [
+    "고정 길이 문맥 n개 단어 → 임베딩 concat → 은닉층 → V차원 로짓",
+    "임베딩도 학습 대상 (입력이자 파라미터)",
+    "가중치 묶기(weight tying): 입력 임베딩과 출력층 공유",
+    "학습/검증 손실 곡선을 나란히 보며 과적합 감지",
+  ],
+  build: [
+    "데이터 준비: (문맥 n개, 다음 단어) 배치 생성기",
+    "모델 조립 + 학습 루프 + 손실 곡선 그리기",
+    "같은 데이터에서 bigram(S14) 퍼플렉시티와 비교",
+  ],
+  verdict: "신경 모델의 퍼플렉시티가 n-gram보다 낮다. 그래프 한 장으로 보여줄 수 있다.",
+  traps: [
+    "학습셋 손실만 보고 좋아하지 말 것 — 검증 곡선이 올라가면 과적합.",
+    "초기화가 나쁘면 학습이 시작조차 안 된다 (다음 스텝의 Xavier).",
+    "배치 만들 때 문서 경계를 넘지 말 것.",
+  ],
+  keys: ["NNLM", "weight tying", "validation loss", "generalization"],
+},
+{
+  id: "S16", part: "P3", eff: "반나절",
+  title: "어떻게 고를 것인가",
+  en: "Sampling: temperature, top-k, top-p",
+  why: "같은 모델도 뽑는 방법에 따라 완전히 다른 글을 쓴다. ChatGPT의 temperature가 뭔지 여기서 완전히 이해하게 된다 — 그리고 이건 하루 만에 눈에 보이는 성과가 나오는 스텝이다.",
+  concepts: [
+    "greedy / 순수 샘플링 / temperature (로짓을 T로 나누기)",
+    "top-k, top-p(nucleus) — 꼬리를 자르는 두 방식",
+    "반복 억제(repetition penalty), n-gram 차단",
+    "왜 greedy는 같은 말을 반복하는가",
+  ],
+  build: [
+    "샘플링 함수 4종 구현 + 공통 인터페이스",
+    "같은 프롬프트를 T = 0.2 / 0.8 / 1.5로 각각 생성해 나란히 출력",
+    "온도 슬라이더가 달린 생성 화면 (실험실 카드에 올릴 만한 결과물)",
+  ],
+  verdict: "온도를 움직이면 문장이 지루해졌다 미쳐가는 걸 실시간으로 볼 수 있다.",
+  traps: [
+    "확률 정규화 후 샘플링. 부동소수 오차로 합이 1이 아닐 수 있다.",
+    "top-p는 정렬 후 누적 — 구현 실수가 잦다. 작은 예제로 손검증할 것.",
+  ],
+  keys: ["temperature", "top-k", "top-p", "decoding"],
+},
+{
+  id: "S17", part: "P3", eff: "1주말",
+  title: "제대로 학습시키는 법",
+  en: "Batching, Adam, init, regularization",
+  why: "여기까지 오면 '모델은 되는데 잘 안 된다'는 벽을 만난다. 그 벽을 넘는 도구 상자를 한 번에 만든다. 이후 모든 모델에 그대로 쓴다.",
+  concepts: [
+    "미니배치와 에폭, 셔플",
+    "초기화: Xavier / He — 왜 표준편차가 <code>1/√fan_in</code>인가",
+    "옵티마이저 계보: SGD → 모멘텀 → RMSProp → <b>Adam</b> (직접 구현)",
+    "학습률 스케줄: warmup + cosine decay",
+    "정규화: weight decay, dropout, gradient clipping",
+    "실험 기록: 설정과 결과를 JSON으로 남기기 (안 하면 반드시 후회한다)",
+  ],
+  build: [
+    "Adam 구현 + 같은 문제에서 SGD와 수렴 속도 비교 그래프",
+    "dropout, gradient clipping 추가",
+    "설정 → 결과를 자동으로 기록/비교하는 초간단 실험 러너",
+  ],
+  verdict: "같은 모델·같은 데이터에서 옵티마이저만 바꿔 손실 곡선 3개를 한 그래프에 겹쳐 그렸다.",
+  traps: [
+    "Adam의 bias correction 빼먹으면 초반이 이상해진다.",
+    "dropout은 학습 때만. 추론에서 켜두는 건 흔한 버그.",
+    "실험을 기록 안 하고 열 번 돌리면, 뭐가 좋았는지 아무도 모른다.",
+  ],
+  keys: ["mini-batch", "Adam", "Xavier init", "dropout", "grad clipping", "LR schedule"],
+},
+/* ---------------- P4 ---------------- */
+{
+  id: "S18", part: "P4", eff: "1~2주말",
+  title: "기억을 가진 신경망",
+  en: "RNN + backprop through time",
+  why: "고정 문맥 n개의 한계를 깨는 첫 시도. 트랜스포머로 바로 뛰어도 되지만, RNN에서 '왜 긴 문맥이 어려운가'를 몸으로 겪어야 어텐션이 왜 그렇게 생겼는지가 이해된다.",
+  concepts: [
+    "은닉 상태 <code>h_t = tanh(x_t·Wx + h_{t-1}·Wh + b)</code>",
+    "시간축으로 펼친 역전파(BPTT)와 truncated BPTT",
+    "기울기 소실/폭발 — 같은 행렬을 반복해 곱하면 생기는 일",
+    "gradient clipping이 실전에서 하는 역할",
+  ],
+  build: [
+    "문자 단위 RNN 언어모델 (셰익스피어든 내가 좋아하는 텍스트든)",
+    "시퀀스 길이 10 vs 100에서 기울기 노름 찍어보기",
+    "학습된 모델로 텍스트 생성 → 에폭별로 결과가 나아지는 로그 남기기",
+  ],
+  verdict: "학습 초반의 무작위 문자열이 점점 단어 비슷한 것으로 변해가는 과정을 기록으로 남겼다.",
+  traps: [
+    "시퀀스 사이 은닉 상태를 detach 안 하면 그래프가 무한히 커진다.",
+    "clipping 없이 오래 돌리면 어느 순간 NaN.",
+    "느리다 — 배치를 시간축과 함께 다루는 shape 관리가 핵심.",
+  ],
+  keys: ["RNN", "BPTT", "vanishing gradient", "char-level LM"],
+},
+{
+  id: "S19", part: "P4", eff: "1주말",
+  title: "게이트로 기억을 통제하다",
+  en: "LSTM / GRU",
+  why: "'무엇을 잊고 무엇을 남길지 스스로 배우게 한다'는 아이디어. 지금은 덜 쓰이지만, 게이트 구조는 오늘날 아키텍처 곳곳에 남아 있다.",
+  concepts: [
+    "셀 상태와 forget / input / output 게이트",
+    "덧셈 경로(가산적 업데이트)가 기울기를 살리는 이유 — residual과 같은 발상",
+    "GRU: 게이트 2개로 단순화",
+  ],
+  build: [
+    "LSTM 셀 forward/backward 구현 (또는 자작 autograd 위에서)",
+    "S18의 RNN과 동일 조건 비교 — 퍼플렉시티, 긴 문맥에서의 차이",
+    "게이트 값을 시간에 따라 히트맵으로 그려보기",
+  ],
+  verdict: "같은 데이터에서 LSTM이 RNN보다 낮은 퍼플렉시티를 냈고, 게이트가 실제로 열리고 닫히는 걸 그림으로 봤다.",
+  traps: [
+    "게이트 4개의 가중치를 하나의 큰 행렬로 합치면 훨씬 빠르다.",
+    "forget 게이트 bias를 1로 초기화하는 관습에는 이유가 있다.",
+  ],
+  keys: ["LSTM", "GRU", "gating", "cell state"],
+},
+/* ---------------- P5 ---------------- */
+{
+  id: "S20", part: "P5", eff: "1주말",
+  title: "어텐션의 정체",
+  en: "Attention = query, key, value",
+  why: "'지금 이 단어를 이해하려면 어디를 봐야 하나?'를 벡터 내적으로 계산한다. S01의 dot product가 여기서 최종 보스로 돌아온다. 사실 이 스텝은 이름만 무섭지, 수식은 세 줄이다.",
+  concepts: [
+    "Q(질문) · K(색인) · V(내용) — 검색 엔진 비유",
+    "<code>softmax(Q·Kᵀ / √d) · V</code> — 딱 이 한 줄",
+    "√d로 나누는 이유 (내적의 분산이 d에 비례해 커진다)",
+    "어텐션 가중치 = 해석 가능한 그림 (누가 누구를 보는가)",
+  ],
+  build: [
+    "단일 헤드 어텐션 forward + backward",
+    "짧은 문장에서 어텐션 가중치를 히트맵으로 시각화",
+    "√d 스케일링을 빼면 softmax가 얼마나 뾰족해지는지 직접 비교",
+  ],
+  verdict: "히트맵에서 특정 단어가 특정 단어를 보고 있는 게 눈에 보인다.",
+  traps: [
+    "shape (B, T, C)와 (B, heads, T, d)의 전치 순서 — 여기서 대부분 헤맨다. 종이에 적고 시작할 것.",
+    "softmax는 마지막 축(키 축)에 적용.",
+  ],
+  keys: ["attention", "query/key/value", "scaled dot-product", "attention map"],
+},
+{
+  id: "S21", part: "P5", eff: "1주말",
+  title: "셀프 어텐션과 멀티헤드",
+  en: "Self-attention, multi-head, causal mask",
+  why: "Q, K, V를 모두 자기 자신에게서 만들면 셀프 어텐션. 여러 개를 병렬로 두면 멀티헤드. 그리고 마스크 한 장으로 '미래를 못 보는 모델'이 된다 — GPT의 G(generative)가 바로 이거다.",
+  concepts: [
+    "셀프 어텐션: Q, K, V 모두 같은 입력에서 선형 변환",
+    "멀티헤드: 서로 다른 관계를 병렬로 (헤드별로 다른 부분공간)",
+    "causal mask — 미래 위치를 -Infinity로 만들어 softmax에서 0으로",
+    "헤드 분할/병합의 shape 관리, 출력 projection",
+  ],
+  build: [
+    "MultiHeadSelfAttention 클래스 (heads, head_dim 파라미터화)",
+    "causal mask 적용 후, 위치 t의 출력이 t 이후 입력에 전혀 영향받지 않는지 <b>수치로 검증</b>",
+    "헤드별 어텐션 맵을 나란히 그려 서로 다른 패턴 확인",
+  ],
+  verdict: "마스크 검증 테스트를 통과했다 — 미래 정보가 새지 않는다는 걸 코드로 증명했다.",
+  traps: [
+    "마스크를 0 곱하기로 하면 softmax 후에 0이 아니다. 반드시 softmax 전에 -Inf.",
+    "-Inf가 한 행 전체면 NaN. 최소 자기 자신은 볼 수 있어야 한다.",
+    "헤드 병합 시 transpose 순서 실수 → 조용히 성능만 나빠진다.",
+  ],
+  keys: ["self-attention", "multi-head", "causal mask", "head dimension"],
+},
+{
+  id: "S22", part: "P5", eff: "반나절",
+  title: "순서를 벡터에 심다",
+  en: "Positional encoding",
+  why: "어텐션은 집합 연산이라 순서를 모른다. \"개가 사람을 물었다\"와 \"사람이 개를 물었다\"를 구분하려면 위치 정보를 따로 넣어줘야 한다.",
+  concepts: [
+    "sin/cos 고정 인코딩의 원리와 성질",
+    "학습형 위치 임베딩 (GPT-2 방식)",
+    "상대 위치 / RoPE — 요즘 모델이 쓰는 방식 개요",
+    "왜 '더하기'인가 (concat이 아니라)",
+  ],
+  build: [
+    "sin/cos 인코딩 생성 + 히트맵으로 패턴 확인",
+    "학습형 임베딩으로 교체해 성능 비교",
+    "위치 인코딩을 아예 빼고 학습시켜 얼마나 나빠지는지 측정 (제일 재미있는 실험)",
+  ],
+  verdict: "위치 인코딩을 뺐을 때 손실이 눈에 띄게 나빠지는 걸 그래프로 확인했다.",
+  traps: [
+    "학습 때보다 긴 시퀀스에서 학습형 임베딩은 그냥 없다 (길이 외삽 문제).",
+    "인덱스 0부터 시작하는지 1부터인지 일관되게.",
+  ],
+  keys: ["positional encoding", "sinusoidal", "learned position", "RoPE"],
+},
+{
+  id: "S23", part: "P5", eff: "1주말",
+  title: "트랜스포머 블록 조립",
+  en: "Residual + LayerNorm + FFN",
+  why: "어텐션만으로는 모델이 안 된다. 잔차 연결, 정규화, 그리고 위치별 MLP가 붙어야 비로소 깊게 쌓을 수 있다. 이 세 개가 왜 이 순서로 배치되는지 알면 아키텍처 논문이 읽히기 시작한다.",
+  concepts: [
+    "잔차 연결 <code>x + f(x)</code> — 기울기가 흐를 고속도로",
+    "LayerNorm (BatchNorm과 뭐가 다른가) + pre-LN vs post-LN",
+    "위치별 FFN: <code>Linear(C→4C) → GELU → Linear(4C→C)</code>, 왜 4배인가",
+    "블록 = 어텐션(정보 섞기) + FFN(정보 가공)이라는 해석",
+  ],
+  build: [
+    "LayerNorm forward/backward 직접 구현 (backward가 은근히 까다롭다 — gradient check 필수)",
+    "TransformerBlock 조립 + 블록 수를 1→4로 늘리며 학습 안정성 관찰",
+    "pre-LN과 post-LN을 둘 다 만들어 깊게 쌓았을 때 차이 확인",
+  ],
+  verdict: "LayerNorm의 gradient check가 통과하고, 블록 4개를 쌓아도 학습이 발산하지 않는다.",
+  traps: [
+    "LayerNorm backward에서 평균·분산 경로를 빠뜨리는 실수가 매우 흔하다.",
+    "post-LN은 깊어지면 warmup 없이 잘 발산한다. pre-LN이 초보자에게 안전.",
+    "잔차 연결을 빼먹으면 4층부터 학습이 안 된다 — 직접 겪어보면 잊지 않는다.",
+  ],
+  keys: ["residual", "LayerNorm", "pre-LN", "FFN", "GELU"],
+},
+{
+  id: "S24", part: "P5", eff: "2~3주말 · 최종 결과물",
+  title: "미니 GPT 조립하고 학습시키기",
+  en: "Assemble, train, and generate",
+  why: "여기까지 만든 모든 부품이 하나로 합쳐진다. 토크나이저 → 임베딩 → 위치 인코딩 → 블록 N개 → 로짓 → 샘플링. 라이브러리 한 줄 없이, 내 손으로 돌아가는 언어모델.",
+  concepts: [
+    "전체 파이프라인 설계와 하이퍼파라미터 선택 (블록 수, C, heads, 컨텍스트 길이)",
+    "데이터 준비: 학습/검증 분리, 배치 샘플링",
+    "학습 루프 + 체크포인트 저장/재개",
+    "생성 인터페이스 (프롬프트 → 이어쓰기, 온도 조절)",
+    "규모 감각: 파라미터 수 계산, 학습 시간 추정",
+  ],
+  build: [
+    "MiniGPT 클래스 (블록 수·차원 파라미터화) + gradient check 전체 통과",
+    "내가 고른 텍스트로 학습 — 검증 손실이 내려가는 곡선 저장",
+    "브라우저에서 돌아가는 생성 데모 페이지 (온도 슬라이더 포함)",
+    "README에 파라미터 수, 학습 시간, 샘플 출력 기록",
+  ],
+  verdict: "\"라이브러리 0개로 만든 언어모델\"이라고 말하면서 링크를 보낼 수 있다. 그게 이 25스텝의 결승선이다.",
+  traps: [
+    "처음부터 크게 만들지 말 것. 데이터 100줄 · 블록 2개로 <b>과적합부터</b> 시켜본다 — 과적합이 안 되면 버그가 있다는 뜻.",
+    "체크포인트 없이 몇 시간짜리 학습을 돌리지 말 것.",
+    "JS만으로는 느리다. 규모를 키우려면 WebGPU나 다른 언어를 고민할 시점 (S25).",
+  ],
+  keys: ["GPT", "decoder-only", "checkpoint", "overfit-first", "end-to-end"],
+},
+{
+  id: "S25", part: "P5", eff: "열린 결말",
+  title: "그 다음에 열리는 문들",
+  en: "What opens up next",
+  why: "미니 GPT가 돌아가는 순간, 지금까지 이름만 들었던 것들이 전부 '내가 만든 것의 변형'으로 보이기 시작한다. 여기서부터는 지도가 아니라 선택이다.",
+  concepts: [
+    "<b>BPE 토크나이저 직접 구현</b> — S04로 돌아가 서브워드로 갈아끼우기 (한국어에 특히 중요)",
+    "속도: 행렬곱 최적화, 타일링, WebGPU 컴퓨트 셰이더",
+    "KV 캐시 — 생성이 갑자기 몇 배 빨라지는 트릭",
+    "파인튜닝 / 지시 학습 / RLHF·DPO의 개념 지도",
+    "MoE, 양자화, 플래시 어텐션 — 이제 논문이 읽힌다",
+    "임베딩 재활용: 내 문서 검색기(RAG의 원형) 만들기",
+  ],
+  build: [
+    "이 중 <b>하나만</b> 골라서 다음 실험(#006 이후)의 씨앗으로 IDEAS.md에 적기",
+    "25스텝 전체를 회고 글 한 편으로 정리 (막혔던 지점 위주로)",
+  ],
+  verdict: "\"다음에 뭘 만들지\"에 대한 답이 목록이 아니라 문장 하나로 나온다.",
+  traps: [
+    "전부 다 하려고 하면 아무것도 안 끝난다. 하나만.",
+  ],
+  keys: ["BPE", "KV cache", "WebGPU", "fine-tuning", "RAG"],
+},
+];
+
+/* ==========================================================================
+   상태 저장
+   ========================================================================== */
+let DB = { done: {}, notes: {}, current: "S01" };
+
+function save() { try { localStorage.setItem(STORE_KEY, JSON.stringify(DB)); } catch (e) {} }
+function load() {
+  try {
+    const raw = localStorage.getItem(STORE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d && typeof d === "object") DB = Object.assign(DB, d);
+    }
+  } catch (e) {}
+  if (!DB.done) DB.done = {};
+  if (!DB.notes) DB.notes = {};
+  if (!STEPS.some(s => s.id === DB.current)) DB.current = "S01";
+}
+
+const stepById = id => STEPS.find(s => s.id === id);
+const isChecked = (id, i) => !!DB.done[id + ":" + i];
+const doneCount = s => s.build.reduce((n, _, i) => n + (isChecked(s.id, i) ? 1 : 0), 0);
+const stepState = s => {
+  const n = doneCount(s);
+  return n === 0 ? "none" : n === s.build.length ? "done" : "part";
+};
+
+function esc(s) {
+  return String(s == null ? "" : s).replace(/&/g, "&amp;").replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;").replace(/"/g, "&quot;");
+}
+
+/* ==========================================================================
+   렌더링
+   ========================================================================== */
+const elToc = document.getElementById("toc");
+const elPanel = document.getElementById("panel");
+
+function renderProgress() {
+  const totalChecks = STEPS.reduce((n, s) => n + s.build.length, 0);
+  const checks = STEPS.reduce((n, s) => n + doneCount(s), 0);
+  const full = STEPS.filter(s => stepState(s) === "done").length;
+  const part = STEPS.filter(s => stepState(s) === "part").length;
+  document.getElementById("pgSteps").textContent = full + " / " + STEPS.length;
+  document.getElementById("pgChecks").textContent = checks;
+  document.getElementById("pgPct").textContent = Math.round((checks / totalChecks) * 100) + "%";
+  document.getElementById("barDone").style.width = (full / STEPS.length * 100) + "%";
+  document.getElementById("barPart").style.width = (part / STEPS.length * 100) + "%";
+
+  document.getElementById("track").innerHTML = STEPS.map(s => {
+    const st = stepState(s);
+    const cls = s.id === DB.current ? "cur" : st === "done" ? "done" : st === "part" ? "part" : "";
+    return `<b class="${cls}" data-go="${s.id}" title="${esc(s.id + " " + s.title)}"></b>`;
+  }).join("");
+}
+
+function renderToc() {
+  let html = "";
+  for (const p of PARTS) {
+    html += `<div class="part-h">${esc(p.label)}</div>`;
+    for (const s of STEPS.filter(x => x.part === p.id)) {
+      const st = stepState(s);
+      const cls = [st === "done" ? "done" : st === "part" ? "part" : "", s.id === DB.current ? "active" : ""].join(" ");
+      html += `<button class="snav ${cls}" data-go="${s.id}">
+        <span class="dot">${st === "done" ? "✓" : ""}</span>
+        <span class="n">${esc(s.id)}</span>
+        <span>${esc(s.title)}</span>
+      </button>`;
+    }
+  }
+  elToc.innerHTML = html;
+}
+
+function renderPanel() {
+  const s = stepById(DB.current);
+  const idx = STEPS.indexOf(s);
+  const part = PARTS.find(p => p.id === s.part);
+  const prev = STEPS[idx - 1], next = STEPS[idx + 1];
+
+  elPanel.innerHTML = `
+    <div>
+      <span class="p-tag">${esc(part.label.split(" — ")[0])}</span>
+      <span class="p-eff">${esc(s.id)} · 예상 ${esc(s.eff)}</span>
+    </div>
+    <h2 class="s-title">${esc(s.title)}</h2>
+    <div class="s-en">${esc(s.en)}</div>
+    <div class="why">${s.why}</div>
+
+    <h3>개념 <em>what you need to understand</em></h3>
+    <ul class="plain">${s.concepts.map(c => `<li>${c}</li>`).join("")}</ul>
+
+    <h3>직접 만들 것 <em>build it yourself</em></h3>
+    <div class="buildlist">
+      ${s.build.map((b, i) => `
+        <div class="bitem ${isChecked(s.id, i) ? "on" : ""}" data-check="${i}">
+          <span class="box">✓</span><span class="btxt">${b}</span>
+        </div>`).join("")}
+    </div>
+
+    <h3>성공 판정 <em>done when</em></h3>
+    <div class="verdict"><b>✓</b> ${s.verdict}</div>
+
+    <h3>함정 <em>where people get stuck</em></h3>
+    <ul class="plain traps">${s.traps.map(t => `<li>${t}</li>`).join("")}</ul>
+
+    ${s.demo ? `<h3>돌려보기 <em>live demo</em></h3><div class="demo" id="demoBox"></div>` : ""}
+
+    <h3>검색어 <em>keywords to dig deeper</em></h3>
+    <div class="keys">${s.keys.map(k => `<span>${esc(k)}</span>`).join("")}</div>
+
+    <h3>메모 <em>내가 만든 것 · 막힌 지점 · 링크</em></h3>
+    <textarea id="note" placeholder="여기에 커밋 링크나 막힌 지점을 남겨두면, 나중에 이게 곧 증거가 된다.">${esc(DB.notes[s.id] || "")}</textarea>
+
+    <div class="navrow">
+      <button id="prevBtn" ${prev ? "" : "disabled"}>← ${prev ? esc(prev.id) : ""}</button>
+      <span class="spacer"></span>
+      <button class="primary" id="nextBtn" ${next ? "" : "disabled"}>${next ? esc(next.id) + " →" : "끝 · fin"}</button>
+    </div>
+  `;
+
+  elPanel.querySelectorAll("[data-check]").forEach(el => {
+    el.addEventListener("click", () => {
+      const i = +el.dataset.check;
+      const key = s.id + ":" + i;
+      if (DB.done[key]) delete DB.done[key]; else DB.done[key] = true;
+      save(); el.classList.toggle("on"); renderProgress(); renderToc();
+    });
+  });
+  const note = document.getElementById("note");
+  note.addEventListener("input", () => { DB.notes[s.id] = note.value; save(); });
+  document.getElementById("prevBtn").addEventListener("click", () => prev && go(prev.id));
+  document.getElementById("nextBtn").addEventListener("click", () => next && go(next.id));
+
+  if (s.demo) DEMOS[s.demo](document.getElementById("demoBox"));
+}
+
+function go(id) {
+  DB.current = id; save();
+  renderToc(); renderPanel(); renderProgress();
+  if (window.innerWidth <= 860) {
+    elToc.classList.add("collapsed");
+    document.getElementById("tocToggle").textContent = "목차 열기 · contents";
+  }
+  elPanel.scrollIntoView({ block: "start" });
+}
+
+document.addEventListener("click", e => {
+  const t = e.target.closest("[data-go]");
+  if (t) go(t.dataset.go);
+});
+document.getElementById("tocToggle").addEventListener("click", e => {
+  const hid = elToc.classList.toggle("collapsed");
+  e.target.textContent = hid ? "목차 열기 · contents" : "목차 닫기 · hide";
+});
+document.getElementById("resetLink").addEventListener("click", e => {
+  e.preventDefault();
+  if (confirm("체크와 메모를 전부 지웁니다. 계속할까요?")) {
+    DB = { done: {}, notes: {}, current: "S01" };
+    save(); renderToc(); renderPanel(); renderProgress();
+  }
+});
+
+/* ==========================================================================
+   데모 3종 — 페이지가 설명하는 걸 페이지가 직접 돌린다
+   ========================================================================== */
+const DEMOS = {};
+
+/* ---- (S03) 경사하강 ---- */
+DEMOS.gd = function (box) {
+  box.innerHTML = `
+    <div class="demo-h">gradient descent · f(x) = 0.15x⁴ − 0.6x³ − x² + 3x + 8</div>
+    <div class="drow">
+      <label>학습률 lr <input type="range" id="gdLr" min="1" max="120" value="30" style="width:130px"></label>
+      <span class="mono-out" id="gdLrV" style="padding:3px 8px"></span>
+      <button id="gdStep">한 스텝</button>
+      <button id="gdRun">20스텝 자동</button>
+      <button id="gdReset">처음으로</button>
+    </div>
+    <canvas id="gdC" width="720" height="260"></canvas>
+    <div class="dnote" id="gdOut"></div>`;
+  const c = box.querySelector("#gdC"), ctx = c.getContext("2d");
+  const f = x => 0.15 * x ** 4 - 0.6 * x ** 3 - x * x + 3 * x + 8;
+  const df = x => { const h = 1e-4; return (f(x + h) - f(x - h)) / (2 * h); }; /* 수치미분 */
+  const X0 = -2.2;
+  let x = X0, path = [X0], timer = null;
+  const lr = () => +box.querySelector("#gdLr").value / 1000;
+
+  const cs = getComputedStyle(document.body);
+  const col = n => cs.getPropertyValue(n).trim();
+  const X = [-3, 4.4], Y = [-4, 26];
+  const px = v => (v - X[0]) / (X[1] - X[0]) * c.width;
+  const py = v => c.height - (v - Y[0]) / (Y[1] - Y[0]) * c.height;
+
+  function draw() {
+    ctx.clearRect(0, 0, c.width, c.height);
+    ctx.strokeStyle = col("--border"); ctx.lineWidth = 1;
+    ctx.beginPath(); ctx.moveTo(0, py(0)); ctx.lineTo(c.width, py(0)); ctx.stroke();
+    ctx.strokeStyle = col("--accent"); ctx.lineWidth = 2; ctx.beginPath();
+    for (let i = 0; i <= 400; i++) {
+      const v = X[0] + (X[1] - X[0]) * i / 400;
+      i ? ctx.lineTo(px(v), py(f(v))) : ctx.moveTo(px(v), py(f(v)));
+    }
+    ctx.stroke();
+    path.forEach((p, i) => {
+      const a = i / Math.max(1, path.length - 1);
+      ctx.fillStyle = col("--muted"); ctx.globalAlpha = .25 + .35 * a;
+      ctx.beginPath(); ctx.arc(px(p), py(f(p)), 3.5, 0, 7); ctx.fill();
+    });
+    ctx.globalAlpha = 1;
+    ctx.fillStyle = col("--ok");
+    ctx.beginPath(); ctx.arc(px(x), py(f(x)), 6, 0, 7); ctx.fill();
+    /* 기울기 접선 */
+    const g = df(x), L = .8;
+    ctx.strokeStyle = col("--warn"); ctx.lineWidth = 1.5; ctx.beginPath();
+    ctx.moveTo(px(x - L), py(f(x) - g * L)); ctx.lineTo(px(x + L), py(f(x) + g * L)); ctx.stroke();
+    box.querySelector("#gdOut").textContent =
+      `x = ${x.toFixed(3)}   f(x) = ${f(x).toFixed(3)}   기울기 = ${g.toFixed(3)}   →  다음 x = x − lr·기울기 = ${(x - lr() * g).toFixed(3)}`;
+    box.querySelector("#gdLrV").textContent = "lr = " + lr().toFixed(3);
+  }
+  function step() {
+    const g = df(x);
+    x = Math.max(-1e6, Math.min(1e6, x - lr() * g));
+    path.push(x); if (path.length > 60) path.shift();
+    draw();
+  }
+  box.querySelector("#gdStep").onclick = step;
+  box.querySelector("#gdRun").onclick = () => {
+    clearInterval(timer); let n = 0;
+    timer = setInterval(() => { step(); if (++n >= 20) clearInterval(timer); }, 90);
+  };
+  box.querySelector("#gdReset").onclick = () => { clearInterval(timer); x = X0; path = [X0]; draw(); };
+  box.querySelector("#gdLr").oninput = draw;
+  draw();
+};
+
+/* ---- (S04) 토크나이저 ---- */
+DEMOS.tok = function (box) {
+  box.innerHTML = `
+    <div class="demo-h">tokenize → vocabulary → indices</div>
+    <div class="drow"><input type="text" id="tkIn" value="The cat eats fish. The cat sleeps!" /></div>
+    <div class="drow"><label><input type="checkbox" id="tkLower" checked> 소문자화</label>
+      <label><input type="checkbox" id="tkPunct" checked> 문장부호 제거</label></div>
+    <div class="chips" id="tkChips"></div>
+    <div class="dnote" id="tkOut"></div>`;
+  function run() {
+    const raw = box.querySelector("#tkIn").value;
+    let t = raw;
+    if (box.querySelector("#tkLower").checked) t = t.toLowerCase();
+    if (box.querySelector("#tkPunct").checked) t = t.replace(/[^\p{L}\p{N}\s']/gu, " ");
+    const toks = t.split(/\s+/).filter(Boolean);
+    const stoi = new Map();
+    toks.forEach(w => { if (!stoi.has(w)) stoi.set(w, stoi.size); });
+    box.querySelector("#tkChips").innerHTML = toks
+      .map(w => `<span class="chip">${esc(w)}<i>${stoi.get(w)}</i></span>`).join("");
+    box.querySelector("#tkOut").textContent =
+      `토큰 ${toks.length}개 · 어휘 ${stoi.size}개 → 인덱스 배열 [${toks.map(w => stoi.get(w)).join(", ")}]`
+      + `\n이 인덱스가 다음 스텝에서 그대로 '벡터 사전의 행 번호'가 된다.`;
+  }
+  box.querySelector("#tkIn").addEventListener("input", run);
+  box.querySelectorAll("input[type=checkbox]").forEach(el => el.addEventListener("change", run));
+  run();
+};
+
+/* ---- (S06/S07) 동시등장 → PPMI → 코사인 이웃 ---- */
+const CORPUS = `the cat eats fish
+the cat drinks milk
+the cat sleeps on the sofa
+a cat runs in the garden
+my cat is small and soft
+the dog eats meat
+the dog drinks water
+the dog sleeps on the floor
+a dog runs in the garden
+my dog is big and loud
+the bird eats seeds
+the bird sleeps in the tree
+a bird flies over the garden
+the fish swims in the water
+the cat and the dog play together
+the dog and the bird play together
+i feed my cat every morning
+i feed my dog every evening
+i walk my dog every evening
+the king rules the kingdom
+the king wears a golden crown
+the old king sits on the throne
+the queen rules the kingdom
+the queen wears a golden crown
+the young queen sits on the throne
+the king loves the queen
+a man walks to the market
+a man buys bread at the market
+the man drinks coffee in the morning
+a woman walks to the market
+a woman buys bread at the market
+the woman drinks coffee in the morning
+the man and the woman walk together
+the boy runs to the school
+the boy reads a book at school
+the girl runs to the school
+the girl reads a book at school
+seoul is a big city
+tokyo is a big city
+paris is a big city
+i live in seoul and work in seoul
+she lives in tokyo and works in tokyo
+he lives in paris and works in paris
+the train goes to seoul
+the train goes to tokyo
+the plane flies to paris
+i eat bread for breakfast
+i eat rice for breakfast
+she eats bread for lunch
+he eats rice for lunch
+we drink coffee after lunch
+we drink tea after dinner
+i drink water after running
+the bread is warm and fresh
+the rice is warm and soft
+coffee is hot and bitter
+tea is hot and sweet
+i read a book before sleeping
+she reads a book before sleeping
+he writes a book every year
+the book is long and slow
+the movie is long and loud
+i watch a movie after dinner
+she watches a movie after dinner`.split("\n");
+
+const STOP = new Set("the a an is are and to in on at of for my i he she we it after before over every".split(" "));
+
+/* 학습 없이, 세기만으로 의미 벡터를 만든다 (S06 → S07) */
+function buildSpace(win) {
+  const docs = CORPUS.map(l => l.split(/\s+/).filter(Boolean));
+  const itos = [], stoi = new Map();
+  for (const d of docs) for (const w of d) if (!stoi.has(w)) { stoi.set(w, itos.length); itos.push(w); }
+  const V = itos.length, C = new Float64Array(V * V);
+  for (const d of docs) {
+    for (let i = 0; i < d.length; i++) {
+      const a = stoi.get(d[i]);
+      for (let j = Math.max(0, i - win); j <= Math.min(d.length - 1, i + win); j++)
+        if (i !== j) C[a * V + stoi.get(d[j])] += 1;
+    }
+  }
+  /* PPMI: log2( p(a,b) / (p(a)p(b)) ), 음수는 0으로 */
+  let total = 0; const row = new Float64Array(V), col = new Float64Array(V);
+  for (let i = 0; i < V; i++) for (let j = 0; j < V; j++) {
+    const c = C[i * V + j]; total += c; row[i] += c; col[j] += c;
+  }
+  const M = new Float64Array(V * V);
+  for (let i = 0; i < V; i++) for (let j = 0; j < V; j++) {
+    const c = C[i * V + j]; if (!c) continue;
+    M[i * V + j] = Math.max(0, Math.log2((c * total) / (row[i] * col[j])));
+  }
+  return { itos, stoi, V, C, M };
+}
+
+DEMOS.emb = function (box) {
+  box.innerHTML = `
+    <div class="demo-h">word → index → vector → nearest neighbors (학습 없음, 세기만으로)</div>
+    <div class="drow">
+      <label>단어 <select id="emW"></select></label>
+      <label>윈도우 <input type="range" id="emWin" min="1" max="6" value="2" style="width:90px"></label>
+      <span class="mono-out" id="emWinV" style="padding:3px 8px"></span>
+      <label><input type="checkbox" id="emStop" checked> 기능어 제외</label>
+      <label><input type="checkbox" id="emRaw"> PPMI 대신 raw count</label>
+    </div>
+    <div id="emVec"></div>
+    <table class="nb" id="emNb"></table>
+    <div class="dnote" id="emNote"></div>`;
+
+  const sel = box.querySelector("#emW");
+  let space = null, cur = "cat";
+
+  function rebuild() {
+    space = buildSpace(+box.querySelector("#emWin").value);
+    box.querySelector("#emWinV").textContent = "±" + box.querySelector("#emWin").value;
+    const words = space.itos.filter(w => !STOP.has(w)).sort();
+    sel.innerHTML = words.map(w => `<option ${w === cur ? "selected" : ""}>${esc(w)}</option>`).join("");
+    if (!words.includes(cur)) cur = words[0];
+    run();
+  }
+  function run() {
+    const { itos, stoi, V, C, M } = space;
+    const raw = box.querySelector("#emRaw").checked;
+    const A = raw ? C : M;
+    const i = stoi.get(cur);
+    const cos = (a, b) => {
+      let d = 0, na = 0, nb = 0;
+      for (let k = 0; k < V; k++) { const x = A[a * V + k], y = A[b * V + k]; d += x * y; na += x * x; nb += y * y; }
+      return na && nb ? d / Math.sqrt(na * nb) : 0;
+    };
+    const hideStop = box.querySelector("#emStop").checked;
+    const list = itos.map((w, j) => [w, j]).filter(([w]) => w !== cur && !(hideStop && STOP.has(w)))
+      .map(([w, j]) => [w, cos(i, j)]).sort((a, b) => b[1] - a[1]).slice(0, 8);
+
+    /* 벡터 자체를 띠로 — "방향을 가진 숫자 줄"이라는 걸 눈으로 */
+    const vec = Array.from({ length: V }, (_, k) => A[i * V + k]);
+    const mx = Math.max(...vec) || 1;
+    box.querySelector("#emVec").innerHTML =
+      `<div class="dnote">"${esc(cur)}" → 인덱스 ${i} → 벡터 사전에서 ${i}번 행을 꺼냄 (차원 ${V})</div>
+       <div class="vecstrip">${vec.map(v =>
+        `<b style="background:var(--accent-strong);opacity:${(v / mx).toFixed(3)}"></b>`).join("")}</div>`;
+    box.querySelector("#emNb").innerHTML = list.map(([w, s]) => `
+      <tr><td class="w">${esc(w)}</td>
+        <td><div class="simbar" style="width:${Math.max(2, s * 100).toFixed(1)}%"></div></td>
+        <td class="s">${s.toFixed(3)}</td></tr>`).join("");
+    box.querySelector("#emNote").textContent =
+      (raw ? "raw count: 흔한 단어가 유사도를 지배한다 — PPMI로 바꿔보라." :
+             "PPMI + 코사인. 신경망도 학습도 없이, 세기만으로 나온 이웃이다.")
+      + ` (어휘 ${V}개 · 코퍼스 ${CORPUS.length}문장)`;
+  }
+  sel.onchange = () => { cur = sel.value; run(); };
+  box.querySelector("#emWin").oninput = rebuild;
+  box.querySelector("#emStop").onchange = run;
+  box.querySelector("#emRaw").onchange = run;
+  rebuild();
+};
+
+/* ---- boot ---- */
+load();
+renderToc();
+renderPanel();
+renderProgress();
+</script>
+</body>
+</html>

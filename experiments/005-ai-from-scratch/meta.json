@@ -1,0 +1,9 @@
+{
+  "id": 5,
+  "slug": "ai-from-scratch",
+  "title": "밑바닥 AI · AI from Scratch",
+  "date": "2026-07-28",
+  "week": "2026-W31",
+  "tags": ["study", "ai", "roadmap"],
+  "oneliner": "라이브러리 0개로 벡터 한 줄부터 미니 GPT까지 — 25스텝 학습 지도 (돌아가는 데모 포함) · a zero-library roadmap from a number array to a working mini-GPT"
+}

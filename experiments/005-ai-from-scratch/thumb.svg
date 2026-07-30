@@ -1,0 +1,37 @@
+<svg viewBox="0 0 200 90" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="AI from Scratch">
+  <rect width="200" height="90" fill="#14151b"/>
+  <!-- word -> index -->
+  <rect x="12" y="16" width="38" height="17" rx="5" fill="#23252f" stroke="#31333f" stroke-width="0.5"/>
+  <text x="31" y="28" text-anchor="middle" font-family="monospace" font-size="9" fill="#eceef5">"cat"</text>
+  <text x="56" y="28" text-anchor="middle" font-family="monospace" font-size="9" fill="#7e8192">→</text>
+  <rect x="64" y="16" width="22" height="17" rx="5" fill="#262a52"/>
+  <text x="75" y="28" text-anchor="middle" font-family="monospace" font-size="9" fill="#a9b8f5">42</text>
+  <text x="92" y="28" text-anchor="middle" font-family="monospace" font-size="9" fill="#7e8192">→</text>
+  <!-- vector strip = row 42 of the dictionary -->
+  <g>
+    <rect x="100" y="16" width="6" height="17" fill="#5f6fe8" opacity="0.25"/>
+    <rect x="107" y="16" width="6" height="17" fill="#5f6fe8" opacity="0.85"/>
+    <rect x="114" y="16" width="6" height="17" fill="#5f6fe8" opacity="0.4"/>
+    <rect x="121" y="16" width="6" height="17" fill="#5f6fe8" opacity="1"/>
+    <rect x="128" y="16" width="6" height="17" fill="#5f6fe8" opacity="0.15"/>
+    <rect x="135" y="16" width="6" height="17" fill="#5f6fe8" opacity="0.6"/>
+    <rect x="142" y="16" width="6" height="17" fill="#5f6fe8" opacity="0.3"/>
+    <rect x="149" y="16" width="6" height="17" fill="#5f6fe8" opacity="0.75"/>
+    <rect x="156" y="16" width="6" height="17" fill="#5f6fe8" opacity="0.2"/>
+    <rect x="163" y="16" width="6" height="17" fill="#5f6fe8" opacity="0.5"/>
+    <rect x="170" y="16" width="6" height="17" fill="#5f6fe8" opacity="0.9"/>
+    <rect x="177" y="16" width="6" height="17" fill="#5f6fe8" opacity="0.35"/>
+  </g>
+  <!-- neighbors with similarity bars -->
+  <text x="12" y="49" font-family="monospace" font-size="7.5" fill="#7e8192">nearest</text>
+  <text x="52" y="49" font-family="monospace" font-size="7.5" fill="#eceef5">dog</text>
+  <rect x="74" y="43.5" width="62" height="6" rx="3" fill="#5f6fe8"/>
+  <text x="142" y="49" font-family="monospace" font-size="7" fill="#7e8192">.36</text>
+  <text x="52" y="60" font-family="monospace" font-size="7.5" fill="#eceef5">milk</text>
+  <rect x="74" y="54.5" width="41" height="6" rx="3" fill="#5f6fe8" opacity="0.7"/>
+  <text x="142" y="60" font-family="monospace" font-size="7" fill="#7e8192">.31</text>
+  <text x="52" y="71" font-family="monospace" font-size="7.5" fill="#eceef5">sleeps</text>
+  <rect x="74" y="65.5" width="29" height="6" rx="3" fill="#5f6fe8" opacity="0.5"/>
+  <text x="142" y="71" font-family="monospace" font-size="7" fill="#7e8192">.27</text>
+  <text x="100" y="84" text-anchor="middle" font-family="monospace" font-size="8" fill="#8fdcbb">25 steps · 0 libraries</text>
+</svg>
