@@ -1,0 +1,40 @@
+<svg viewBox="0 0 200 90" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Spring Dive">
+  <defs>
+    <linearGradient id="sea" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#12202c"/>
+      <stop offset="1" stop-color="#070c12"/>
+    </linearGradient>
+  </defs>
+  <rect width="200" height="90" fill="url(#sea)"/>
+  <!-- surface line -->
+  <path d="M0 15 q12 -4 25 0 t25 0 t25 0 t25 0 t25 0 t25 0 t25 0 t25 0" fill="none" stroke="#62b6e8" stroke-width="1" opacity="0.7"/>
+  <!-- depth ladder -->
+  <g font-family="monospace" font-size="6.5" fill="#718799">
+    <text x="10" y="28">3m</text>
+    <text x="10" y="42">20m</text>
+    <text x="10" y="56">80m</text>
+    <text x="10" y="70">200m</text>
+  </g>
+  <g stroke="#22303e" stroke-width="0.6">
+    <line x1="30" y1="25" x2="190" y2="25"/>
+    <line x1="30" y1="39" x2="190" y2="39"/>
+    <line x1="30" y1="53" x2="190" y2="53"/>
+    <line x1="30" y1="67" x2="190" y2="67"/>
+  </g>
+  <!-- node chips per depth -->
+  <g font-family="monospace" font-size="6.5">
+    <rect x="34" y="18" width="66" height="12" rx="4" fill="#16212d" stroke="#2a3a49" stroke-width="0.5"/>
+    <text x="40" y="26.5" fill="#93dd70">@RestController</text>
+    <rect x="34" y="32" width="58" height="12" rx="4" fill="#16212d" stroke="#2a3a49" stroke-width="0.5"/>
+    <text x="40" y="40.5" fill="#93dd70">@Transactional</text>
+    <rect x="34" y="46" width="50" height="12" rx="4" fill="#16212d" stroke="#2a3a49" stroke-width="0.5"/>
+    <text x="40" y="54.5" fill="#62b6e8">refresh()</text>
+    <rect x="34" y="60" width="72" height="12" rx="4" fill="#16212d" stroke="#2a3a49" stroke-width="0.5"/>
+    <text x="40" y="68.5" fill="#62b6e8">BeanPostProcessor</text>
+  </g>
+  <!-- descending trace -->
+  <path d="M112 24 C 132 26, 118 38, 136 40 C 154 42, 140 54, 152 56 C 166 58, 158 66, 168 68"
+        fill="none" stroke="#5aa832" stroke-width="1.2" stroke-dasharray="3 3" opacity="0.85"/>
+  <circle cx="168" cy="68" r="2.6" fill="#93dd70"/>
+  <text x="100" y="85" text-anchor="middle" font-family="monospace" font-size="7.5" fill="#62b6e8">10 depths · 56 nodes · one Spring</text>
+</svg>

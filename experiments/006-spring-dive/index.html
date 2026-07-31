@@ -1,0 +1,1031 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>#006 스프링 잠수 · Spring Dive</title>
+<meta name="description" content="Spring / Spring Boot를 수면(첫 실행)부터 심연(컨테이너 소스)까지 10개 수심 56개 노드로 내려가는 학습 지도. A depth-map of Spring from your first @RestController down to the container internals." />
+<style>
+  :root {
+    --bg: #0a1017; --surface: #111a24; --surface-2: #16212d; --surface-3: #1e2c3a;
+    --border: #22303e; --border-strong: #35495c;
+    --text: #e6edf3; --text-2: #a7b6c4; --muted: #718799;
+    --accent: #93dd70; --accent-strong: #5aa832; --accent-dim: #162a15;
+    --sea: #62b6e8; --sea-dim: #10283a;
+    --warn: #e8b96a; --danger: #ef9090;
+    --shade: 0, 0, 0;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Noto Sans KR", sans-serif;
+    --mono: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #eef3f7; --surface: #ffffff; --surface-2: #e9eff4; --surface-3: #dde5ec;
+      --border: #d5dee6; --border-strong: #b3c1cd;
+      --text: #16212b; --text-2: #4d5f6f; --muted: #7b8c9b;
+      --accent: #3f8f22; --accent-strong: #3f8f22; --accent-dim: #e2f2da;
+      --sea: #1c7db5; --sea-dim: #dceaf5;
+      --warn: #a8721a; --danger: #c04b4b;
+      --shade: 20, 80, 130;
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); line-height: 1.6; -webkit-font-smoothing: antialiased; }
+  a { color: var(--accent); }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 26px 18px 100px; }
+
+  /* ---------- header ---------- */
+  .kicker { font-family: var(--mono); font-size: 12px; color: var(--sea); }
+  h1 { font-size: 25px; font-weight: 600; margin: 4px 0 6px; letter-spacing: -.3px; }
+  .lead { color: var(--text-2); font-size: 14.5px; margin: 0 0 2px; }
+  .lead-en { color: var(--muted); font-size: 13px; margin: 0 0 18px; }
+
+  .rules { background: var(--surface); border: 0.5px solid var(--border);
+    border-left: 3px solid var(--accent-strong); border-radius: 10px;
+    padding: 12px 16px; margin: 0 0 16px; font-size: 13.5px; color: var(--text-2); }
+  .rules b { color: var(--text); font-weight: 600; }
+  .rules ol { margin: 6px 0 0; padding-left: 20px; }
+  .rules li { margin: 3px 0; }
+
+  /* ---------- gauge ---------- */
+  .gauge { background: var(--surface); border: 0.5px solid var(--border); border-radius: 12px;
+    padding: 14px 16px; margin-bottom: 16px; }
+  .g-top { display: flex; align-items: baseline; gap: 8px 14px; flex-wrap: wrap; margin-bottom: 11px; }
+  .g-top b { font-size: 21px; font-weight: 600; }
+  .g-top b.depth { color: var(--sea); font-family: var(--mono); }
+  .g-top span { font-size: 12.5px; color: var(--muted); }
+  .g-top .spacer { flex: 1; }
+  .bar { height: 8px; border-radius: 5px; background: var(--surface-3); overflow: hidden; }
+  .bar i { display: block; height: 100%; background: var(--accent-strong); transition: width .35s ease; }
+  .ticks { display: flex; gap: 3px; margin-top: 9px; }
+  .ticks button { flex: 1; height: 24px; padding: 0; border: none; background: none; cursor: pointer;
+    display: flex; flex-direction: column; justify-content: flex-end; gap: 3px; }
+  .ticks .tb { height: 6px; border-radius: 3px; background: var(--surface-3); transition: background .2s; }
+  .ticks .tl { font-family: var(--mono); font-size: 9.5px; color: var(--muted); }
+  .ticks button:hover .tb { background: var(--border-strong); }
+  .ticks button.some .tb { background: var(--sea-dim); }
+  .ticks button.some .tl { color: var(--sea); }
+  .ticks button.done .tb { background: var(--accent-strong); }
+  .ticks button.done .tl { color: var(--accent); }
+
+  /* ---------- toolbar ---------- */
+  .tools { display: flex; gap: 8px; flex-wrap: wrap; align-items: center; margin-bottom: 20px; }
+  .tools input[type="search"] { flex: 1; min-width: 180px; background: var(--surface);
+    border: 1px solid var(--border); border-radius: 9px; color: var(--text);
+    font-family: var(--sans); font-size: 14px; padding: 9px 12px; }
+  .tools input[type="search"]:focus { outline: none; border-color: var(--sea); }
+  button { font-family: var(--sans); font-size: 13px; font-weight: 500; cursor: pointer;
+    border-radius: 9px; padding: 8px 13px; border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--text-2); transition: all .12s; }
+  button:hover { border-color: var(--sea); color: var(--text); }
+  .hits { font-size: 12.5px; color: var(--muted); font-family: var(--mono); }
+
+  /* ---------- layout ---------- */
+  .cols { display: grid; grid-template-columns: 128px 1fr; gap: 22px; align-items: start; }
+  @media (max-width: 900px) { .cols { grid-template-columns: 1fr; gap: 0; } }
+
+  /* ---------- depth rail ---------- */
+  .rail { position: sticky; top: 14px; padding: 4px 0 4px 10px; border-left: 1px solid var(--border); }
+  @media (max-width: 900px) { .rail { display: none; } }
+  .rail button { display: block; width: 100%; text-align: left; background: none; border: none;
+    padding: 5px 0 5px 12px; margin: 0 0 1px -11px; border-left: 2px solid transparent;
+    cursor: pointer; color: var(--muted); border-radius: 0; }
+  .rail button:hover { color: var(--text); border-left-color: var(--border-strong); }
+  .rail button.active { border-left-color: var(--sea); color: var(--text); }
+  .rail .rm { font-family: var(--mono); font-size: 10px; display: block; color: var(--muted); }
+  .rail .rn { font-size: 12px; display: block; line-height: 1.3; }
+  .rail button.done .rn { color: var(--accent); }
+
+  /* ---------- band ---------- */
+  .band { border: 0.5px solid var(--border); border-radius: 14px; padding: 16px 16px 6px;
+    margin-bottom: 14px; background: rgba(var(--shade), var(--a, 0)); scroll-margin-top: 12px; }
+  @media (max-width: 560px) { .band { padding: 14px 12px 6px; } }
+  .b-head { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; }
+  .b-m { font-family: var(--mono); font-size: 11px; color: var(--sea); background: var(--sea-dim);
+    border-radius: 5px; padding: 3px 7px; flex: none; margin-top: 3px; }
+  .b-t { flex: 1; min-width: 0; }
+  .b-t h2 { font-size: 17.5px; font-weight: 600; margin: 0; letter-spacing: -.2px; }
+  .b-t h2 em { font-style: normal; font-family: var(--mono); font-size: 11.5px;
+    color: var(--muted); font-weight: 400; margin-left: 7px; }
+  .b-can { font-size: 13px; color: var(--text-2); margin: 4px 0 0; }
+  .b-can b { color: var(--text); font-weight: 600; }
+  .b-sym { font-size: 12.5px; color: var(--warn); margin: 3px 0 0; }
+  .b-prog { flex: none; text-align: right; font-family: var(--mono); font-size: 11.5px; color: var(--muted); }
+  .b-prog .ring { display: block; width: 34px; height: 34px; margin: 0 0 2px auto; }
+  .b-fold { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(268px, 1fr));
+    gap: 8px; margin: 14px 0 12px; }
+  .band.folded .grid { display: none; }
+
+  /* ---------- node card ---------- */
+  .node { background: var(--surface); border: 0.5px solid var(--border); border-radius: 11px;
+    padding: 11px 13px; cursor: pointer; transition: border-color .12s, background .12s; min-width: 0; }
+  .node:hover { border-color: var(--border-strong); }
+  .node.open { border-color: var(--sea); background: var(--surface); grid-column: 1 / -1; cursor: default; }
+  .node.done { border-left: 2px solid var(--accent-strong); }
+  .n-head { display: flex; gap: 9px; align-items: flex-start; }
+  .n-num { font-family: var(--mono); font-size: 10.5px; color: var(--muted); flex: none; margin-top: 3px; }
+  .n-tt { flex: 1; min-width: 0; }
+  .n-t { font-size: 14.5px; font-weight: 600; letter-spacing: -.1px; }
+  .node.done .n-t { color: var(--accent); }
+  .n-en { font-family: var(--mono); font-size: 11px; color: var(--muted); }
+  .n-pips { display: flex; gap: 2px; flex: none; margin-top: 6px; }
+  .n-pips b { width: 5px; height: 5px; border-radius: 50%; background: var(--surface-3); }
+  .n-pips b.on { background: var(--accent-strong); }
+  .n-sum { font-size: 13px; color: var(--text-2); margin-top: 7px; }
+  .node.open .n-sum { color: var(--text-2); }
+
+  .n-body { display: none; margin-top: 14px; padding-top: 13px; border-top: 0.5px solid var(--border); }
+  .node.open .n-body { display: block; }
+  .n-body h4 { font-size: 12px; font-weight: 600; margin: 15px 0 7px; color: var(--text);
+    display: flex; align-items: center; gap: 7px; }
+  .n-body h4:first-child { margin-top: 0; }
+  .n-body h4 em { font-style: normal; font-family: var(--mono); font-size: 10.5px;
+    color: var(--muted); font-weight: 400; }
+
+  .dolist { display: flex; flex-direction: column; gap: 2px; }
+  .doit { display: flex; gap: 9px; align-items: flex-start; padding: 7px 9px; border-radius: 8px;
+    cursor: pointer; font-size: 13.5px; color: var(--text-2); }
+  .doit:hover { background: var(--surface-2); }
+  .doit .box { flex: none; width: 16px; height: 16px; margin-top: 2px; border-radius: 5px;
+    border: 1.5px solid var(--border-strong); display: grid; place-items: center;
+    font-size: 10px; color: transparent; transition: all .12s; }
+  .doit.on .box { background: var(--accent-strong); border-color: var(--accent-strong); color: #fff; }
+  .doit.on { color: var(--muted); }
+  .doit.on span { text-decoration: line-through; text-decoration-color: var(--border-strong); }
+
+  .chk { background: var(--accent-dim); border-radius: 9px; padding: 10px 13px;
+    font-size: 13.5px; color: var(--text); }
+  .chk b { color: var(--accent); font-weight: 600; }
+
+  .myth { border: 0.5px solid var(--border); border-radius: 9px; overflow: hidden; }
+  .myth .m-s { padding: 10px 13px; font-size: 13.5px; color: var(--text-2); background: var(--surface-2); }
+  .myth .m-s b { color: var(--warn); font-weight: 600; font-family: var(--mono); font-size: 11px; }
+  .myth .m-btn { width: 100%; border: none; border-top: 0.5px solid var(--border); border-radius: 0;
+    background: var(--surface); color: var(--sea); font-family: var(--mono); font-size: 11.5px; padding: 8px; }
+  .myth .m-btn:hover { background: var(--surface-2); }
+  .myth .m-r { display: none; padding: 10px 13px; font-size: 13.5px; color: var(--text);
+    border-top: 0.5px solid var(--border); }
+  .myth .m-r b { color: var(--sea); font-weight: 600; font-family: var(--mono); font-size: 11px; }
+  .myth.shown .m-r { display: block; }
+  .myth.shown .m-btn { display: none; }
+
+  .keys { display: flex; flex-wrap: wrap; gap: 5px; }
+  .keys span { font-family: var(--mono); font-size: 11.5px; color: var(--text-2);
+    background: var(--surface-2); border: 0.5px solid var(--border); border-radius: 6px; padding: 3px 8px; }
+  .later { font-size: 12.5px; color: var(--muted); margin-top: 14px; padding-top: 10px;
+    border-top: 0.5px dashed var(--border); }
+  .later b { color: var(--sea); font-weight: 500; }
+
+  code { font-family: var(--mono); font-size: 12.5px; background: var(--surface-3);
+    border-radius: 4px; padding: 1px 5px; color: var(--text); }
+  .n-sum code, .doit code { background: var(--surface-2); }
+
+  .n-close { margin-top: 14px; font-size: 12.5px; padding: 6px 12px; }
+  .hidden { display: none !important; }
+  .foot { margin-top: 28px; font-size: 13px; color: var(--muted);
+    display: flex; gap: 14px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="kicker">experiment #006</div>
+  <h1>스프링 잠수 · Spring Dive</h1>
+  <p class="lead">수면에서 심연까지. 같은 스프링을 10번의 수심에서 다시 본다.</p>
+  <p class="lead-en">The same Spring, seen from ten depths — from your first <code>@RestController</code> down to <code>refresh()</code> and the proxies.</p>
+
+  <div class="rules">
+    <b>이 지도의 규칙 · house rules</b>
+    <ol>
+      <li>지도는 <b>깊이</b>로 나뉜다. 각 수심마다 "지금 답할 수 있는 말"과 "여기서 보이는 진짜"가 다르다.</li>
+      <li>노드 하나 = <b>손으로 해보는 것 2~3개</b>. 읽기만 한 노드는 안 한 노드다.</li>
+      <li>내려가기 전에 <b>확인 질문</b>에 말로 답해본다. 못 하면 그 수심에 더 머문다.</li>
+      <li>얕은 수심으로 되돌아오는 건 실패가 아니다. 같은 코드가 다르게 보이면 그게 진전이다.</li>
+    </ol>
+  </div>
+
+  <div class="gauge">
+    <div class="g-top">
+      <b class="depth" id="gDepth">0m</b><span>도달 수심 · reached</span>
+      <b id="gNodes">0 / 56</b><span>노드 완료 · nodes</span>
+      <span class="spacer"></span>
+      <span id="gPct">0%</span>
+    </div>
+    <div class="bar"><i id="gBar" style="width:0"></i></div>
+    <div class="ticks" id="ticks"></div>
+  </div>
+
+  <div class="tools">
+    <input type="search" id="q" placeholder="검색 · search — 예: transactional, 프록시, N+1" autocomplete="off" />
+    <span class="hits" id="hits"></span>
+    <button id="foldAll">전부 접기 · fold</button>
+    <button id="unfoldAll">전부 펼치기 · unfold</button>
+  </div>
+
+  <div class="cols">
+    <nav class="rail" id="rail"></nav>
+    <div id="bands"></div>
+  </div>
+
+  <p class="foot">
+    <a href="../../">← 실험실로 · back to the lab</a>
+    <span>진행 상황은 이 브라우저에만 저장됩니다 · progress stays in your browser</span>
+    <a href="#" id="reset">진행 초기화 · reset</a>
+  </p>
+</div>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   #006 스프링 잠수 — 수심 10층 × 노드 50개 지도 + 진행 저장
+   구조: 선형 스텝(#005)이 아니라 "깊이 밴드" — 같은 주제를 여러 수심에서
+        다시 만나고, 각 노드는 얕은 답 ↔ 진짜 답을 짝으로 들고 있다.
+   ========================================================================== */
+
+const STORE_KEY = "lab.spring006.v1";
+
+const DEPTHS = [
+  { id: 0, m: "0m",   name: "물 밖", en: "Above water",
+    can: "스프링을 켜기 전에 <b>무엇이 이미 거기 있었는지</b> 안다.",
+    sym: "여기를 건너뛰면 — 스프링이 하는 일과 자바/HTTP가 원래 하는 일을 평생 구분 못 한다." },
+  { id: 1, m: "3m",   name: "수면", en: "Surface",
+    can: "빈 프로젝트에서 <b>동작하는 JSON API</b>를 20분 안에 만든다.",
+    sym: "여기를 건너뛰면 — 튜토리얼 없이는 한 줄도 시작하지 못한다." },
+  { id: 2, m: "10m",  name: "얕은 물", en: "Shallows",
+    can: "객체를 직접 <code>new</code> 하지 않고 <b>조립을 컨테이너에 맡긴다</b>.",
+    sym: "여기를 건너뛰면 — 클래스는 늘었는데 전부 컨트롤러 한 개에 들어 있다." },
+  { id: 3, m: "20m",  name: "데이터층", en: "Data",
+    can: "DB를 객체로 다루고, <b>트랜잭션 경계</b>를 손으로 그린다.",
+    sym: "여기를 건너뛰면 — 목록 하나 부르는데 쿼리가 200번 나가는 걸 모른 채 배포한다." },
+  { id: 4, m: "35m",  name: "구조층", en: "Structure",
+    can: "실패·설정·테스트를 <b>구조로</b> 다룬다. 손으로 확인하지 않는다.",
+    sym: "여기를 건너뛰면 — 배포할 때마다 손으로 눌러보고, 에러 응답이 매번 다르게 생겼다." },
+  { id: 5, m: "55m",  name: "경계층", en: "Perimeter",
+    can: "요청이 <b>들어오는 문</b>과 <b>나가는 문</b>을 통제한다.",
+    sym: "여기를 건너뛰면 — 시큐리티 설정을 스택오버플로에서 복붙하고 왜 되는지 모른다." },
+  { id: 6, m: "80m",  name: "기계실", en: "Engine room",
+    can: "<code>@Component</code> 한 줄이 <b>객체가 되기까지</b>를 순서대로 말한다.",
+    sym: "여기를 건너뛰면 — 순환 참조·빈 생성 순서 에러 앞에서 검색 말고는 할 게 없다." },
+  { id: 7, m: "110m", name: "프록시층", en: "Proxy",
+    can: "애노테이션이 <b>왜 어떤 때는 안 먹는지</b>를 원리로 설명한다.",
+    sym: "여기를 건너뛰면 — <code>@Transactional</code>이 조용히 무시되는 버그를 며칠 잡는다." },
+  { id: 8, m: "150m", name: "마법 해체", en: "Unmagic",
+    can: "부트가 <b>대신 해준 결정</b>을 전부 목록으로 뽑아 뒤집는다.",
+    sym: "여기를 건너뛰면 — \"부트가 알아서 해줘요\"가 설명의 끝이 된다." },
+  { id: 9, m: "200m", name: "심연", en: "Abyss",
+    can: "요청 하나의 <b>전 구간</b>을 소스에서 따라가고, 그 구조를 직접 만든다.",
+    sym: "여기가 끝이 아니다 — 여기서부터는 지도 대신 소스가 안내한다." },
+];
+
+const NODES = [
+/* ================= D0 · 물 밖 ================= */
+{ d:0, t:"HTTP 요청 한 개의 생김새", en:"What a request actually is",
+  sum:"스프링을 배우기 전에, 스프링이 <b>받는 것</b>을 먼저 안다. 메서드·경로·헤더·바디, 그리고 상태 코드.",
+  do:["<code>curl -v</code>로 아무 사이트에 요청을 보내고 요청/응답 원문을 그대로 읽기",
+      "브라우저 개발자도구 Network 탭에서 같은 요청을 찾아 헤더를 대조하기",
+      "200 / 201 / 400 / 401 / 403 / 404 / 500 을 각각 '누구 잘못인가'로 한 줄씩 정리"],
+  chk:"<code>GET</code>과 <code>POST</code>의 차이를 '바디가 있냐'가 아니라 <b>멱등성</b>으로 설명할 수 있다.",
+  keys:["HTTP method","status code","header","idempotency"] },
+
+{ d:0, t:"서블릿과 WAS — 스프링 이전의 세계", en:"Servlet & the container",
+  sum:"스프링이 없어도 자바는 웹을 했다. <code>HttpServlet</code> 하나로 요청을 받아보면 스프링이 무엇을 <b>덜어주는지</b>가 보인다.",
+  do:["순수 서블릿 하나(<code>doGet</code>)를 톰캣에 올려 <code>Hello</code> 응답하기",
+      "<code>web.xml</code> 또는 <code>@WebServlet</code>으로 URL 매핑을 손으로 붙여보기",
+      "요청 파라미터를 꺼내 JSON 문자열을 손으로 조립해 응답하기 (얼마나 귀찮은지 체감)"],
+  chk:"\"스프링 MVC는 결국 <b>서블릿 하나</b>다\"라는 문장이 무슨 뜻인지 말할 수 있다.",
+  myth:{ s:"톰캣은 스프링이 띄워주는 것이다.", r:"반대다. 원래는 톰캣(서블릿 컨테이너) 위에 앱을 올렸다. 부트가 톰캣을 <b>라이브러리로 끌어안아</b> 내장 실행하는 것뿐이고, 그 서블릿의 이름이 <code>DispatcherServlet</code>이다." },
+  later:"D9 — 그 서블릿 안에서 벌어지는 일 전부를 다시 연다.",
+  keys:["Servlet","Tomcat","servlet container","web.xml"] },
+
+{ d:0, t:"자바 기본기 점검표", en:"Java prerequisites",
+  sum:"스프링은 자바의 세 가지 기능 위에 서 있다: <b>인터페이스, 애노테이션, 리플렉션</b>. 이게 흐릿하면 그 위는 전부 마법으로 보인다.",
+  do:["인터페이스 하나에 구현체 둘을 만들고, 호출부를 인터페이스 타입으로만 쓰기",
+      "커스텀 애노테이션(<code>@interface</code>)을 <code>RUNTIME</code> 보존으로 만들어 붙이기",
+      "리플렉션으로 그 애노테이션이 붙은 메서드를 찾아 호출해보기 (10줄이면 된다)"],
+  chk:"애노테이션은 <b>표시일 뿐 아무 일도 하지 않는다</b>는 것과, 그 표시를 읽는 코드가 따로 있다는 걸 안다.",
+  later:"D6·D8 — 스프링이 하는 일이 정확히 그 '표시를 읽는 코드'다.",
+  keys:["interface","@interface","RetentionPolicy","reflection","generics"] },
+
+{ d:0, t:"빌드 도구와 의존성", en:"Gradle / Maven & the classpath",
+  sum:"스프링 부트에서는 <b>클래스패스에 뭐가 있느냐</b>가 동작을 바꾼다. 그러니 의존성은 부수적인 지식이 아니다.",
+  do:["Gradle 프로젝트에서 <code>dependencies</code> 트리를 출력해 전이 의존성 확인하기",
+      "<code>spring-boot-starter-web</code> 하나가 실제로 몇 개 jar을 끌고 오는지 세보기",
+      "버전을 명시하지 않아도 되는 이유(BOM / dependency management) 확인하기"],
+  chk:"\"스타터는 <b>의존성 묶음</b>일 뿐이고, 진짜 마법은 자동 설정에 있다\"를 구분해 말할 수 있다.",
+  keys:["Gradle","Maven","BOM","transitive dependency","classpath"] },
+
+{ d:0, t:"제어의 역전 — 말부터 이해하기", en:"IoC, the idea",
+  sum:"프레임워크와 라이브러리의 차이 한 줄: <b>내가 부르면 라이브러리, 나를 부르면 프레임워크</b>. 스프링은 후자다.",
+  do:["내가 쓰는 코드 중 라이브러리인 것과 프레임워크인 것을 각각 3개씩 적어보기",
+      "객체를 직접 <code>new</code> 하는 코드의 문제를 '테스트할 때'를 기준으로 적어보기",
+      "생성자로 의존성을 밖에서 넣어주도록 그 코드를 고쳐보기 (스프링 없이, 손으로)"],
+  chk:"DI를 스프링 없이 <b>순수 자바로</b> 시연할 수 있다. 그게 곧 컨테이너가 대신 할 일이다.",
+  myth:{ s:"DI는 스프링의 기능이다.", r:"DI는 설계 패턴이고, 스프링은 그걸 <b>자동화하는 도구</b>다. 순서를 거꾸로 배우면 스프링을 걷어냈을 때 아무것도 남지 않는다." },
+  keys:["IoC","dependency injection","framework vs library"] },
+
+/* ================= D1 · 수면 ================= */
+{ d:1, t:"프로젝트 생성과 첫 실행", en:"start.spring.io → run",
+  sum:"<code>main</code> 하나로 웹 서버가 뜬다. 이 경험 자체가 부트의 요약이다.",
+  do:["start.spring.io에서 Web 의존성만 넣고 생성 → IDE로 열어 실행하기",
+      "기동 로그에서 톰캣 포트·기동 시간·활성 프로파일 줄을 찾아 읽기",
+      "<code>build.gradle</code>과 <code>@SpringBootApplication</code>이 붙은 클래스 위치 확인"],
+  chk:"서버가 떴다는 사실을 로그의 <b>어느 줄</b>로 확인하는지 안다.",
+  keys:["Spring Initializr","embedded Tomcat","main()"] },
+
+{ d:1, t:"첫 엔드포인트", en:"@RestController, one GET",
+  sum:"클래스 하나에 애노테이션 둘. 그러면 URL이 생긴다. <b>왜</b> 생기는지는 D9에서 연다.",
+  do:["<code>@RestController</code> + <code>@GetMapping(\"/hello\")</code>로 문자열 응답",
+      "객체를 반환해 JSON이 자동으로 만들어지는 것 확인",
+      "<code>curl</code>과 브라우저 양쪽에서 호출해 <code>Content-Type</code> 비교"],
+  chk:"객체를 반환했더니 JSON이 됐다 — 그 변환을 <b>누가</b> 했는지 이름은 몰라도 '누군가 한다'는 걸 안다.",
+  later:"D9 — 그 누군가는 <code>HttpMessageConverter</code>다.",
+  keys:["@RestController","@GetMapping","Jackson"] },
+
+{ d:1, t:"입력 받기 — 경로·쿼리·바디", en:"Path, query, body",
+  sum:"요청에서 값을 꺼내는 세 가지 자리. 여기서 스프링이 <b>타입 변환까지</b> 해준다는 걸 처음 본다.",
+  do:["<code>@PathVariable</code>, <code>@RequestParam</code>, <code>@RequestBody</code>를 하나씩 써보기",
+      "<code>int</code> 파라미터에 문자열을 보내 400이 나는 장면 만들기",
+      "<code>record</code>로 요청 DTO를 만들어 JSON을 객체로 받기"],
+  chk:"세 가지를 언제 쓰는지 규칙으로 말할 수 있다 (식별자는 경로, 필터는 쿼리, 덩어리는 바디).",
+  keys:["@PathVariable","@RequestParam","@RequestBody","record"] },
+
+{ d:1, t:"설정 파일 만지기", en:"application.yml",
+  sum:"코드를 고치지 않고 동작을 바꾸는 첫 경험. 포트, 로그 레벨, 이름.",
+  do:["<code>server.port</code>를 바꿔 다른 포트로 띄우기",
+      "<code>logging.level.org.springframework=DEBUG</code>로 로그 홍수 한 번 보기",
+      "properties와 yml 두 형식으로 같은 설정을 써보고 하나를 고르기"],
+  chk:"설정 키 하나를 문서에서 찾아 적용할 수 있다. 그리고 어디서 읽히는지 '어딘가에서 읽힌다'고 안다.",
+  later:"D8 — 그 '어딘가'가 <code>Environment</code>와 <code>PropertySource</code> 우선순위다.",
+  keys:["application.yml","server.port","logging.level"] },
+
+{ d:1, t:"자동 재시작과 개발 편의", en:"DevTools & the feedback loop",
+  sum:"학습 속도는 <b>고치고 확인하는 주기</b>가 결정한다. 이걸 먼저 짧게 만든다.",
+  do:["<code>spring-boot-devtools</code> 넣고 저장 시 자동 재시작 확인",
+      "IDE에서 HTTP 요청 파일(.http) 또는 Postman 컬렉션으로 호출 저장해두기",
+      "기동 실패 로그를 일부러 만들어보고(포트 충돌 등) 에러 메시지 읽는 연습"],
+  chk:"코드 한 줄 고치고 결과를 확인하는 데 <b>10초 이내</b>가 걸린다.",
+  keys:["DevTools","restart","port already in use"] },
+
+/* ================= D2 · 얕은 물 ================= */
+{ d:2, t:"빈 등록과 주입", en:"@Component & constructor injection",
+  sum:"객체를 직접 만들지 않고 <b>맡긴다</b>. 여기서부터 '스프링답게' 쓰기 시작한다.",
+  do:["<code>@Service</code> 클래스를 만들고 컨트롤러가 생성자로 주입받게 하기",
+      "생성자를 여러 개 만들어 주입이 실패하는 상황과 <code>@Autowired</code> 위치 확인",
+      "필드 주입으로 바꿔보고, 왜 권장되지 않는지 <b>테스트 작성</b>으로 체감하기"],
+  chk:"생성자 주입을 쓰는 이유를 세 가지(불변, 필수 의존성 강제, 테스트 용이) 말할 수 있다.",
+  myth:{ s:"<code>@Autowired</code>를 안 붙였는데 주입이 됐다 = 스프링이 알아서 찾아준다.", r:"생성자가 <b>하나뿐</b>이면 애노테이션을 생략해도 된다는 규칙이 있을 뿐이다. 규칙은 마법이 아니라 코드로 적혀 있고, 그 코드는 <code>AutowiredAnnotationBeanPostProcessor</code>에 있다." },
+  later:"D6 — 그 BeanPostProcessor를 직접 연다.",
+  keys:["@Component","@Service","constructor injection","@Autowired"] },
+
+{ d:2, t:"계층 나누기", en:"Controller / Service / Repository",
+  sum:"세 층으로 나누는 건 관례가 아니라 <b>변경 이유를 분리</b>하는 일이다. 층마다 아는 것이 다르다.",
+  do:["컨트롤러에 있던 로직을 서비스로 옮기고, 컨트롤러는 변환만 하게 만들기",
+      "각 층이 <b>모르는 것</b>을 적어보기 (서비스는 HTTP를 모른다 등)",
+      "서비스가 <code>HttpServletRequest</code>를 받고 있다면 그 의존을 끊기"],
+  chk:"내 서비스 클래스를 <b>웹 없이</b> 순수 자바 테스트로 호출할 수 있다.",
+  keys:["layered architecture","separation of concerns","POJO"] },
+
+{ d:2, t:"직접 등록 — @Configuration + @Bean", en:"Manual bean registration",
+  sum:"내가 만들지 않은 클래스(외부 라이브러리)를 빈으로 만들 때 쓰는 방법. <b>스캔이 전부가 아니다</b>.",
+  do:["<code>@Configuration</code> 클래스에서 <code>@Bean</code>으로 외부 클래스 등록하기",
+      "<code>@Bean</code> 메서드 안에서 다른 <code>@Bean</code> 메서드를 호출해보고 몇 번 실행되는지 로그 찍기",
+      "같은 타입 빈을 둘 등록해 충돌시키고 <code>@Primary</code> / <code>@Qualifier</code>로 풀기"],
+  chk:"<code>@Bean</code> 메서드를 두 번 호출해도 객체가 하나인 이유를 '이상하다'고 느낄 수 있다. (아직 답은 몰라도 된다.)",
+  myth:{ s:"<code>@Bean</code> 메서드는 그냥 자바 메서드다.", r:"<code>@Configuration</code> 클래스는 CGLIB로 <b>상속·재정의</b>되어, 메서드 호출이 컨테이너 조회로 바뀐다. 그래서 두 번 불러도 하나다. <code>proxyBeanMethods=false</code>로 끄면 진짜 그냥 메서드가 된다." },
+  later:"D7 — CGLIB 프록시의 정체를 손으로 만든다.",
+  keys:["@Configuration","@Bean","@Primary","@Qualifier","proxyBeanMethods"] },
+
+{ d:2, t:"싱글톤이라는 사실의 무게", en:"Singleton scope, practically",
+  sum:"모든 빈은 기본적으로 <b>앱 전체에 하나</b>다. 그러니 빈에 상태를 두면 그 상태는 모든 요청이 공유한다.",
+  do:["빈에 <code>int count</code> 필드를 두고 동시에 여러 요청을 보내 값이 깨지는 것 재현",
+      "같은 빈을 두 곳에서 주입받아 <code>==</code> 비교로 동일 객체 확인",
+      "상태를 지역 변수/파라미터로 옮겨 문제를 없애기"],
+  chk:"\"빈은 무상태로 만든다\"를 규칙이 아니라 <b>방금 본 버그</b>로 설명할 수 있다.",
+  keys:["singleton","thread safety","stateless bean"] },
+
+{ d:2, t:"설정값을 코드로 가져오기", en:"@Value & @ConfigurationProperties",
+  sum:"설정 파일의 값을 객체로 받는다. 타입 안전한 쪽을 기본으로 삼는다.",
+  do:["<code>@Value(\"${app.name}\")</code>로 값 하나 주입받기",
+      "관련 설정 묶음을 <code>@ConfigurationProperties</code> 레코드로 받기",
+      "값을 안 넣고 띄워서 기동 실패 메시지 확인 (실패는 좋은 신호다)"],
+  chk:"설정 오타를 <b>런타임 NPE가 아니라 기동 시점</b>에 잡을 수 있게 만들었다.",
+  keys:["@Value","@ConfigurationProperties","relaxed binding","fail fast"] },
+
+{ d:2, t:"프로파일로 환경 가르기", en:"@Profile & environments",
+  sum:"로컬·테스트·운영이 같은 코드를 다른 설정으로 쓴다. 분기를 <code>if</code>가 아니라 <b>설정</b>으로.",
+  do:["<code>application-local.yml</code> / <code>-prod.yml</code>을 나누고 프로파일로 띄우기",
+      "<code>@Profile(\"local\")</code>이 붙은 빈이 운영에서 사라지는 것 확인",
+      "환경변수와 실행 인자로 프로파일을 바꿔 띄워보기"],
+  chk:"운영에만 있는 빈 / 로컬에만 있는 빈을 코드 수정 없이 갈아끼울 수 있다.",
+  keys:["@Profile","spring.profiles.active","환경 분리"] },
+
+/* ================= D3 · 데이터층 ================= */
+{ d:3, t:"DB 붙이기 — JDBC부터", en:"DataSource & JdbcClient",
+  sum:"ORM으로 바로 뛰지 않는다. <b>커넥션과 SQL</b>을 한 번 손으로 만져야 나중에 뭘 자동화한 건지 안다.",
+  do:["H2 또는 도커 Postgres를 붙이고 <code>DataSource</code> 설정하기",
+      "<code>JdbcClient</code>(또는 <code>JdbcTemplate</code>)로 INSERT/SELECT 직접 써보기",
+      "커넥션 풀(HikariCP) 로그를 켜서 커넥션이 재사용되는 것 보기"],
+  chk:"쿼리 하나가 나가고 커넥션이 <b>반납</b>되는 흐름을 로그로 짚을 수 있다.",
+  keys:["DataSource","JdbcClient","HikariCP","connection pool"] },
+
+{ d:3, t:"엔티티와 리포지토리", en:"JPA basics",
+  sum:"테이블을 클래스로, 행을 객체로. 그리고 인터페이스만 선언하면 구현체가 <b>생겨난다</b>.",
+  do:["<code>@Entity</code> 하나 + <code>JpaRepository</code> 인터페이스 하나로 CRUD 완성",
+      "<code>spring.jpa.show-sql</code>을 켜고 내가 안 쓴 SQL이 나가는 것 관찰",
+      "<code>save()</code>가 INSERT인지 UPDATE인지 결정되는 기준 실험 (식별자 유무)"],
+  chk:"내가 구현하지 않은 인터페이스가 어떻게 동작하는지 '누군가 런타임에 만든다'고 안다.",
+  myth:{ s:"<code>JpaRepository</code>는 스프링이 코드를 생성(generate)해 준다.", r:"파일을 만들어주는 게 아니다. 런타임에 <b>프록시 객체</b>를 만들고, 메서드 이름을 파싱해 쿼리로 바꿔 실행한다. 소스에서 <code>SimpleJpaRepository</code>를 찾으면 실제 구현이 보인다." },
+  later:"D7 — 프록시가 또 나온다. 스프링에서 이 단어는 계속 돌아온다.",
+  keys:["@Entity","JpaRepository","Hibernate","proxy"] },
+
+{ d:3, t:"쿼리 만들기 세 가지 길", en:"Derived / @Query / Querydsl",
+  sum:"메서드 이름, JPQL, 타입 안전 DSL. 셋 다 알고 <b>경계</b>를 정한다.",
+  do:["메서드 이름으로 파생 쿼리 3개 만들어보기 (그리고 이름이 길어지는 지점 느끼기)",
+      "<code>@Query</code>로 JPQL 직접 쓰기, 네이티브 쿼리도 한 번",
+      "정렬·페이징을 <code>Pageable</code>로 받아 응답에 총 개수 포함하기"],
+  chk:"파생 쿼리를 언제 포기하고 <code>@Query</code>로 넘어갈지 나만의 기준이 있다.",
+  keys:["query method","JPQL","Pageable","Querydsl"] },
+
+{ d:3, t:"트랜잭션 경계 긋기", en:"@Transactional, the usage",
+  sum:"어디서 시작해 어디서 끝나는가. <b>서비스 메서드 하나 = 트랜잭션 하나</b>가 기본 감각.",
+  do:["서비스 메서드에 <code>@Transactional</code>을 붙이고 중간에 예외를 던져 롤백 확인",
+      "체크 예외를 던져보고 <b>롤백이 안 되는 것</b> 확인 → <code>rollbackFor</code>로 고치기",
+      "읽기 전용 메서드에 <code>readOnly = true</code>를 주고 차이 관찰"],
+  chk:"롤백 기본 규칙(언체크 예외만)을 알고, 내 코드에서 그게 맞는지 검사했다.",
+  later:"D7 — 이 애노테이션이 <b>왜 안 먹을 때가 있는지</b>가 거기서 풀린다.",
+  keys:["@Transactional","rollbackFor","readOnly","propagation"] },
+
+{ d:3, t:"영속성 컨텍스트라는 보이지 않는 손", en:"Persistence context",
+  sum:"엔티티를 고쳤을 뿐인데 UPDATE가 나간다. 그 사이에 <b>1차 캐시와 더티 체킹</b>이 있다.",
+  do:["조회한 엔티티의 필드를 바꾸고 <code>save()</code> 없이 커밋 → UPDATE 확인",
+      "같은 트랜잭션에서 같은 id를 두 번 조회 → 쿼리가 한 번만 나가는 것 확인",
+      "트랜잭션 밖에서 지연 로딩 접근 → <code>LazyInitializationException</code> 재현"],
+  chk:"엔티티가 <b>준영속</b> 상태가 되는 순간이 언제인지 말할 수 있다.",
+  myth:{ s:"<code>save()</code>를 불러야 DB에 반영된다.", r:"영속 상태 엔티티는 트랜잭션 커밋 시점에 <b>변경 감지</b>로 자동 반영된다. 반대로 준영속 엔티티는 아무리 고쳐도 반영되지 않는다. 이 비대칭이 JPA 버그의 절반이다." },
+  keys:["persistence context","dirty checking","detached","LazyInitializationException"] },
+
+{ d:3, t:"연관관계와 N+1", en:"Associations & the N+1 wall",
+  sum:"첫 번째 성능 벽. 목록 100개를 부르니 쿼리가 101번 나간다.",
+  do:["<code>@OneToMany</code>를 만들고 목록 조회 시 쿼리 수를 로그로 세기",
+      "fetch join / <code>@EntityGraph</code> / batch size 세 가지로 각각 해결해보기",
+      "<code>FetchType.EAGER</code>를 써보고 왜 더 나쁜지 확인"],
+  chk:"쿼리 개수를 <b>테스트로 검증</b>하는 방법을 하나 갖췄다.",
+  keys:["N+1","fetch join","@EntityGraph","batch_fetch_size"] },
+
+{ d:3, t:"DTO 분리와 검증", en:"DTO & Bean Validation",
+  sum:"엔티티를 API 밖으로 내보내지 않는다. 그리고 입력은 <b>문 앞에서</b> 검사한다.",
+  do:["요청/응답 DTO를 <code>record</code>로 분리하고 매핑 코드 작성",
+      "<code>@Valid</code> + <code>@NotBlank</code>/<code>@Size</code>로 400 응답 만들기",
+      "커스텀 검증 애노테이션 하나 직접 만들어보기"],
+  chk:"엔티티 필드 이름을 바꿔도 <b>API 스펙이 안 깨지는</b> 구조가 됐다.",
+  keys:["DTO","@Valid","Bean Validation","MethodArgumentNotValidException"] },
+
+/* ================= D4 · 구조층 ================= */
+{ d:4, t:"예외를 응답으로 번역하기", en:"@RestControllerAdvice & ProblemDetail",
+  sum:"실패도 API의 일부다. 에러 응답의 <b>모양을 하나로</b> 정한다.",
+  do:["도메인 예외 계층을 만들고 <code>@RestControllerAdvice</code>에서 상태 코드로 매핑",
+      "<code>ProblemDetail</code>(RFC 9457) 형식으로 응답 통일",
+      "예상 못 한 예외의 스택트레이스가 응답에 새지 않는지 확인"],
+  chk:"모든 실패 응답이 <b>같은 스키마</b>를 갖는다. 프런트가 분기 하나로 처리할 수 있다.",
+  keys:["@RestControllerAdvice","@ExceptionHandler","ProblemDetail","RFC 9457"] },
+
+{ d:4, t:"테스트 삼각형", en:"Unit / slice / integration",
+  sum:"전부 <code>@SpringBootTest</code>로 짜면 느려서 안 돌리게 된다. <b>층마다 다른 테스트</b>.",
+  do:["서비스는 스프링 없이 순수 JUnit + 가짜 구현으로 테스트",
+      "<code>@WebMvcTest</code> + <code>MockMvc</code>로 컨트롤러만, <code>@DataJpaTest</code>로 리포지토리만",
+      "<code>@SpringBootTest</code> 통합 테스트는 대표 시나리오 몇 개로 제한"],
+  chk:"전체 테스트가 <b>커피 한 잔 안에</b> 끝난다. 그래서 매번 돌린다.",
+  myth:{ s:"슬라이스 테스트는 그냥 가벼운 <code>@SpringBootTest</code>다.", r:"슬라이스는 <b>자동 설정을 선별해 로딩</b>한다. 그래서 그 슬라이스 밖 빈은 아예 없고, 필요하면 목으로 채워야 한다. 어떤 자동설정이 켜지는지 목록이 실제로 정의돼 있다." },
+  later:"D8 — 그 목록이 <code>spring.factories</code>/<code>AutoConfiguration.imports</code> 안에 있다.",
+  keys:["@WebMvcTest","@DataJpaTest","MockMvc","test slice"] },
+
+{ d:4, t:"테스트 환경을 진짜에 가깝게", en:"Testcontainers & context caching",
+  sum:"H2로 통과하고 운영에서 깨지는 걸 막는다. 그리고 <b>컨텍스트 재사용</b>이 테스트 속도를 좌우한다.",
+  do:["Testcontainers로 실제 DB를 띄워 통합 테스트 돌리기",
+      "테스트 설정을 조금씩 다르게 만들어 컨텍스트가 여러 번 뜨는 것 확인",
+      "<code>@DirtiesContext</code>를 남발했을 때의 대가 측정"],
+  chk:"테스트 컨텍스트가 <b>몇 개</b> 만들어지는지 안다. 그리고 그 수를 줄였다.",
+  keys:["Testcontainers","@ServiceConnection","context cache","@DirtiesContext"] },
+
+{ d:4, t:"관찰 가능하게 만들기", en:"Actuator, logging, metrics",
+  sum:"돌아가는 것과 <b>돌아간다고 말할 수 있는 것</b>은 다르다.",
+  do:["Actuator를 넣고 <code>/actuator/health</code>, <code>/beans</code>, <code>/env</code> 열어보기",
+      "구조화 로깅(JSON) + 요청별 상관 ID(MDC) 붙이기",
+      "Micrometer로 커스텀 지표 하나 만들고 값 변하는 것 확인"],
+  chk:"장애가 났을 때 <b>어디를 먼저 볼지</b> 순서가 정해져 있다.",
+  keys:["Actuator","Micrometer","MDC","health check"] },
+
+{ d:4, t:"패키징과 배포", en:"Executable jar & config externalization",
+  sum:"내 노트북 밖에서 도는 형태로 만든다. 설정은 <b>이미지 안이 아니라 밖</b>에 둔다.",
+  do:["<code>bootJar</code>로 실행 가능 jar 만들고 <code>java -jar</code>로 띄우기",
+      "jar 내부 구조(BOOT-INF)를 풀어보고 왜 이렇게 생겼는지 확인",
+      "도커 이미지로 굽고, 설정은 환경변수로 주입해 같은 이미지를 두 환경에 배포"],
+  chk:"운영 설정을 바꾸려고 <b>빌드를 다시 하지 않는다</b>.",
+  keys:["bootJar","fat jar","BOOT-INF","12-factor","환경변수"] },
+
+/* ================= D5 · 경계층 ================= */
+{ d:5, t:"시큐리티 필터 체인", en:"Spring Security, the shape",
+  sum:"시큐리티는 MVC 안이 아니라 <b>그 앞의 서블릿 필터</b>에서 산다. 이 그림 하나면 절반은 끝난다.",
+  do:["의존성만 추가해 전 요청이 막히는 것 확인 → 기본 로그인 페이지 만나기",
+      "<code>SecurityFilterChain</code> 빈으로 경로별 인가 규칙 작성",
+      "<code>logging.level.org.springframework.security=DEBUG</code>로 필터 목록 출력해 순서 읽기"],
+  chk:"내 요청이 통과하는 필터를 <b>순서대로</b> 나열할 수 있다.",
+  myth:{ s:"<code>@PreAuthorize</code>도 필터에서 처리된다.", r:"필터 체인은 <b>URL 기준</b>이고, 메서드 보안은 <b>AOP 프록시</b>다. 완전히 다른 층에서 다른 시점에 동작한다. 그래서 자기호출하면 메서드 보안이 뚫린다." },
+  later:"D7 — 그 자기호출 문제를 정면으로 다룬다.",
+  keys:["SecurityFilterChain","FilterChainProxy","DelegatingFilterProxy"] },
+
+{ d:5, t:"인증과 인가", en:"Authentication & authorization",
+  sum:"'누구인가'와 '무엇을 할 수 있는가'는 다른 질문이다. 코드에서도 다른 자리에 산다.",
+  do:["<code>UserDetailsService</code>로 DB 사용자 인증 붙이기, 비밀번호는 반드시 해시",
+      "권한(Role/Authority)을 부여하고 <code>@PreAuthorize</code>로 메서드 보호",
+      "<code>SecurityContextHolder</code>에서 현재 사용자 꺼내기 — 그리고 그게 어떻게 채워졌는지 추적"],
+  chk:"<code>SecurityContext</code>가 <b>스레드에 묶여</b> 있다는 걸 알고, 비동기에서 왜 사라지는지 안다.",
+  keys:["Authentication","GrantedAuthority","SecurityContextHolder","ThreadLocal","BCrypt"] },
+
+{ d:5, t:"세션과 토큰", en:"Session vs JWT vs OAuth2",
+  sum:"상태를 서버에 둘 것인가 클라이언트에 둘 것인가. <b>정답 없음, 대가만 있음</b>.",
+  do:["세션 기반으로 로그인 구현 → 서버 재시작 시 로그아웃되는 것 확인",
+      "JWT 방식으로 바꾸고, <b>로그아웃/탈취 대응</b>을 어떻게 할지 설계해보기",
+      "OAuth2 소셜 로그인(구글 등) 하나 붙여 리다이렉트 흐름 추적"],
+  chk:"JWT의 단점(즉시 폐기 불가)을 말하고, 내 서비스에서의 완화책을 정했다.",
+  keys:["session","JSESSIONID","JWT","refresh token","OAuth2","CSRF"] },
+
+{ d:5, t:"밖으로 나가는 호출", en:"RestClient / WebClient",
+  sum:"들어오는 요청만큼 나가는 요청도 앱을 망가뜨린다. <b>타임아웃 없는 호출은 폭탄</b>이다.",
+  do:["<code>RestClient</code>로 외부 API 호출, 연결/읽기 타임아웃 명시적으로 설정",
+      "재시도와 백오프 붙이기, 그리고 재시도가 위험한 경우(비멱등) 구분",
+      "장애 상황을 흉내내(지연 서버) 스레드가 묶이는 것 관찰"],
+  chk:"외부 호출 하나가 느려질 때 <b>내 서버 전체가 죽는 경로</b>를 그릴 수 있다.",
+  keys:["RestClient","WebClient","timeout","retry","circuit breaker"] },
+
+{ d:5, t:"비동기·스케줄·캐시·이벤트", en:"@Async, @Scheduled, @Cacheable, events",
+  sum:"애노테이션 하나로 동작이 바뀌는 기능 4종. 편해 보이지만 <b>전부 프록시 위에</b> 서 있다.",
+  do:["<code>@Cacheable</code>로 캐시 적용, 같은 클래스 안에서 호출해 <b>안 먹는 것</b> 재현",
+      "<code>@Async</code>로 비동기 실행, 예외가 조용히 사라지는 것 확인",
+      "<code>ApplicationEventPublisher</code> + <code>@TransactionalEventListener</code>로 커밋 후 처리"],
+  chk:"이 네 개가 안 먹을 때 <b>가장 먼저 의심할 것</b>이 같다는 걸 안다.",
+  myth:{ s:"기능마다 원인이 다르니 따로 외워야 한다.", r:"전부 같은 원인이다 — <b>프록시를 통과하지 않은 호출</b>. 한 번 이해하면 네 개가 한 개가 된다." },
+  later:"D7 — 그 한 개가 거기 있다.",
+  keys:["@Async","@Scheduled","@Cacheable","ApplicationEvent","self-invocation"] },
+
+/* ================= D6 · 기계실 ================= */
+{ d:6, t:"BeanDefinition — 객체 이전의 설계도", en:"Metadata before objects",
+  sum:"스프링은 애노테이션을 읽어 <b>먼저 설계도를 모은다</b>. 객체는 그 다음이다. 이 2단계가 스프링의 핵심 구조다.",
+  do:["<code>ApplicationContext</code>에서 <code>getBeanDefinitionNames()</code>로 전체 목록 출력",
+      "특정 빈의 <code>BeanDefinition</code>을 꺼내 스코프·클래스·팩토리 메서드 확인",
+      "<code>BeanDefinitionRegistryPostProcessor</code>로 빈을 <b>코드로</b> 등록해보기"],
+  chk:"\"등록\"과 \"생성\"이 다른 시점이라는 걸 코드로 보여줄 수 있다.",
+  keys:["BeanDefinition","BeanDefinitionRegistry","scan","metadata"] },
+
+{ d:6, t:"refresh() — 컨테이너 시동 순서", en:"AbstractApplicationContext.refresh()",
+  sum:"스프링 기동의 <b>전부</b>가 이 메서드 하나에 순서대로 적혀 있다. 열두어 줄짜리 목차다.",
+  do:["<code>AbstractApplicationContext.refresh()</code> 소스를 열어 호출 순서를 목록으로 옮겨 적기",
+      "각 단계에 브레이크포인트를 찍고 기동시키며 실제로 지나가는지 확인",
+      "<code>ApplicationContextInitializer</code>로 refresh 전에 개입해보기"],
+  chk:"\"내 빈은 언제 만들어지나\"를 <b>refresh의 몇 번째 단계</b>로 답할 수 있다.",
+  keys:["refresh()","invokeBeanFactoryPostProcessors","registerBeanPostProcessors","finishBeanFactoryInitialization"] },
+
+{ d:6, t:"두 종류의 후처리기", en:"BeanFactoryPostProcessor vs BeanPostProcessor",
+  sum:"하나는 <b>설계도</b>를 고치고, 하나는 <b>만들어진 객체</b>를 고친다. 이 구분이 스프링 확장의 문법 전부다.",
+  do:["<code>BeanFactoryPostProcessor</code>로 특정 빈의 정의(프로퍼티/스코프) 바꾸기",
+      "<code>BeanPostProcessor</code>로 빈을 감싸 로깅 프록시로 바꿔치기",
+      "두 후처리기의 실행 시점을 로그로 찍어 순서 확정하기"],
+  chk:"<code>@Value</code> 치환, <code>@Autowired</code> 주입, AOP 프록시가 각각 <b>어느 후처리기</b>의 일인지 짝지을 수 있다.",
+  myth:{ s:"애노테이션은 스프링이 특별하게 처리하는 문법이다.", r:"전부 후처리기 몇 개가 하는 일이다. 그 후처리기를 빼면 <code>@Autowired</code>는 <b>아무 의미 없는 표시</b>로 돌아간다. 스프링에 '문법'은 없다. 코드만 있다." },
+  keys:["BeanFactoryPostProcessor","BeanPostProcessor","ConfigurationClassPostProcessor"] },
+
+{ d:6, t:"빈 생명주기", en:"Lifecycle callbacks",
+  sum:"생성 → 주입 → 초기화 전 → 초기화 → 초기화 후 → (사용) → 소멸. 각 지점에 <b>끼어들 자리</b>가 있다.",
+  do:["<code>@PostConstruct</code>, <code>InitializingBean</code>, <code>@Bean(initMethod)</code> 세 방식을 한 빈에 다 걸고 순서 확인",
+      "<code>@PreDestroy</code>가 <b>안 불리는</b> 상황 만들기(kill -9, 프로토타입 빈)",
+      "<code>SmartLifecycle</code>로 기동/종료 순서를 제어해보기"],
+  chk:"생성자에서 하면 안 되는 일(주입 미완 상태)과 <code>@PostConstruct</code>에서 해야 할 일을 구분한다.",
+  keys:["@PostConstruct","InitializingBean","DisposableBean","SmartLifecycle","graceful shutdown"] },
+
+{ d:6, t:"스코프와 스코프 프록시", en:"Scopes & scoped proxy",
+  sum:"싱글톤 빈이 <b>요청 스코프 빈</b>을 주입받으면 시간이 어긋난다. 그 틈을 프록시가 메운다.",
+  do:["프로토타입 빈을 싱글톤에 주입해 <b>한 번만</b> 생성되는 것 확인",
+      "<code>@Scope(proxyMode = TARGET_CLASS)</code> 또는 <code>ObjectProvider</code>로 해결",
+      "요청 스코프 빈을 만들어 요청마다 다른 인스턴스인지 확인"],
+  chk:"\"주입 시점\"과 \"사용 시점\"이 다르다는 문제로 이 현상을 설명할 수 있다.",
+  keys:["prototype","request scope","scoped proxy","ObjectProvider"] },
+
+{ d:6, t:"순환 참조와 생성 순서", en:"Circular dependencies",
+  sum:"A가 B를, B가 A를 필요로 할 때. 스프링은 <b>3단계 캐시</b>로 버텨왔고 부트 2.6부터는 기본 금지다.",
+  do:["생성자 주입으로 순환을 만들어 기동 실패 메시지 정독하기",
+      "필드 주입으로 바꾸면 통과하는 것 확인 → 왜 되는지 설명해보기",
+      "설계로 끊기: 중간 객체 도입 / 이벤트로 뒤집기 / <code>@Lazy</code>의 대가 확인"],
+  chk:"순환 참조를 <b>설정으로 허용</b>하지 않고 설계로 끊는 방법 두 가지를 안다.",
+  myth:{ s:"필드 주입으로 하면 순환 참조가 해결된다.", r:"해결이 아니라 <b>미룬 것</b>이다. 객체를 먼저 만들고 나중에 채우니 통과할 뿐, 설계 문제는 그대로 남는다. 그래서 부트가 기본값을 금지로 바꿨다." },
+  keys:["circular reference","early reference","three-level cache","@Lazy"] },
+
+{ d:6, t:"컨텍스트·환경·이벤트", en:"ApplicationContext internals",
+  sum:"컨테이너는 <b>BeanFactory + 부가 기능</b>이다: 환경, 리소스, 메시지, 이벤트, 계층.",
+  do:["<code>BeanFactory</code>와 <code>ApplicationContext</code>의 인터페이스 계층도를 직접 그리기",
+      "<code>ApplicationListener</code>로 기동 이벤트(<code>ApplicationReadyEvent</code> 등) 순서 관찰",
+      "<code>Environment</code>에서 프로퍼티 소스 목록을 출력해 우선순위 확인"],
+  chk:"부모-자식 컨텍스트가 왜 존재하는지 예를 하나 들 수 있다.",
+  later:"D8 — 프로퍼티 우선순위는 거기서 정면으로 다룬다.",
+  keys:["BeanFactory","ApplicationContext","Environment","ApplicationEvent","context hierarchy"] },
+
+/* ================= D7 · 프록시층 ================= */
+{ d:7, t:"프록시를 직접 만들어본다", en:"JDK dynamic proxy, by hand",
+  sum:"스프링을 걷어내고 <b>순수 자바로</b> 프록시를 만든다. 이걸 한 번 하면 AOP가 마법에서 코드로 내려온다.",
+  do:["<code>Proxy.newProxyInstance</code> + <code>InvocationHandler</code>로 메서드 실행 시간 로깅",
+      "인터페이스가 없을 때 실패하는 것 확인 → CGLIB(바이트코드 상속)로 다시 만들기",
+      "프록시 객체의 <code>getClass().getName()</code>을 찍어 이름의 정체 확인"],
+  chk:"JDK 프록시와 CGLIB의 <b>제약</b>(인터페이스 필요 / final 불가)을 실험으로 확인했다.",
+  keys:["dynamic proxy","InvocationHandler","CGLIB","bytecode","final"] },
+
+{ d:7, t:"스프링 AOP의 부품들", en:"Advisor = Pointcut + Advice",
+  sum:"'어디에'(포인트컷) + '무엇을'(어드바이스) = 어드바이저. 스프링 AOP는 이 조합을 <b>프록시로</b> 구현한다.",
+  do:["<code>@Aspect</code>로 실행 시간 측정 애스펙트 작성, 포인트컷 표현식 여러 개 실험",
+      "<code>AbstractAutoProxyCreator</code>가 언제 프록시를 만드는지 브레이크포인트로 확인",
+      "어드바이스 여러 개를 걸고 <code>@Order</code>로 순서 제어"],
+  chk:"프록시가 만들어지는 시점이 <b>빈 후처리 단계</b>라는 걸 D6와 연결해 말할 수 있다.",
+  keys:["@Aspect","Pointcut","Advice","Advisor","AutoProxyCreator","@Order"] },
+
+{ d:7, t:"자기호출 — 스프링 최대의 함정", en:"Self-invocation",
+  sum:"같은 클래스 안에서 메서드를 부르면 <b>프록시를 지나지 않는다</b>. <code>@Transactional</code>, <code>@Cacheable</code>, <code>@Async</code>, <code>@PreAuthorize</code>가 한꺼번에 침묵한다.",
+  do:["한 클래스 안 <code>a()</code>가 <code>@Transactional b()</code>를 부르게 해서 트랜잭션이 안 열리는 것 증명",
+      "<code>TransactionSynchronizationManager.isActualTransactionActive()</code>로 확인",
+      "세 가지 해법 비교: 클래스 분리 / 자기 자신 주입 / <code>AopContext.currentProxy()</code>"],
+  chk:"이 함정을 <b>동료에게 3분 안에</b> 코드로 시연할 수 있다.",
+  myth:{ s:"<code>@Transactional</code>은 메서드에 붙이면 항상 동작한다.", r:"프록시 <b>바깥에서</b> 그 메서드를 부를 때만이다. 안에서 부른 <code>this.method()</code>는 그냥 자바 호출이라 아무 일도 일어나지 않는다 — 에러도 없이." },
+  keys:["self-invocation","proxy boundary","AopContext","TransactionSynchronizationManager"] },
+
+{ d:7, t:"트랜잭션 인터셉터 속으로", en:"How @Transactional really runs",
+  sum:"애노테이션 → 어드바이저 → 인터셉터 → <code>PlatformTransactionManager</code> → 커넥션. 이 사슬을 <b>끝까지</b> 따라간다.",
+  do:["<code>TransactionInterceptor.invoke()</code>에 브레이크포인트를 걸고 스택 읽기",
+      "전파 속성 7가지 중 <code>REQUIRED</code>/<code>REQUIRES_NEW</code>/<code>NESTED</code>를 실험으로 구분",
+      "<code>REQUIRES_NEW</code>가 커넥션을 하나 더 쓴다는 사실을 풀 크기로 실험해 확인"],
+  chk:"중첩 트랜잭션에서 안쪽 롤백이 바깥에 미치는 영향을 전파 옵션별로 말할 수 있다.",
+  keys:["TransactionInterceptor","PlatformTransactionManager","propagation","REQUIRES_NEW","savepoint"] },
+
+{ d:7, t:"프록시의 한계와 그 너머", en:"Limits of proxy-based AOP",
+  sum:"프록시는 <b>메서드 호출을 가로채는 것</b>뿐이다. 생성자·필드·private·final은 못 건드린다.",
+  do:["<code>private</code> 메서드에 <code>@Transactional</code>을 붙여 무시되는 것 확인",
+      "<code>final</code> 클래스/메서드에서 CGLIB가 실패하는 경우 만들기",
+      "AspectJ 위빙(컴파일/로드타임)이 왜 이 한계를 넘는지 개념 정리"],
+  chk:"\"스프링 AOP는 <b>프록시 기반</b>이라 이건 안 된다\"를 스스로 판정할 수 있다.",
+  keys:["proxy limitation","AspectJ","weaving","final","private"] },
+
+/* ================= D8 · 마법 해체 ================= */
+{ d:8, t:"자동 설정의 실체", en:"@EnableAutoConfiguration",
+  sum:"부트의 마법은 파일 하나에서 시작한다: <code>META-INF/spring/...AutoConfiguration.imports</code>. 그냥 <b>클래스 이름 목록</b>이다.",
+  do:["<code>spring-boot-autoconfigure</code> jar을 열어 그 imports 파일을 눈으로 보기",
+      "<code>DataSourceAutoConfiguration</code> 소스를 열어 무엇을 조건부로 등록하는지 읽기",
+      "특정 자동설정을 <code>exclude</code>해서 앱이 어떻게 달라지는지 확인"],
+  chk:"\"부트가 알아서 해준다\"를 <b>파일 경로와 클래스 이름</b>으로 바꿔 말할 수 있다.",
+  myth:{ s:"부트가 클래스패스를 스캔해 똑똑하게 판단한다.", r:"미리 적힌 후보 목록을 전부 읽고, 각 후보에 붙은 <code>@Conditional</code>을 하나씩 평가할 뿐이다. 똑똑한 판단이 아니라 <b>if문 수백 개</b>다. 그래서 예측 가능하고, 그래서 뒤집을 수 있다." },
+  keys:["@EnableAutoConfiguration","AutoConfiguration.imports","spring.factories","exclude"] },
+
+{ d:8, t:"조건부 등록", en:"@Conditional* family",
+  sum:"<code>@ConditionalOnClass</code>, <code>OnMissingBean</code>, <code>OnProperty</code>… 이 몇 개가 부트 전체를 굴린다.",
+  do:["직접 <code>@Conditional</code> 구현체를 만들어 조건부 빈 등록하기",
+      "<code>@ConditionalOnMissingBean</code>으로 '사용자가 정의하면 물러난다' 패턴 재현",
+      "<code>@AutoConfiguration(after = ...)</code>으로 순서가 왜 필요한지 실험"],
+  chk:"내가 빈 하나를 정의하면 부트의 기본값이 <b>어떻게 물러나는지</b> 설명할 수 있다.",
+  keys:["@ConditionalOnClass","@ConditionalOnMissingBean","@ConditionalOnProperty","@AutoConfiguration"] },
+
+{ d:8, t:"설정값의 우선순위 사슬", en:"Environment & PropertySource order",
+  sum:"같은 키가 여러 곳에 있을 때 누가 이기나. 이 순서를 모르면 <b>운영에서 설정이 안 먹는</b> 밤을 보낸다.",
+  do:["명령행 인자 / 환경변수 / yml / 기본값에 같은 키를 넣고 승자 확인",
+      "<code>/actuator/env</code>로 프로퍼티 소스 순서를 직접 출력",
+      "완화된 바인딩(<code>MY_APP_NAME</code> ↔ <code>my.app.name</code>) 규칙 실험"],
+  chk:"우선순위 상위 4개를 순서대로 말할 수 있고, 그걸 <b>문서 없이</b> 검증하는 법을 안다.",
+  keys:["PropertySource","command line args","relaxed binding","Binder","@ConfigurationProperties"] },
+
+{ d:8, t:"나만의 스타터 만들기", en:"Build your own starter",
+  sum:"자동 설정을 <b>쓰는 쪽</b>에서 <b>만드는 쪽</b>으로 넘어간다. 여기서 부트 이해가 완성된다.",
+  do:["별도 모듈에 자동 설정 클래스 + imports 파일 작성",
+      "<code>@ConfigurationProperties</code>로 설정 노출, <code>@ConditionalOnMissingBean</code>으로 재정의 허용",
+      "다른 프로젝트에서 의존성으로 넣어 <b>아무 코드 없이</b> 동작하는 것 확인"],
+  chk:"내가 만든 스타터를 남이 <code>exclude</code>하거나 덮어쓸 수 있게 설계했다.",
+  keys:["custom starter","auto-configuration module","configuration metadata"] },
+
+{ d:8, t:"기동을 해부하는 도구들", en:"Debugging the startup",
+  sum:"모르겠으면 물어보면 된다. 부트는 자기가 <b>무슨 결정을 왜 했는지</b> 전부 말해준다.",
+  do:["<code>--debug</code>로 조건 평가 리포트(Positive/Negative matches) 읽기",
+      "<code>/actuator/beans</code>, <code>/actuator/conditions</code>, <code>/actuator/configprops</code> 비교",
+      "<code>ApplicationStartup</code>(startup 추적)으로 기동 단계별 소요 시간 측정"],
+  chk:"\"이 빈이 왜 안 생겼지?\"에 <b>검색 대신 리포트</b>로 답한다.",
+  keys:["--debug","condition evaluation report","/actuator/conditions","ApplicationStartup"] },
+
+/* ================= D9 · 심연 ================= */
+{ d:9, t:"요청 하나의 전 구간", en:"DispatcherServlet, end to end",
+  sum:"<code>@GetMapping</code> 하나가 실행되기까지 거치는 <b>전부</b>를 소스에서 따라간다. D1에서 미룬 빚을 여기서 갚는다.",
+  do:["<code>DispatcherServlet.doDispatch()</code>에 브레이크포인트 → 스택 전체를 종이에 옮기기",
+      "<code>HandlerMapping</code> → <code>HandlerAdapter</code> → <code>ArgumentResolver</code> → <code>MessageConverter</code> 각 지점 확인",
+      "커스텀 <code>HandlerMethodArgumentResolver</code>를 만들어 파라미터를 직접 해석하기"],
+  chk:"\"객체를 반환했더니 JSON이 됐다\"(D1)를 이제 <b>클래스 이름 다섯 개</b>로 설명한다.",
+  keys:["DispatcherServlet","HandlerMapping","HandlerAdapter","ArgumentResolver","HttpMessageConverter"] },
+
+{ d:9, t:"스레드 모델과 처리량", en:"Threads, pools, virtual threads",
+  sum:"요청 하나 = 스레드 하나. 이 전제가 성능의 <b>상한</b>을 만들고, 가상 스레드가 그 전제를 바꾼다.",
+  do:["톰캣 스레드 풀·DB 커넥션 풀 크기를 바꿔가며 부하 테스트로 처리량 곡선 그리기",
+      "가상 스레드(<code>spring.threads.virtual.enabled</code>)를 켜고 같은 실험 반복",
+      "블로킹 지점(외부 호출·DB)이 어디서 병목이 되는지 스레드 덤프로 확인"],
+  chk:"스레드 풀을 늘려도 처리량이 안 오르는 지점과 그 이유를 설명할 수 있다.",
+  keys:["thread per request","Tomcat threads","virtual threads","Loom","thread dump"] },
+
+{ d:9, t:"리액티브라는 다른 길", en:"WebFlux & Reactor",
+  sum:"같은 스프링, 완전히 다른 실행 모델. 배우되 <b>안 쓰기로 결정하는 것</b>까지가 학습이다.",
+  do:["같은 API를 WebFlux로 다시 구현해 코드 차이 비교",
+      "<code>Mono</code>/<code>Flux</code> 체인에서 블로킹 코드를 섞어 성능이 무너지는 것 확인",
+      "가상 스레드 시대에 WebFlux가 여전히 유리한 경우를 정리"],
+  chk:"내 프로젝트에 WebFlux를 <b>쓰지 않기로</b> 한 이유를 근거와 함께 쓸 수 있다.",
+  keys:["WebFlux","Reactor","Mono/Flux","backpressure","non-blocking"] },
+
+{ d:9, t:"AOT와 네이티브 이미지", en:"AOT processing & GraalVM",
+  sum:"리플렉션으로 굴러가던 것을 <b>빌드 시점에</b> 확정한다. 스프링의 미래이자, 스프링 구조의 역설계.",
+  do:["<code>bootBuildImage</code>로 네이티브 이미지 빌드, 기동 시간 비교",
+      "AOT가 생성한 코드(<code>build/generated</code>)를 열어 빈 등록이 어떻게 펼쳐졌는지 보기",
+      "리플렉션 힌트가 없어 실패하는 경우 만들고 <code>RuntimeHints</code>로 고치기"],
+  chk:"AOT 생성 코드를 보고 <b>D6의 BeanDefinition</b>이 뭘로 바뀌었는지 말할 수 있다.",
+  keys:["AOT","GraalVM","native image","RuntimeHints","reflection metadata"] },
+
+{ d:9, t:"소스를 읽는 습관", en:"Reading the Spring source",
+  sum:"지도는 여기서 끝난다. 다음부터는 <b>소스가 지도</b>다. 읽는 순서와 진입점을 정해둔다.",
+  do:["스프링 저장소를 클론해 디버거로 내 앱을 돌리며 프레임워크 코드를 밟기",
+      "궁금증 하나를 정해 커밋 히스토리/이슈에서 '왜 이렇게 됐는지' 추적하기",
+      "문서 오타 수정이라도 PR 한 번 열어보기"],
+  chk:"모르는 동작을 만났을 때 <b>검색보다 디버거를 먼저</b> 켠다.",
+  keys:["source reading","debugger","git blame","OSS contribution"] },
+
+{ d:9, t:"졸업 과제 — 미니 컨테이너", en:"Write your own DI container",
+  sum:"200줄로 <b>스캔 → 정의 수집 → 인스턴스화 → 주입 → 후처리 → 프록시</b>를 직접 만든다. 만들 수 있으면 이해한 것이다.",
+  do:["<code>@MyComponent</code>/<code>@MyInject</code>를 정의하고 패키지 스캔으로 클래스 수집",
+      "정의를 먼저 모으고(1단계) 나중에 생성(2단계) — 순환 참조를 스스로 겪어보기",
+      "<code>@MyTransactional</code>을 동적 프록시로 구현해 자기호출 함정을 <b>내 손으로</b> 재현"],
+  chk:"내가 만든 컨테이너의 한계를 스프링의 해결책과 <b>항목별로</b> 대조할 수 있다.",
+  keys:["mini container","classpath scanning","two-phase init","proxy","졸업"] },
+];
+
+/* ---------- state ---------- */
+let state = { done: {}, open: null, folded: {} };
+try {
+  const raw = localStorage.getItem(STORE_KEY);
+  if (raw) state = Object.assign(state, JSON.parse(raw));
+} catch (e) { /* ignore */ }
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
+}
+
+/* ids: N01.. by array order */
+NODES.forEach((n, i) => { n.id = "N" + String(i + 1).padStart(2, "0"); });
+
+const doneSet = (id) => state.done[id] || [];
+const isDone = (n) => doneSet(n.id).length >= n.do.length;
+const nodesOf = (d) => NODES.filter((n) => n.d === d);
+
+/* ---------- render ---------- */
+const bandsEl = document.getElementById("bands");
+const railEl = document.getElementById("rail");
+const ticksEl = document.getElementById("ticks");
+
+function esc(s) { return s; } // content is authored HTML on purpose
+
+function nodeHTML(n) {
+  const done = doneSet(n.id);
+  const pips = n.do.map((_, i) => `<b class="${done.includes(i) ? "on" : ""}"></b>`).join("");
+  const body = `
+    <div class="n-body">
+      <h4>손으로 할 것 <em>build it</em></h4>
+      <div class="dolist">
+        ${n.do.map((d, i) => `
+          <div class="doit ${done.includes(i) ? "on" : ""}" data-node="${n.id}" data-i="${i}">
+            <b class="box">✓</b><span>${d}</span>
+          </div>`).join("")}
+      </div>
+      <h4>내려가기 전 확인 <em>before you descend</em></h4>
+      <div class="chk"><b>▸</b> ${n.chk}</div>
+      ${n.myth ? `
+      <h4>얕은 답 ↔ 진짜 <em>flip it</em></h4>
+      <div class="myth" data-myth="${n.id}">
+        <div class="m-s"><b>얕은 답</b> · ${n.myth.s}</div>
+        <button class="m-btn" type="button">이 수심에서 보이는 진짜 보기 →</button>
+        <div class="m-r"><b>진짜</b> · ${n.myth.r}</div>
+      </div>` : ""}
+      ${n.later ? `<p class="later"><b>↓ 다시 만난다</b> — ${n.later}</p>` : ""}
+      <h4>검색어 <em>keywords</em></h4>
+      <div class="keys">${n.keys.map((k) => `<span>${k}</span>`).join("")}</div>
+      <button class="n-close" type="button" data-close="1">접기 · close</button>
+    </div>`;
+  return `
+    <article class="node ${isDone(n) ? "done" : ""} ${state.open === n.id ? "open" : ""}" data-node="${n.id}" id="${n.id}">
+      <div class="n-head">
+        <span class="n-num">${n.id.slice(1)}</span>
+        <div class="n-tt">
+          <div class="n-t">${n.t}</div>
+          <div class="n-en">${n.en}</div>
+        </div>
+        <div class="n-pips">${pips}</div>
+      </div>
+      <div class="n-sum">${n.sum}</div>
+      ${body}
+    </article>`;
+}
+
+function bandProgHTML(d) {
+  const ns = nodesOf(d.id);
+  const done = ns.filter(isDone).length;
+  const pct = ns.length ? done / ns.length : 0;
+  const C = 2 * Math.PI * 14;
+  const ring = `<svg class="ring" viewBox="0 0 34 34">
+      <circle cx="17" cy="17" r="14" fill="none" stroke="var(--surface-3)" stroke-width="3"/>
+      <circle cx="17" cy="17" r="14" fill="none" stroke="${pct === 1 ? "var(--accent-strong)" : "var(--sea)"}"
+        stroke-width="3" stroke-linecap="round" stroke-dasharray="${(C * pct).toFixed(1)} ${C.toFixed(1)}"
+        transform="rotate(-90 17 17)"/>
+    </svg>`;
+  return `${ring}${done}/${ns.length}<br><span class="b-fold">${state.folded[d.id] ? "펼치기" : "접기"}</span>`;
+}
+
+function render() {
+  bandsEl.innerHTML = DEPTHS.map((d) => {
+    return `
+      <section class="band ${state.folded[d.id] ? "folded" : ""}" id="D${d.id}"
+               data-band="${d.id}" style="--a:${(d.id * 0.028).toFixed(3)}">
+        <div class="b-head" data-fold="${d.id}">
+          <span class="b-m">${d.m}</span>
+          <div class="b-t">
+            <h2>D${d.id} · ${d.name}<em>${d.en}</em></h2>
+            <p class="b-can">${d.can}</p>
+            <p class="b-sym">${d.sym}</p>
+          </div>
+          <div class="b-prog">${bandProgHTML(d)}</div>
+        </div>
+        <div class="grid">${nodesOf(d.id).map(nodeHTML).join("")}</div>
+      </section>`;
+  }).join("");
+
+  railEl.innerHTML = DEPTHS.map((d) => {
+    const ns = nodesOf(d.id);
+    const all = ns.length && ns.every(isDone);
+    return `<button type="button" data-jump="${d.id}" class="${all ? "done" : ""}">
+      <span class="rm">${d.m}</span><span class="rn">D${d.id} ${d.name}</span></button>`;
+  }).join("");
+
+  ticksEl.innerHTML = DEPTHS.map((d) => {
+    const ns = nodesOf(d.id);
+    const done = ns.filter(isDone).length;
+    const cls = done === ns.length ? "done" : done > 0 ? "some" : "";
+    return `<button type="button" data-jump="${d.id}" class="${cls}" title="D${d.id} ${d.name}">
+      <span class="tb"></span><span class="tl">D${d.id}</span></button>`;
+  }).join("");
+
+  updateGauge();
+  applyFilter();
+}
+
+/* 체크 하나를 눌렀을 때: 전체를 다시 그리지 않고 진행 표시만 갱신한다.
+   (다시 그리면 펼쳐둔 카드와 "진짜 답"이 도로 접힌다.) */
+function updateProgress() {
+  DEPTHS.forEach((d) => {
+    const band = document.getElementById("D" + d.id);
+    if (band) band.querySelector(".b-prog").innerHTML = bandProgHTML(d);
+    const ns = nodesOf(d.id);
+    const done = ns.filter(isDone).length;
+    const rb = railEl.querySelector(`[data-jump="${d.id}"]`);
+    if (rb) rb.classList.toggle("done", ns.length > 0 && done === ns.length);
+    const tb = ticksEl.querySelector(`[data-jump="${d.id}"]`);
+    if (tb) {
+      tb.classList.toggle("done", ns.length > 0 && done === ns.length);
+      tb.classList.toggle("some", done > 0 && done < ns.length);
+    }
+  });
+  updateGauge();
+}
+
+function paintNode(n) {
+  const el = document.getElementById(n.id);
+  if (!el) return;
+  const done = doneSet(n.id);
+  el.classList.toggle("done", isDone(n));
+  el.querySelectorAll(".doit").forEach((d, i) => d.classList.toggle("on", done.includes(i)));
+  el.querySelectorAll(".n-pips b").forEach((b, i) => b.classList.toggle("on", done.includes(i)));
+}
+
+function updateGauge() {
+  const done = NODES.filter(isDone).length;
+  const pct = Math.round((done / NODES.length) * 100);
+  // 도달 수심 = 노드가 하나라도 완료된 가장 깊은 층
+  let reached = null;
+  for (const d of DEPTHS) if (nodesOf(d.id).some(isDone)) reached = d;
+  document.getElementById("gDepth").textContent = reached ? reached.m : "0m";
+  document.getElementById("gNodes").textContent = done + " / " + NODES.length;
+  document.getElementById("gPct").textContent = pct + "%";
+  document.getElementById("gBar").style.width = pct + "%";
+}
+
+/* ---------- filter ---------- */
+const qEl = document.getElementById("q");
+function applyFilter() {
+  const q = qEl.value.trim().toLowerCase();
+  let hits = 0;
+  DEPTHS.forEach((d) => {
+    const band = document.getElementById("D" + d.id);
+    let shown = 0;
+    nodesOf(d.id).forEach((n) => {
+      const el = band.querySelector(`[data-node="${n.id}"]`);
+      if (!el) return;
+      const hay = (n.t + " " + n.en + " " + n.sum + " " + n.keys.join(" ") + " " +
+        n.do.join(" ") + " " + n.chk).toLowerCase().replace(/<[^>]+>/g, "");
+      const ok = !q || hay.includes(q);
+      el.classList.toggle("hidden", !ok);
+      if (ok) { shown++; hits++; }
+    });
+    band.classList.toggle("hidden", q && shown === 0);
+    if (q) band.classList.remove("folded");
+  });
+  document.getElementById("hits").textContent = q ? hits + "개" : "";
+}
+qEl.addEventListener("input", applyFilter);
+
+/* ---------- interactions ---------- */
+document.addEventListener("click", (e) => {
+  const myth = e.target.closest(".m-btn");
+  if (myth) { myth.parentElement.classList.add("shown"); return; }
+
+  const jump = e.target.closest("[data-jump]");
+  if (jump) {
+    const id = jump.getAttribute("data-jump");
+    const band = document.getElementById("D" + id);
+    band.classList.remove("folded");
+    state.folded[id] = false; save();
+    band.querySelector(".b-fold").textContent = "접기";
+    band.scrollIntoView({ behavior: "smooth", block: "start" });
+    return;
+  }
+
+  const doit = e.target.closest(".doit");
+  if (doit) {
+    const id = doit.getAttribute("data-node");
+    const i = Number(doit.getAttribute("data-i"));
+    const arr = doneSet(id).slice();
+    const at = arr.indexOf(i);
+    if (at >= 0) arr.splice(at, 1); else arr.push(i);
+    state.done[id] = arr; save();
+    paintNode(NODES.find((n) => n.id === id));
+    updateProgress();
+    return;
+  }
+
+  if (e.target.closest("[data-close]")) {
+    state.open = null; save(); render(); return;
+  }
+
+  const fold = e.target.closest("[data-fold]");
+  if (fold) {
+    const id = fold.getAttribute("data-fold");
+    state.folded[id] = !state.folded[id]; save(); render();
+    return;
+  }
+
+  const node = e.target.closest(".node");
+  if (node) {
+    const id = node.getAttribute("data-node");
+    if (state.open === id) return;
+    state.open = id; save();
+    const prev = document.querySelector(".node.open");
+    if (prev) prev.classList.remove("open");
+    node.classList.add("open");
+  }
+});
+
+document.getElementById("foldAll").addEventListener("click", () => {
+  DEPTHS.forEach((d) => { state.folded[d.id] = true; });
+  save(); render();
+});
+document.getElementById("unfoldAll").addEventListener("click", () => {
+  state.folded = {}; save(); render();
+});
+document.getElementById("reset").addEventListener("click", (e) => {
+  e.preventDefault();
+  if (!confirm("진행 상황을 모두 지웁니다. 계속할까요?")) return;
+  state = { done: {}, open: null, folded: {} };
+  try { localStorage.removeItem(STORE_KEY); } catch (err) { /* ignore */ }
+  render();
+});
+
+/* rail active depth on scroll */
+const railActive = () => {
+  let cur = 0;
+  DEPTHS.forEach((d) => {
+    const b = document.getElementById("D" + d.id);
+    if (b && b.getBoundingClientRect().top <= 120) cur = d.id;
+  });
+  railEl.querySelectorAll("button").forEach((b) => {
+    b.classList.toggle("active", Number(b.getAttribute("data-jump")) === cur);
+  });
+};
+window.addEventListener("scroll", railActive, { passive: true });
+
+render();
+railActive();
+</script>
+</body>
+</html>

@@ -1,0 +1,9 @@
+{
+  "id": 6,
+  "slug": "spring-dive",
+  "title": "스프링 잠수 · Spring Dive",
+  "date": "2026-07-31",
+  "week": "2026-W31",
+  "tags": ["study", "spring", "java", "roadmap"],
+  "oneliner": "@RestController 한 줄에서 refresh()와 프록시까지 — 수심 10층 · 노드 56개로 내려가는 스프링 지도 · a depth-map of Spring from the surface down to the container internals"
+}
