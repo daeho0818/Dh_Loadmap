@@ -5,5 +5,5 @@
   "date": "2026-07-26",
   "week": "2026-W30",
   "tags": ["game", "quiz", "pokemon"],
-  "oneliner": "두 방향으로 푸는 타입 퀴즈 — 타입 조합으로 포켓몬 맞히기, 또는 포켓몬 보고 타입 맞히기 · a two-way type quiz: types → Pokémon, or Pokémon → types"
+  "oneliner": "두 방향으로 푸는 타입 퀴즈 — 포켓몬 보고 타입 맞추기, 또는 타입 보고 포켓몬 맞추기 · a two-way type quiz: Pokémon → types, or types → Pokémon"
 }
