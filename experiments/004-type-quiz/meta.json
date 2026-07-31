@@ -5,5 +5,5 @@
   "date": "2026-07-26",
   "week": "2026-W30",
   "tags": ["game", "quiz", "pokemon"],
-  "oneliner": "랜덤 타입 조합을 보고 제한 시간 안에 그 조합의 포켓몬을 전부 맞추는 스피드 퀴즈 · name every Pokémon of a random type combo before time runs out"
+  "oneliner": "두 방향으로 푸는 타입 퀴즈 — 타입 조합으로 포켓몬 맞히기, 또는 포켓몬 보고 타입 맞히기 · a two-way type quiz: types → Pokémon, or Pokémon → types"
 }

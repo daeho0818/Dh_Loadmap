@@ -4,7 +4,7 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
 <title>#004 포켓몬 타입 퀴즈 · Poké Type Quiz</title>
-<meta name="description" content="랜덤 타입 조합을 보고 제한 시간 안에 해당 포켓몬을 최대한 많이 맞추는 퀴즈. Name every Pokémon of a random type combo before time runs out." />
+<meta name="description" content="두 방향의 포켓몬 타입 퀴즈 — 타입 조합을 보고 포켓몬을 외치거나, 포켓몬을 보고 타입을 고르거나. A two-way Poké type quiz: types → Pokémon, or Pokémon → types." />
 <style>
   :root {
     --bg: #17161a; --surface: #201f26; --surface-2: #26252e;
@@ -104,7 +104,7 @@
     padding: 12px 14px; border-radius: 10px; border: 1px solid var(--border-strong);
     background: var(--surface); color: var(--text); outline: none; }
   .input-row input:focus { border-color: var(--accent-strong); }
-  .input-row.shake { animation: shake .3s; }
+  .shake { animation: shake .3s; }
   @keyframes shake { 0%,100% { transform: translateX(0); } 25% { transform: translateX(-6px); } 75% { transform: translateX(6px); } }
   .feedback { min-height: 60px; font-size: 13px; margin-top: 8px;
     display: flex; align-items: center; justify-content: center; gap: 9px; text-align: center; }
@@ -130,21 +130,97 @@
   .rcard .chips-area { justify-content: flex-start; min-height: 0; margin-bottom: 0; }
   .result-btns { margin: 20px 0; justify-content: center; }
 
+  /* ---- mode select ---- */
+  .modes { display: grid; gap: 12px; margin: 22px 0 10px; }
+  .mode-card { display: flex; flex-direction: column; align-items: flex-start; gap: 3px;
+    text-align: left; width: 100%; padding: 18px; border-radius: 16px;
+    background: var(--surface); border: 1px solid var(--border); }
+  .mode-card:hover { border-color: var(--accent-strong); transform: translateY(-1px); }
+  .mc-tag { font-family: var(--mono); font-size: 11px; color: var(--accent); letter-spacing: .08em; }
+  .mc-title { font-size: 19px; font-weight: 700; }
+  .mc-desc { font-size: 13px; font-weight: 400; color: var(--text-2); word-break: keep-all; }
+  .mc-en { font-size: 12px; font-weight: 400; color: var(--muted); }
+  .mc-vis { display: flex; align-items: center; gap: 7px; margin-top: 13px; flex-wrap: wrap; }
+  .mc-vis .tbadge { min-width: 0; padding: 4px 10px; font-size: 12px; border-radius: 8px; animation: none; }
+  .mc-vis .tbadge small { display: none; }
+  .mc-vis img { width: 42px; height: 42px; image-rendering: pixelated; }
+  .mc-vis .arrow { font-family: var(--mono); color: var(--muted); font-size: 13px; }
+  .mc-vis .qm { font-family: var(--mono); font-weight: 700; font-size: 12px; color: var(--muted);
+    border: 1px dashed var(--border-strong); border-radius: 8px; padding: 4px 12px; }
+
+  /* ---- mode B: 포켓몬 → 타입 ---- */
+  .monq { text-align: center; margin-bottom: 12px; }
+  .monq img { width: 144px; height: 144px; image-rendering: pixelated; animation: pop .18s ease; }
+  .mon-name { font-size: 22px; font-weight: 700; line-height: 1.25; }
+  .mon-en { font-family: var(--mono); font-size: 13px; color: var(--muted); }
+  .mon-hint { font-family: var(--mono); font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .pick-label { text-align: center; font-family: var(--mono); font-size: 12px;
+    color: var(--muted); margin-bottom: 9px; }
+  .tgrid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 7px; margin-bottom: 14px; }
+  @media (min-width: 480px) { .tgrid { grid-template-columns: repeat(6, 1fr); } }
+  .tpick { padding: 10px 4px; border-radius: 10px; font-size: 13px; font-weight: 700;
+    color: #fff; opacity: .6; border: 2px solid transparent; }
+  .tpick:hover { opacity: .85; border-color: transparent; }
+  .tpick.sel { opacity: 1; border-color: var(--text); transform: translateY(-2px); }
+  .tpick.ans { opacity: 1; border-color: var(--good); }
+  .tpick.miss { opacity: 1; border-color: var(--bad); }
+  .tpick.fade { opacity: .18; }
+  .type-btns { justify-content: center; }
+
+  /* ---- result: mode B breakdown ---- */
+  .rcard-mon { display: flex; align-items: center; gap: 12px; }
+  .rcard-mon > img { width: 52px; height: 52px; image-rendering: pixelated; flex: none; }
+  .rm-body { min-width: 0; flex: 1; }
+  .rm-name { font-size: 14px; font-weight: 600; margin-bottom: 6px; }
+  .rm-line { display: flex; align-items: center; gap: 6px; flex-wrap: wrap;
+    font-family: var(--mono); font-size: 11px; color: var(--muted); margin-top: 4px; }
+  .rm-line .tbadge { min-width: 0; padding: 3px 9px; font-size: 11.5px; border-radius: 7px; animation: none; }
+  .rm-line .tbadge small { display: none; }
+  .rm-mark { font-size: 18px; flex: none; }
+  .rm-mark.ok { color: var(--good); }
+  .rm-mark.no { color: var(--bad); }
+
   footer { margin-top: 40px; font-size: 12px; color: var(--muted); }
 </style>
 </head>
 <body>
 <main class="wrap">
 
-  <!-- ========== intro ========== -->
-  <section id="intro">
+  <!-- ========== mode select ========== -->
+  <section id="modeSelect">
     <div class="kicker">experiment #004</div>
     <h1>포켓몬 타입 퀴즈 · Poké Type Quiz</h1>
-    <p class="lead">랜덤으로 뜨는 <strong>타입 조합</strong>을 보고, 그 조합인 포켓몬을
-      제한 시간 안에 최대한 많이 외칩니다. 조합을 전부 맞추면 <strong>+5초</strong>와 함께
-      다음 문제로. 막히면 패스.</p>
-    <p class="lead-en">Random types appear — name every Pokémon with that exact combo.
-      Clear a combo for +5s. Pass when stuck.</p>
+    <p class="lead">두 방향으로 풀 수 있습니다. <strong>타입에서 포켓몬</strong>을 떠올리거나,
+      <strong>포켓몬에서 타입</strong>을 떠올리거나.</p>
+    <p class="lead-en">Two directions: types → Pokémon, or Pokémon → types.</p>
+
+    <div class="modes">
+      <button class="mode-card" data-mode="combo">
+        <span class="mc-tag">MODE A</span>
+        <span class="mc-title">타입 → 포켓몬</span>
+        <span class="mc-desc">랜덤 타입 조합을 보고 그 조합인 포켓몬을 전부 외칩니다.
+          전부 맞추면 +5초. (지금까지의 버전)</span>
+        <span class="mc-en">Name every Pokémon of a random type combo.</span>
+        <span class="mc-vis" id="visA"></span>
+      </button>
+      <button class="mode-card" data-mode="type">
+        <span class="mc-tag">MODE B</span>
+        <span class="mc-title">포켓몬 → 타입</span>
+        <span class="mc-desc">포켓몬 한 마리가 뜨면 그 타입을 고릅니다.
+          단일이면 1개, 듀얼이면 2개. 맞히면 +2초.</span>
+        <span class="mc-en">A Pokémon appears — pick its exact type(s).</span>
+        <span class="mc-vis" id="visB"></span>
+      </button>
+    </div>
+    <p class="note">기록·설정은 모드별로 따로 저장됩니다.</p>
+  </section>
+
+  <!-- ========== intro ========== -->
+  <section id="intro" class="hidden">
+    <div class="kicker" id="introKicker">experiment #004 · mode A</div>
+    <h1 id="introTitle">포켓몬 타입 퀴즈 · Poké Type Quiz</h1>
+    <p class="lead" id="introLead"></p>
+    <p class="lead-en" id="introLeadEn"></p>
 
     <div class="set-label">출제 세대 · generations (다중 선택)</div>
     <div class="chips" id="genChips"></div>
@@ -163,12 +239,9 @@
     <div class="best-line" id="bestLine"></div>
     <div class="row">
       <button class="primary" id="startBtn">시작 · Start</button>
+      <button id="backModeBtn">← 모드 선택</button>
     </div>
-    <p class="note" style="margin-top:20px;">단일 타입과 듀얼 타입 문제가 섞여 나오고,
-      모든 진화 단계가 각자 정답입니다. 타입이 달라지는 리전 폼(알로라·가라르·히스이·팔데아)·
-      메가진화·원시회귀·로토무 폼도 출제 — 리전 폼은 접두어 없이 "윈디"만 써도 타입이 맞으면
-      인정됩니다. 한국어/영어 모두 인정, 띄어쓰기·기호는 무시.
-      맞추면 일러스트가 짠 하고 나타납니다.</p>
+    <p class="note" id="introNote" style="margin-top:20px;"></p>
   </section>
 
   <!-- ========== game ========== -->
@@ -195,10 +268,39 @@
     <div class="pass-hint">Enter 확인 · Esc 패스</div>
   </section>
 
+  <!-- ========== game B: 포켓몬 → 타입 ========== -->
+  <section id="game2" class="hidden">
+    <div class="top">
+      <div class="bar"><i id="timeFill2"></i></div>
+      <div class="top-meta">
+        <span class="score" id="scoreLabel2">0정답</span>
+        <span id="timeLabel2">0:00</span>
+      </div>
+    </div>
+
+    <div class="monq">
+      <img id="monSprite" alt="" />
+      <div class="mon-name" id="monName"></div>
+      <div class="mon-en" id="monEn"></div>
+      <div class="mon-hint" id="monHint"></div>
+    </div>
+
+    <div class="pick-label" id="pickLabel">타입을 1~2개 고르세요 · pick 1 or 2 types</div>
+    <div class="tgrid" id="typeGrid"></div>
+
+    <div class="row type-btns">
+      <button class="primary" id="submitTypeBtn">확인</button>
+      <button id="clearTypeBtn">선택 해제</button>
+      <button id="passTypeBtn">모르겠어요 →</button>
+    </div>
+    <div class="feedback" id="feedback2"></div>
+    <div class="pass-hint">Enter 확인 · Esc 패스</div>
+  </section>
+
   <!-- ========== result ========== -->
   <section id="result" class="hidden">
     <div class="kicker">result</div>
-    <div class="big-score"><span class="n" id="finalScore">0</span> <span class="u">마리</span></div>
+    <div class="big-score"><span class="n" id="finalScore">0</span> <span class="u" id="scoreUnit">마리</span></div>
     <div class="newbest hidden" id="newBest">🎉 신기록! · new best</div>
     <div class="stat-row">
       <span id="statCleared"></span>
@@ -212,6 +314,7 @@
       <button class="primary" id="retryBtn">다시 · Retry</button>
       <button id="copyBtn">결과 복사 · Copy</button>
       <button id="setupBtn">설정으로</button>
+      <button id="modeBtn">모드 선택</button>
     </div>
   </section>
 
@@ -245,7 +348,36 @@ const norm = (s) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").normalize("NFC")
 const GENS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const DUR_PRESETS = [[60, "1분"], [120, "2분"], [180, "3분"]];
 const HINT_PRESETS = [["hintDex", "도감 번호 표시"], ["hintGen", "세대 표시"]];
-const CLEAR_BONUS = 5000;
+const CLEAR_BONUS = 5000;   // mode A: 조합 클리어 보너스
+const RIGHT_BONUS = 2000;   // mode B: 정답 보너스
+
+/* 모드 A = 타입→포켓몬(원래 버전), 모드 B = 포켓몬→타입 */
+let MODE = "combo";
+const MODE_TEXT = {
+  combo: {
+    kicker: "experiment #004 · mode A",
+    title: "타입 → 포켓몬",
+    lead: `랜덤으로 뜨는 <strong>타입 조합</strong>을 보고, 그 조합인 포켓몬을 제한 시간 안에
+      최대한 많이 외칩니다. 조합을 전부 맞추면 <strong>+5초</strong>와 함께 다음 문제로. 막히면 패스.`,
+    leadEn: "Random types appear — name every Pokémon with that exact combo. Clear a combo for +5s.",
+    note: `단일 타입과 듀얼 타입 문제가 섞여 나오고, 모든 진화 단계가 각자 정답입니다.
+      타입이 달라지는 리전 폼(알로라·가라르·히스이·팔데아)·메가진화·원시회귀·로토무 폼도 출제 —
+      리전 폼은 접두어 없이 "윈디"만 써도 타입이 맞으면 인정됩니다.
+      한국어/영어 모두 인정, 띄어쓰기·기호는 무시. 맞추면 일러스트가 짠 하고 나타납니다.`,
+    unit: "마리",
+  },
+  type: {
+    kicker: "experiment #004 · mode B",
+    title: "포켓몬 → 타입",
+    lead: `포켓몬이 한 마리씩 뜹니다. 그 포켓몬의 <strong>타입을 정확히</strong> 고르세요 —
+      단일이면 1개, 듀얼이면 2개. 맞히면 <strong>+2초</strong>. 순서는 상관없습니다.`,
+    leadEn: "One Pokémon at a time — pick its exact type(s). Correct answers give +2s.",
+    note: `리전 폼(알로라·가라르·히스이·팔데아)·메가진화·원시회귀·로토무 폼도 그대로 출제되니
+      이름을 잘 보세요 — 같은 포켓몬이라도 폼에 따라 타입이 다릅니다. 반만 맞히면 오답이지만
+      어느 쪽이 맞았는지 알려줍니다. 틀린 문제는 결과 화면에서 정답과 함께 다시 볼 수 있습니다.`,
+    unit: "정답",
+  },
+};
 
 let cfg = { gens: [...GENS], dur: 120, hintDex: true, hintGen: false };
 try {
@@ -258,7 +390,9 @@ try {
 } catch (e) {}
 const saveCfg = () => localStorage.setItem("ptq.settings", JSON.stringify(cfg));
 
-const bestKey = () => `ptq.best.all.${[...cfg.gens].sort().join("")}.${cfg.dur}.${cfg.hintDex ? 1 : 0}${cfg.hintGen ? 1 : 0}`;
+// 모드 A는 기존 키(`ptq.best.all.…`)를 그대로 써서 예전 기록을 유지한다.
+const bestKey = () => `ptq.best.${MODE === "combo" ? "all" : "type"}.`
+  + `${[...cfg.gens].sort().join("")}.${cfg.dur}.${cfg.hintDex ? 1 : 0}${cfg.hintGen ? 1 : 0}`;
 const getBest = () => { try { return JSON.parse(localStorage.getItem(bestKey())); } catch (e) { return null; } };
 
 /* 타입 조합 키: 듀얼은 타입 쌍, 단일은 타입 하나 */
@@ -284,6 +418,12 @@ function buildPool() {
   return [...groups.values()].filter((g) => g.length >= 2);
 }
 
+/* 모드 B 문제 풀: 선택한 세대의 모든 포켓몬(폼 포함) 한 마리가 곧 한 문제 */
+function buildMonPool() {
+  const genSet = new Set(cfg.gens);
+  return D.mons.filter((m) => genSet.has(m[1]));
+}
+
 /* ---- 설정 UI ---- */
 function renderSettings() {
   const chip = (label, on, onclick) => {
@@ -307,18 +447,32 @@ function renderSettings() {
   for (const [key, label] of HINT_PRESETS)
     hintEl.appendChild(chip(label, cfg[key], () => { cfg[key] = !cfg[key]; }));
 
-  const pool = buildPool();
-  const monCount = pool.reduce((n, g) => n + g.length, 0);
-  const empty = pool.length === 0;
+  const t = MODE_TEXT[MODE];
+  $("#introKicker").textContent = t.kicker;
+  $("#introTitle").textContent = t.title;
+  $("#introLead").innerHTML = t.lead;
+  $("#introLeadEn").textContent = t.leadEn;
+  $("#introNote").textContent = t.note.replace(/\s+/g, " ").trim();
+
+  let empty, info;
+  if (MODE === "combo") {
+    const pool = buildPool();
+    empty = pool.length === 0;
+    info = `이 설정의 출제 범위: 문제 ${pool.length}개 · ${pool.reduce((n, g) => n + g.length, 0)}마리`;
+  } else {
+    const pool = buildMonPool();
+    empty = pool.length === 0;
+    info = `이 설정의 출제 범위: 포켓몬 ${pool.length}마리`;
+  }
   $("#poolInfo").textContent = empty
     ? "출제할 문제가 없어요 — 세대를 선택해 주세요 · pick at least one generation"
-    : `이 설정의 출제 범위: 문제 ${pool.length}개 · ${monCount}마리`;
+    : info;
   $("#poolInfo").classList.toggle("warn", empty);
   $("#startBtn").disabled = empty;
 
   const best = getBest();
   $("#bestLine").innerHTML = best
-    ? `이 설정의 최고 기록 · best: <b>${best.score}마리</b> <span class="note">(${best.date})</span>`
+    ? `이 설정의 최고 기록 · best: <b>${best.score}${t.unit}</b> <span class="note">(${best.date})</span>`
     : `이 설정의 최고 기록 · best: <span class="note">아직 없음</span>`;
 }
 
@@ -356,7 +510,18 @@ function shuffle(a) {
   return a;
 }
 
+const SECTIONS = ["#modeSelect", "#intro", "#game", "#game2", "#result"];
+function showSection(sel) {
+  for (const s of SECTIONS) $(s).classList.toggle("hidden", s !== sel);
+}
+
 function startGame() {
+  if (S && S.timer) clearInterval(S.timer);
+  if (MODE === "type") startTypeGame();
+  else startComboGame();
+}
+
+function startComboGame() {
   const pool = buildPool();
   if (!pool.length) return;
   // 단일 타입은 조합 수가 적어(타입 18 vs 듀얼 조합 ~120) 순수 랜덤이면 드물게 나온다.
@@ -368,11 +533,9 @@ function startGame() {
     for (let k = 0; k < 2 && duals.length; k++) combos.push(duals.shift());
     if (monos.length) combos.push(monos.shift());
   }
-  S = { combos, idx: -1, cur: null, found: new Set(), lookup: new Map(),
+  S = { mode: "combo", combos, idx: -1, cur: null, found: new Set(), lookup: new Map(),
     records: [], score: 0, attempts: 0, endAt: Date.now() + cfg.dur * 1000, timer: null };
-  $("#intro").classList.add("hidden");
-  $("#result").classList.add("hidden");
-  $("#game").classList.remove("hidden");
+  showSection("#game");
   $("#scoreLabel").textContent = "0마리";
   nextCombo();
   S.timer = setInterval(tick, 100);
@@ -435,8 +598,8 @@ function setFeedback(msg, cls, spriteId) {
   }
 }
 
-function shake() {
-  const r = $("#inputRow");
+function shake(sel = "#inputRow") {
+  const r = $(sel);
   r.classList.remove("shake");
   void r.offsetWidth; // restart animation
   r.classList.add("shake");
@@ -465,7 +628,7 @@ function submitGuess() {
     if (S.found.size === S.cur.length) {
       S.endAt += CLEAR_BONUS;
       setFeedback(`✨ 조합 클리어! +${CLEAR_BONUS / 1000}초 · combo clear`, "good", m[6]);
-      setTimeout(() => { if (S) nextCombo(); }, 700);
+      setTimeout(() => { if (S && !S.done) nextCombo(); }, 700);
     } else {
       const alias = norm(raw) !== norm(m[4]) && norm(raw) !== norm(m[5]);
       setFeedback(alias ? `✓ ${raw} → ${m[4]} 인정!` : `✓ ${m[4]} (${m[5]})`, "good", m[6]);
@@ -479,15 +642,18 @@ function tick() {
   const left = S.endAt - Date.now();
   if (left <= 0) { finish(false); return; }
   const pct = Math.min(100, (left / (cfg.dur * 1000)) * 100);
-  const fill = $("#timeFill");
+  const fill = $(S.mode === "type" ? "#timeFill2" : "#timeFill");
   fill.style.width = pct + "%";
   fill.classList.toggle("low", left < 10000);
   const s = Math.ceil(left / 1000);
-  $("#timeLabel").textContent = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  const label = `${Math.floor(s / 60)}:${String(s % 60).padStart(2, "0")}`;
+  $(S.mode === "type" ? "#timeLabel2" : "#timeLabel").textContent = label;
 }
 
 function finish(exhausted) {
   clearInterval(S.timer);
+  S.done = true; // 진행 중이던 setTimeout이 끝난 판을 되살리지 못하게
+  if (S.mode === "type") { finishType(exhausted); return; }
   if (S.cur) S.records.push({ combo: S.cur, found: new Set(S.found) });
   const cleared = S.records.filter((r) => r.found.size === r.combo.length).length;
   const acc = S.attempts ? Math.round((S.score / S.attempts) * 100) : 0;
@@ -498,9 +664,9 @@ function finish(exhausted) {
     localStorage.setItem(bestKey(), JSON.stringify({ score: S.score, date: new Date().toLocaleDateString("sv-SE") }));
   }
 
-  $("#game").classList.add("hidden");
-  $("#result").classList.remove("hidden");
+  showSection("#result");
   $("#finalScore").textContent = S.score;
+  $("#scoreUnit").textContent = "마리";
   $("#newBest").classList.toggle("hidden", !(isBest && S.score > 0));
   $("#statCleared").textContent = `조합 클리어 ${cleared}/${S.records.length}${exhausted ? " (전부 소진!)" : ""}`;
   $("#statAcc").textContent = `정확도 ${acc}%`;
@@ -530,19 +696,221 @@ function finish(exhausted) {
   };
 }
 
+/* ================= mode B: 포켓몬 → 타입 ================= */
+const typesOf = (m) => (m[3] ? [m[2], m[3]] : [m[2]]);
+const typeLabel = (ids) => ids.map((t) => D.types[t][0]).join(" · ") + (ids.length === 1 ? " (단일)" : "");
+
+function startTypeGame() {
+  const queue = shuffle(buildMonPool());
+  if (!queue.length) return;
+  S = { mode: "type", queue, idx: -1, cur: null, sel: [], locked: false,
+    records: [], score: 0, attempts: 0, streak: 0, bestStreak: 0,
+    endAt: Date.now() + cfg.dur * 1000, timer: null };
+  showSection("#game2");
+  updateScore2();
+  nextMon();
+  S.timer = setInterval(tick, 100);
+  tick();
+}
+
+function updateScore2() {
+  $("#scoreLabel2").textContent = S.streak >= 2
+    ? `${S.score}정답 · ${S.streak}연속 🔥` : `${S.score}정답`;
+}
+
+function setFeedback2(msg, cls) {
+  const f = $("#feedback2");
+  f.textContent = msg;
+  f.className = "feedback " + cls;
+}
+
+function nextMon() {
+  S.idx++;
+  if (S.idx >= S.queue.length) { finish(true); return; }
+  S.cur = S.queue[S.idx];
+  S.sel = [];
+  S.locked = false;
+  const m = S.cur;
+  const img = $("#monSprite");
+  img.style.visibility = "visible";
+  img.onerror = () => { img.style.visibility = "hidden"; };
+  img.src = SPRITE(m[6]);
+  $("#monName").textContent = m[4];
+  $("#monEn").textContent = m[5];
+  const parts = [];
+  if (cfg.hintDex) parts.push("#" + String(m[0]).padStart(4, "0"));
+  if (cfg.hintGen) parts.push(m[1] + "세대");
+  $("#monHint").textContent = parts.join(" · ");
+  preload([S.queue[S.idx + 1]].filter(Boolean)); // 다음 문제 이미지 미리
+  renderTypeGrid();
+  setFeedback2("", "");
+  $("#pickLabel").textContent = "타입을 1~2개 고르세요 · pick 1 or 2 types";
+}
+
+function renderTypeGrid() {
+  const grid = $("#typeGrid");
+  const answer = typesOf(S.cur);
+  grid.innerHTML = "";
+  for (let id = 1; id <= 18; id++) {
+    const bg = TYPE_COLORS[id];
+    const b = document.createElement("button");
+    b.className = "tpick";
+    b.textContent = D.types[id][0];
+    b.style.background = bg;
+    if (darkText(bg)) b.style.color = "rgba(20,18,10,.92)";
+    else b.style.textShadow = "0 1px 2px rgba(0,0,0,.35)";
+    if (S.locked) {
+      if (answer.includes(id)) b.classList.add("ans");
+      else if (S.sel.includes(id)) b.classList.add("miss");
+      else b.classList.add("fade");
+    } else if (S.sel.includes(id)) {
+      b.classList.add("sel");
+    }
+    b.onclick = () => toggleType(id);
+    grid.appendChild(b);
+  }
+}
+
+function toggleType(id) {
+  if (!S || S.mode !== "type" || S.locked) return;
+  if (S.sel.includes(id)) S.sel = S.sel.filter((t) => t !== id);
+  else { S.sel = [...S.sel, id]; if (S.sel.length > 2) S.sel.shift(); } // 3개째는 가장 오래된 선택을 밀어냄
+  renderTypeGrid();
+  $("#pickLabel").textContent = S.sel.length
+    ? `선택: ${typeLabel(S.sel)} — Enter로 확인`
+    : "타입을 1~2개 고르세요 · pick 1 or 2 types";
+}
+
+function submitType() {
+  if (!S || S.mode !== "type" || S.locked) return;
+  if (!S.sel.length) { setFeedback2("타입을 먼저 고르세요 · pick a type first", "info"); return; }
+  const m = S.cur;
+  const answer = typesOf(m);
+  const ok = S.sel.length === answer.length && S.sel.every((t) => answer.includes(t));
+  const hit = S.sel.filter((t) => answer.includes(t));
+  S.locked = true;
+  S.attempts++;
+  S.records.push({ mon: m, sel: [...S.sel], ok, passed: false });
+  if (ok) {
+    S.score++;
+    S.streak++;
+    S.bestStreak = Math.max(S.bestStreak, S.streak);
+    S.endAt += RIGHT_BONUS;
+    setFeedback2(`✓ ${typeLabel(answer)} 정답! +${RIGHT_BONUS / 1000}초`, "good");
+  } else {
+    S.streak = 0;
+    setFeedback2(hit.length
+      ? `아깝다 — ${D.types[hit[0]][0]}은 맞았어요. 정답은 ${typeLabel(answer)}`
+      : `✗ 정답은 ${typeLabel(answer)}`, "bad");
+    shake(".monq");
+  }
+  updateScore2();
+  renderTypeGrid();
+  $("#pickLabel").textContent = `${m[4]} · ${typeLabel(answer)}`;
+  setTimeout(() => { if (S && S.mode === "type" && !S.done) nextMon(); }, ok ? 750 : 1600);
+}
+
+function passType() {
+  if (!S || S.mode !== "type" || S.locked) return;
+  S.locked = true;
+  S.streak = 0;
+  S.records.push({ mon: S.cur, sel: [], ok: false, passed: true });
+  const answer = typesOf(S.cur);
+  setFeedback2(`패스 — 정답은 ${typeLabel(answer)}`, "info");
+  updateScore2();
+  renderTypeGrid();
+  $("#pickLabel").textContent = `${S.cur[4]} · ${typeLabel(answer)}`;
+  setTimeout(() => { if (S && S.mode === "type" && !S.done) nextMon(); }, 1300);
+}
+
+function finishType(exhausted) {
+  const acc = S.attempts ? Math.round((S.score / S.attempts) * 100) : 0;
+  const prev = getBest();
+  const isBest = !prev || S.score > prev.score;
+  if (isBest && S.score > 0) {
+    localStorage.setItem(bestKey(), JSON.stringify({ score: S.score, date: new Date().toLocaleDateString("sv-SE") }));
+  }
+
+  showSection("#result");
+  $("#finalScore").textContent = S.score;
+  $("#scoreUnit").textContent = "정답";
+  $("#newBest").classList.toggle("hidden", !(isBest && S.score > 0));
+  $("#statCleared").textContent = `푼 문제 ${S.records.length}개${exhausted ? " (전부 소진!)" : ""}`;
+  $("#statAcc").textContent = `정확도 ${acc}%`;
+  const best = getBest();
+  $("#statBest").textContent = `최고 연속 ${S.bestStreak} · 최고 ${best ? best.score : 0}정답`;
+
+  const wrong = S.records.filter((r) => !r.ok);
+  const cards = wrong.map((r) => {
+    const answer = typesOf(r.mon);
+    return `<div class="rcard rcard-mon">
+      <img src="${SPRITE(r.mon[6])}" alt="" loading="lazy" onerror="this.remove()" />
+      <div class="rm-body">
+        <div class="rm-name">${r.mon[4]} · ${r.mon[5]}</div>
+        <div class="rm-line">정답 ${answer.map((t) => typeBadge(t)).join("")}${answer.length === 1 ? "단일" : ""}</div>
+        <div class="rm-line">내 답 ${r.passed ? "패스" : r.sel.map((t) => typeBadge(t)).join("")}</div>
+      </div>
+      <span class="rm-mark no">✗</span>
+    </div>`;
+  }).join("");
+  $("#breakdown").innerHTML = wrong.length
+    ? `<div class="set-label" style="margin-top:0">놓친 문제 ${wrong.length}개 · review</div>${cards}`
+    : (S.records.length
+      ? `<div class="rcard" style="text-align:center;">전부 맞혔습니다 🎉 · perfect run</div>` : "");
+
+  const genLabel = cfg.gens.length === GENS.length
+    ? "전체 세대" : [...cfg.gens].sort().join("·") + "세대";
+  $("#copyBtn").onclick = () => {
+    const txt = `포켓몬 타입 퀴즈 🎯 타입 맞히기 ${S.score}정답 (정확도 ${acc}% · 최고 연속 ${S.bestStreak}) · ${genLabel} · ${cfg.dur}초`;
+    navigator.clipboard.writeText(txt).then(() => {
+      $("#copyBtn").textContent = "복사됨! · Copied";
+      setTimeout(() => { $("#copyBtn").textContent = "결과 복사 · Copy"; }, 1500);
+    });
+  };
+}
+
 function passCombo() {
   if (!S || $("#game").classList.contains("hidden")) return;
   nextCombo();
   $("#guessInput").focus();
 }
 
+/* ---- 모드 선택 화면의 미리보기 ---- */
+function renderModeVis() {
+  const pick = (arr) => arr[Math.floor(Math.random() * arr.length)];
+  const famous = D.mons.filter((m) => m[7] === 1 && m[1] <= 3 && m[0] <= 386);
+  const dual = pick(famous.filter((m) => m[3])) || D.mons[2];
+  $("#visA").innerHTML = typeBadge(dual[2]) + '<span class="arrow">×</span>' + typeBadge(dual[3])
+    + '<span class="arrow">→</span><span class="qm">? ? ?</span>';
+  const one = pick(famous) || D.mons[0];
+  $("#visB").innerHTML = `<img src="${SPRITE(one[6])}" alt="" onerror="this.remove()" />`
+    + '<span class="arrow">→</span><span class="qm">?</span>'
+    + '<span class="arrow">×</span><span class="qm">?</span>';
+}
+
 /* ---- wiring ---- */
+for (const card of document.querySelectorAll(".mode-card")) {
+  card.onclick = () => {
+    MODE = card.dataset.mode;
+    S = null;
+    showSection("#intro");
+    renderSettings();
+    window.scrollTo(0, 0);
+  };
+}
+$("#backModeBtn").onclick = () => { showSection("#modeSelect"); renderModeVis(); };
+$("#modeBtn").onclick = () => {
+  S = null;
+  showSection("#modeSelect");
+  renderModeVis();
+  window.scrollTo(0, 0);
+};
+
 $("#startBtn").onclick = startGame;
 $("#retryBtn").onclick = startGame;
 $("#setupBtn").onclick = () => {
   S = null;
-  $("#result").classList.add("hidden");
-  $("#intro").classList.remove("hidden");
+  showSection("#intro");
   renderSettings();
 };
 $("#submitBtn").onclick = submitGuess;
@@ -552,6 +920,21 @@ $("#guessInput").addEventListener("keydown", (e) => {
   if (e.key === "Escape") passCombo();
 });
 
+$("#submitTypeBtn").onclick = submitType;
+$("#passTypeBtn").onclick = passType;
+$("#clearTypeBtn").onclick = () => {
+  if (!S || S.mode !== "type" || S.locked) return;
+  S.sel = [];
+  renderTypeGrid();
+  $("#pickLabel").textContent = "타입을 1~2개 고르세요 · pick 1 or 2 types";
+};
+document.addEventListener("keydown", (e) => {
+  if ($("#game2").classList.contains("hidden") || e.isComposing) return;
+  if (e.key === "Enter") { e.preventDefault(); submitType(); }
+  else if (e.key === "Escape") passType();
+});
+
+renderModeVis();
 renderSettings();
 </script>
 </body>
