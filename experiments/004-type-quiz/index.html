@@ -87,6 +87,8 @@
   /* ---- answer chips ---- */
   .chips-area { display: flex; gap: 7px; flex-wrap: wrap; justify-content: center;
     min-height: 74px; align-content: flex-start; margin-bottom: 16px; }
+  /* 러시 모드는 찾은 것만 쌓이므로 목록이 길어진다 — 입력창이 밀려나지 않게 스크롤 */
+  .chips-area.rush { max-height: 200px; overflow-y: auto; }
   .mchip { font-size: 13px; padding: 5px 11px; border-radius: 99px;
     border: 1px solid var(--border); background: var(--surface); color: var(--muted);
     font-family: var(--mono); }
@@ -202,9 +204,9 @@
   <section id="modeSelect">
     <div class="kicker">experiment #004</div>
     <h1>포켓몬 타입 퀴즈 · Poké Type Quiz</h1>
-    <p class="lead">두 방향으로 풀 수 있습니다. <strong>포켓몬에서 타입</strong>을 떠올리거나,
-      <strong>타입에서 포켓몬</strong>을 떠올리거나.</p>
-    <p class="lead-en">Two directions: Pokémon → types, or types → Pokémon.</p>
+    <p class="lead">세 가지 방식으로 풀 수 있습니다. <strong>포켓몬에서 타입</strong>을 떠올리거나,
+      <strong>타입에서 포켓몬</strong>을 떠올리거나, <strong>타입 하나로 러시</strong>를 하거나.</p>
+    <p class="lead-en">Three ways: Pokémon → types, types → Pokémon, or a one-type rush.</p>
 
     <div class="modes">
       <button class="mode-card" data-mode="type">
@@ -223,6 +225,14 @@
         <span class="mc-en">Name every Pokémon of a random type combo.</span>
         <span class="mc-vis" id="visCombo"></span>
       </button>
+      <button class="mode-card" data-mode="rush">
+        <span class="mc-tag">MODE C</span>
+        <span class="mc-title">타입 하나 골라 러시</span>
+        <span class="mc-desc">타입을 하나 고르고, 짧은 제한 시간 안에 그 타입인 포켓몬을
+          최대한 많이 외칩니다. 단일·복합 모두 정답.</span>
+        <span class="mc-en">Pick one type — name as many as you can, fast.</span>
+        <span class="mc-vis" id="visRush"></span>
+      </button>
     </div>
     <p class="note">기록·설정은 모드별로 따로 저장됩니다.</p>
   </section>
@@ -233,6 +243,11 @@
     <h1 id="introTitle">포켓몬 타입 퀴즈 · Poké Type Quiz</h1>
     <p class="lead" id="introLead"></p>
     <p class="lead-en" id="introLeadEn"></p>
+
+    <div id="typeSelWrap" class="hidden">
+      <div class="set-label">출제 타입 · type (1개 선택)</div>
+      <div class="tgrid" id="rushTypeGrid"></div>
+    </div>
 
     <div class="set-label">출제 세대 · generations (다중 선택)</div>
     <div class="chips" id="genChips"></div>
@@ -277,7 +292,7 @@
       <button id="passBtn">패스 →</button>
     </div>
     <div class="feedback" id="feedback"></div>
-    <div class="pass-hint">Enter 확인 · Esc 패스</div>
+    <div class="pass-hint" id="gameHint">Enter 확인 · Esc 패스</div>
   </section>
 
   <!-- ========== game B: 포켓몬 → 타입 ========== -->
@@ -359,6 +374,7 @@ const norm = (s) => s.normalize("NFKD").replace(/[̀-ͯ]/g, "").normalize("NFC")
 /* ---- 설정 ---- */
 const GENS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const DUR_PRESETS = [[60, "1분"], [120, "2분"], [180, "3분"]];
+const DUR_PRESETS_RUSH = [[30, "30초"], [45, "45초"], [60, "1분"]]; // 러시는 짧게
 const HINT_PRESETS = [["hintDex", "도감 번호 표시"], ["hintGen", "세대 표시"]];
 const CLEAR_BONUS = 5000;   // mode A: 조합 클리어 보너스
 const RIGHT_BONUS = 2000;   // mode B: 정답 보너스
@@ -389,22 +405,42 @@ const MODE_TEXT = {
       어느 쪽이 맞았는지 알려줍니다. 틀린 문제는 결과 화면에서 정답과 함께 다시 볼 수 있습니다.`,
     unit: "정답",
   },
+  rush: {
+    kicker: "experiment #004 · mode C",
+    title: "타입 하나 골라 러시",
+    lead: `타입을 <strong>하나</strong> 고르고, 짧은 제한 시간 안에 그 타입인 포켓몬을
+      최대한 많이 외칩니다. <strong>단일이든 복합이든</strong> 그 타입이 들어 있으면 정답.`,
+    leadEn: "Pick one type and name as many Pokémon of that type as you can — mono or dual, both count.",
+    note: `보너스 시간은 없습니다 — 순수 스프린트. 리전 폼(알로라·가라르·히스이·팔데아)·
+      메가진화·원시회귀·로토무 폼도 각자 한 마리로 인정되고, 리전 폼은 접두어 없이 "윈디"만 써도
+      타입이 맞으면 인정됩니다. 한국어/영어 모두 인정, 띄어쓰기·기호는 무시.
+      결과 화면에서 놓친 대표 포켓몬을 확인할 수 있습니다.`,
+    unit: "마리",
+  },
 };
 
-let cfg = { gens: [...GENS], dur: 120, hintDex: true, hintGen: false };
+let cfg = { gens: [...GENS], dur: 120, durRush: 45, rushType: 10, hintDex: true, hintGen: false };
 try {
   const saved = JSON.parse(localStorage.getItem("ptq.settings") || "{}");
   if (Array.isArray(saved.gens)) cfg.gens = saved.gens.filter((g) => GENS.includes(g));
   else if (saved.gen) cfg.gens = GENS.filter((g) => g <= saved.gen); // 구버전 설정 이전
   if (DUR_PRESETS.some((p) => p[0] === saved.dur)) cfg.dur = saved.dur;
+  if (DUR_PRESETS_RUSH.some((p) => p[0] === saved.durRush)) cfg.durRush = saved.durRush;
+  if (saved.rushType >= 1 && saved.rushType <= 18) cfg.rushType = saved.rushType;
   if (typeof saved.hintDex === "boolean") cfg.hintDex = saved.hintDex;
   if (typeof saved.hintGen === "boolean") cfg.hintGen = saved.hintGen;
 } catch (e) {}
 const saveCfg = () => localStorage.setItem("ptq.settings", JSON.stringify(cfg));
 
+/* 러시는 제한 시간을 따로 둔다 (다른 모드보다 짧게) */
+const curDur = () => (MODE === "rush" ? cfg.durRush : cfg.dur);
+
 // 모드 A는 기존 키(`ptq.best.all.…`)를 그대로 써서 예전 기록을 유지한다.
-const bestKey = () => `ptq.best.${MODE === "combo" ? "all" : "type"}.`
-  + `${[...cfg.gens].sort().join("")}.${cfg.dur}.${cfg.hintDex ? 1 : 0}${cfg.hintGen ? 1 : 0}`;
+// 러시는 힌트 표시가 없으므로(찾은 것만 보여줌) 힌트 설정을 기록 키에서 뺀다.
+const bestKey = () => MODE === "rush"
+  ? `ptq.best.rush${cfg.rushType}.${[...cfg.gens].sort().join("")}.${cfg.durRush}`
+  : `ptq.best.${MODE === "combo" ? "all" : "type"}.`
+    + `${[...cfg.gens].sort().join("")}.${cfg.dur}.${cfg.hintDex ? 1 : 0}${cfg.hintGen ? 1 : 0}`;
 const getBest = () => { try { return JSON.parse(localStorage.getItem(bestKey())); } catch (e) { return null; } };
 
 /* 타입 조합 키: 듀얼은 타입 쌍, 단일은 타입 하나 */
@@ -436,6 +472,13 @@ function buildMonPool() {
   return D.mons.filter((m) => genSet.has(m[1]));
 }
 
+/* 모드 C 정답 풀: 고른 타입이 들어 있는 포켓몬 전부 (단일·복합 모두) */
+function buildRushPool() {
+  const genSet = new Set(cfg.gens);
+  const t = cfg.rushType;
+  return D.mons.filter((m) => genSet.has(m[1]) && (m[2] === t || m[3] === t));
+}
+
 /* ---- 설정 UI ---- */
 function renderSettings() {
   const chip = (label, on, onclick) => {
@@ -452,12 +495,20 @@ function renderSettings() {
     }));
 
   const durEl = $("#durChips"); durEl.innerHTML = "";
-  for (const [val, label] of DUR_PRESETS)
-    durEl.appendChild(chip(label, cfg.dur === val, () => { cfg.dur = val; }));
+  for (const [val, label] of (MODE === "rush" ? DUR_PRESETS_RUSH : DUR_PRESETS))
+    durEl.appendChild(chip(label, curDur() === val, () => {
+      if (MODE === "rush") cfg.durRush = val; else cfg.dur = val;
+    }));
 
+  // 러시는 힌트(도감 번호·세대)를 쓸 자리가 없다 — 찾은 포켓몬만 쌓이는 화면
+  $("#hintChips").previousElementSibling.classList.toggle("hidden", MODE === "rush");
   const hintEl = $("#hintChips"); hintEl.innerHTML = "";
+  hintEl.classList.toggle("hidden", MODE === "rush");
   for (const [key, label] of HINT_PRESETS)
     hintEl.appendChild(chip(label, cfg[key], () => { cfg[key] = !cfg[key]; }));
+
+  $("#typeSelWrap").classList.toggle("hidden", MODE !== "rush");
+  if (MODE === "rush") renderRushTypePicker();
 
   const t = MODE_TEXT[MODE];
   $("#introKicker").textContent = t.kicker;
@@ -467,7 +518,11 @@ function renderSettings() {
   $("#introNote").textContent = t.note.replace(/\s+/g, " ").trim();
 
   let empty, info;
-  if (MODE === "combo") {
+  if (MODE === "rush") {
+    const pool = buildRushPool();
+    empty = pool.length === 0;
+    info = `${D.types[cfg.rushType][0]} 타입 포켓몬 ${pool.length}마리가 전부 정답`;
+  } else if (MODE === "combo") {
     const pool = buildPool();
     empty = pool.length === 0;
     info = `이 설정의 출제 범위: 문제 ${pool.length}개 · ${pool.reduce((n, g) => n + g.length, 0)}마리`;
@@ -486,6 +541,23 @@ function renderSettings() {
   $("#bestLine").innerHTML = best
     ? `이 설정의 최고 기록 · best: <b>${best.score}${t.unit}</b> <span class="note">(${best.date})</span>`
     : `이 설정의 최고 기록 · best: <span class="note">아직 없음</span>`;
+}
+
+/* 러시 모드 — 출제 타입 하나 고르기 */
+function renderRushTypePicker() {
+  const grid = $("#rushTypeGrid");
+  grid.innerHTML = "";
+  for (let id = 1; id <= 18; id++) {
+    const bg = TYPE_COLORS[id];
+    const b = document.createElement("button");
+    b.className = "tpick" + (cfg.rushType === id ? " sel" : "");
+    b.textContent = D.types[id][0];
+    b.style.background = bg;
+    if (darkText(bg)) b.style.color = "rgba(20,18,10,.92)";
+    else b.style.textShadow = "0 1px 2px rgba(0,0,0,.35)";
+    b.onclick = () => { cfg.rushType = id; saveCfg(); renderSettings(); };
+    grid.appendChild(b);
+  }
 }
 
 $("#genAll").onclick = () => { cfg.gens = [...GENS]; saveCfg(); renderSettings(); };
@@ -530,6 +602,7 @@ function showSection(sel) {
 function startGame() {
   if (S && S.timer) clearInterval(S.timer);
   if (MODE === "type") startTypeGame();
+  else if (MODE === "rush") startRushGame();
   else startComboGame();
 }
 
@@ -546,8 +619,13 @@ function startComboGame() {
     if (monos.length) combos.push(monos.shift());
   }
   S = { mode: "combo", combos, idx: -1, cur: null, found: new Set(), lookup: new Map(),
-    records: [], score: 0, attempts: 0, endAt: Date.now() + cfg.dur * 1000, timer: null };
+    records: [], score: 0, attempts: 0, totalMs: cfg.dur * 1000,
+    endAt: Date.now() + cfg.dur * 1000, timer: null };
   showSection("#game");
+  $("#chipsArea").classList.remove("rush");
+  $("#passBtn").classList.remove("hidden");
+  $("#gameHint").textContent = "Enter 확인 · Esc 패스";
+  $("#guessInput").placeholder = "포켓몬 이름…";
   $("#scoreLabel").textContent = "0마리";
   nextCombo();
   S.timer = setInterval(tick, 100);
@@ -618,6 +696,7 @@ function shake(sel = "#inputRow") {
 }
 
 function submitGuess() {
+  if (S && S.mode === "rush") { submitRushGuess(); return; }
   const raw = $("#guessInput").value.trim();
   if (!raw || !S) return;
   const m = S.lookup.get(norm(raw));
@@ -653,7 +732,7 @@ function submitGuess() {
 function tick() {
   const left = S.endAt - Date.now();
   if (left <= 0) { finish(false); return; }
-  const pct = Math.min(100, (left / (cfg.dur * 1000)) * 100);
+  const pct = Math.min(100, (left / S.totalMs) * 100);
   const fill = $(S.mode === "type" ? "#timeFill2" : "#timeFill");
   fill.style.width = pct + "%";
   fill.classList.toggle("low", left < 10000);
@@ -666,6 +745,7 @@ function finish(exhausted) {
   clearInterval(S.timer);
   S.done = true; // 진행 중이던 setTimeout이 끝난 판을 되살리지 못하게
   if (S.mode === "type") { finishType(exhausted); return; }
+  if (S.mode === "rush") { finishRush(exhausted); return; }
   if (S.cur) S.records.push({ combo: S.cur, found: new Set(S.found) });
   const cleared = S.records.filter((r) => r.found.size === r.combo.length).length;
   const acc = S.attempts ? Math.round((S.score / S.attempts) * 100) : 0;
@@ -708,6 +788,120 @@ function finish(exhausted) {
   };
 }
 
+/* ================= mode C: 타입 하나 골라 러시 ================= */
+function startRushGame() {
+  const pool = buildRushPool();
+  if (!pool.length) return;
+  const lookup = new Map();
+  const add = (n, m) => { if (!lookup.has(n)) lookup.set(n, m); };
+  // 정식 이름을 먼저 전부 등록한 뒤, 남은 자리에만 리전 접두어 뗀 별칭("윈디" → 히스이 윈디)을 채운다
+  for (const m of pool) { add(norm(m[4]), m); add(norm(m[5]), m); }
+  for (const m of pool) {
+    const s = stripRegion(m[4], m[5]);
+    if (s) { add(norm(s[0]), m); add(norm(s[1]), m); }
+  }
+
+  const ms = cfg.durRush * 1000;
+  S = { mode: "rush", pool, lookup, found: new Set(), foundList: [],
+    score: 0, attempts: 0, totalMs: ms, endAt: Date.now() + ms, timer: null };
+  showSection("#game");
+  $("#chipsArea").classList.add("rush");
+  $("#passBtn").classList.add("hidden");
+  $("#gameHint").textContent = "Enter 확인 · 보너스 시간 없음 · no time bonus";
+  $("#guessInput").placeholder = `${D.types[cfg.rushType][0]} 타입 포켓몬…`;
+  $("#scoreLabel").textContent = "0마리";
+  $("#comboBadges").innerHTML = typeBadge(cfg.rushType)
+    + '<span class="x">단일·복합 모두 · mono or dual</span>';
+  setFeedback("", "");
+  $("#guessInput").value = "";
+  renderRush();
+  S.timer = setInterval(tick, 100);
+  tick();
+  $("#guessInput").focus();
+}
+
+function renderRush() {
+  $("#comboCount").innerHTML = `<b>${S.score}</b> / ${S.pool.length}마리`;
+  // 방금 찾은 것이 위로 오도록 (목록이 길어지면 스크롤된다)
+  $("#chipsArea").innerHTML = S.foundList.map((m) => chipHTML(m, "found")).join("");
+}
+
+function submitRushGuess() {
+  const raw = $("#guessInput").value.trim();
+  if (!raw || !S || S.done) return;
+  const m = S.lookup.get(norm(raw));
+  S.attempts++;
+  const typeName = D.types[cfg.rushType][0];
+  if (!m) {
+    shake();
+    setFeedback(`"${raw}" — ${typeName} 타입이 아니에요 · not ${typeName}`, "bad");
+  } else if (S.found.has(m[6])) {
+    setFeedback(`${m[4]} — 이미 찾았어요 · already found`, "info");
+  } else {
+    S.found.add(m[6]);
+    S.foundList.unshift(m);
+    S.score++;
+    $("#scoreLabel").textContent = `${S.score}마리`;
+    renderRush();
+    const alias = norm(raw) !== norm(m[4]) && norm(raw) !== norm(m[5]);
+    setFeedback(alias ? `✓ ${raw} → ${m[4]} 인정!` : `✓ ${m[4]} (${m[5]})`, "good", m[6]);
+    if (S.score === S.pool.length) { finish(true); return; }
+  }
+  $("#guessInput").value = "";
+  $("#guessInput").focus();
+}
+
+function finishRush(cleared) {
+  const acc = S.attempts ? Math.round((S.score / S.attempts) * 100) : 0;
+  const typeName = D.types[cfg.rushType][0];
+  const prev = getBest();
+  const isBest = !prev || S.score > prev.score;
+  if (isBest && S.score > 0) {
+    localStorage.setItem(bestKey(), JSON.stringify({ score: S.score, date: new Date().toLocaleDateString("sv-SE") }));
+  }
+
+  showSection("#result");
+  $("#finalScore").textContent = S.score;
+  $("#scoreUnit").textContent = "마리";
+  $("#newBest").classList.toggle("hidden", !(isBest && S.score > 0));
+  $("#statCleared").textContent = `${typeName} 타입 ${S.pool.length}마리 중 `
+    + `${Math.round((S.score / S.pool.length) * 100)}%${cleared ? " — 전부 찾음! 🏆" : ""}`;
+  $("#statAcc").textContent = `정확도 ${acc}%`;
+  const best = getBest();
+  $("#statBest").textContent = `최고 ${best ? best.score : 0}마리`;
+
+  const byDex = (a, b) => a[0] - b[0] || a[6] - b[6];
+  const foundCard = S.score
+    ? `<div class="rcard">
+        <div class="rc-head">${typeBadge(cfg.rushType)}
+          <span class="rc-stat">찾음 ${S.score}</span></div>
+        <div class="chips-area">${[...S.foundList].sort(byDex)
+          .map((m) => chipHTML(m, "found")).join("")}</div>
+      </div>` : "";
+
+  // 놓친 게 수백 마리일 수 있으니 대표(최종 진화·전설)만 추린다
+  const missed = S.pool.filter((m) => !S.found.has(m[6]) && m[7] === 1).sort(byDex);
+  const shown = missed.slice(0, 24);
+  const missedCard = shown.length
+    ? `<div class="rcard">
+        <div class="rc-head"><span class="rm-name" style="margin:0">놓친 대표 포켓몬 · missed highlights</span>
+          <span class="rc-stat">${missed.length}마리 중 ${shown.length}</span></div>
+        <div class="chips-area">${shown.map((m) => chipHTML(m, "missed")).join("")}</div>
+      </div>` : "";
+  $("#breakdown").innerHTML = foundCard + missedCard;
+
+  const genLabel = cfg.gens.length === GENS.length
+    ? "전체 세대" : [...cfg.gens].sort().join("·") + "세대";
+  $("#copyBtn").onclick = () => {
+    const txt = `포켓몬 타입 퀴즈 ⚡ ${typeName} 러시 ${S.score}/${S.pool.length}마리 `
+      + `(정확도 ${acc}%) · ${genLabel} · ${cfg.durRush}초`;
+    navigator.clipboard.writeText(txt).then(() => {
+      $("#copyBtn").textContent = "복사됨! · Copied";
+      setTimeout(() => { $("#copyBtn").textContent = "결과 복사 · Copy"; }, 1500);
+    });
+  };
+}
+
 /* ================= mode B: 포켓몬 → 타입 ================= */
 const typesOf = (m) => (m[3] ? [m[2], m[3]] : [m[2]]);
 const typeLabel = (ids) => ids.map((t) => D.types[t][0]).join(" · ") + (ids.length === 1 ? " (단일)" : "");
@@ -717,7 +911,7 @@ function startTypeGame() {
   if (!queue.length) return;
   S = { mode: "type", queue, idx: -1, cur: null, sel: [], locked: false,
     records: [], score: 0, attempts: 0, streak: 0, bestStreak: 0,
-    endAt: Date.now() + cfg.dur * 1000, timer: null };
+    totalMs: cfg.dur * 1000, endAt: Date.now() + cfg.dur * 1000, timer: null };
   showSection("#game2");
   updateScore2();
   nextMon();
@@ -882,7 +1076,7 @@ function finishType(exhausted) {
 }
 
 function passCombo() {
-  if (!S || $("#game").classList.contains("hidden")) return;
+  if (!S || S.mode !== "combo" || $("#game").classList.contains("hidden")) return;
   nextCombo();
   $("#guessInput").focus();
 }
@@ -898,6 +1092,9 @@ function renderModeVis() {
   $("#visType").innerHTML = `<img src="${SPRITE(one[6])}" alt="" onerror="this.remove()" />`
     + '<span class="arrow">→</span><span class="qm">?</span>'
     + '<span class="arrow">×</span><span class="qm">?</span>';
+  $("#visRush").innerHTML = typeBadge(cfg.rushType)
+    + '<span class="arrow">→</span><span class="qm">? ? ? …</span>'
+    + `<span class="arrow">${cfg.durRush}초</span>`;
 }
 
 /* ---- wiring ---- */
