@@ -94,6 +94,18 @@
   .hidden { display: none !important; }
   .sr-only { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); }
 </style>
+<!-- 실험실에서 들어온 경우에만 "돌아가기" 링크를 노출 · show the back link only when arriving from the lab -->
+<style>.lab-back { display: none; } .from-lab .lab-back { display: revert; }</style>
+<script>
+(function () {
+  var fromQuery = new URLSearchParams(location.search).get("from") === "lab";
+  var fromSite = false;
+  try {
+    fromSite = !!document.referrer && new URL(document.referrer).origin === location.origin;
+  } catch (e) {}
+  if (fromQuery || fromSite) document.documentElement.classList.add("from-lab");
+})();
+</script>
 </head>
 <body>
 <main class="wrap">
@@ -131,7 +143,7 @@
     <button id="importBtn">가져오기 · Import</button>
     <input type="file" id="importFile" accept="application/json" class="hidden" />
   </div>
-  <p class="note" style="margin-top:14px;"><a href="../../">← 실험실로 · back to the lab</a></p>
+  <p class="note lab-back" style="margin-top:14px;"><a href="../../">← 실험실로 · back to the lab</a></p>
 </main>
 
 <script>

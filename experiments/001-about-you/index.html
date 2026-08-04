@@ -113,6 +113,18 @@
   .hidden { display: none !important; }
   a { color: var(--accent); }
 </style>
+<!-- 실험실에서 들어온 경우에만 "돌아가기" 링크를 노출 · show the back link only when arriving from the lab -->
+<style>.lab-back { display: none; } .from-lab .lab-back { display: revert; }</style>
+<script>
+(function () {
+  var fromQuery = new URLSearchParams(location.search).get("from") === "lab";
+  var fromSite = false;
+  try {
+    fromSite = !!document.referrer && new URL(document.referrer).origin === location.origin;
+  } catch (e) {}
+  if (fromQuery || fromSite) document.documentElement.classList.add("from-lab");
+})();
+</script>
 </head>
 <body>
 <main class="wrap">
@@ -486,7 +498,7 @@ function showResult() {
       </div>
       <pre id="jsonOut">${esc(json)}</pre>
     </div>
-    <p class="foot note"><a href="../../">← 실험실로 · back to the lab</a></p>
+    <p class="foot note lab-back"><a href="../../">← 실험실로 · back to the lab</a></p>
   `;
 
   $("#dlBtn").onclick = () => {

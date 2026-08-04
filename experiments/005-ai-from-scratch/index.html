@@ -175,6 +175,18 @@
   .foot { margin-top: 26px; font-size: 13px; color: var(--muted); display: flex; gap: 14px; flex-wrap: wrap; }
   .hidden { display: none !important; }
 </style>
+<!-- 실험실에서 들어온 경우에만 "돌아가기" 링크를 노출 · show the back link only when arriving from the lab -->
+<style>.lab-back { display: none; } .from-lab .lab-back { display: revert; }</style>
+<script>
+(function () {
+  var fromQuery = new URLSearchParams(location.search).get("from") === "lab";
+  var fromSite = false;
+  try {
+    fromSite = !!document.referrer && new URL(document.referrer).origin === location.origin;
+  } catch (e) {}
+  if (fromQuery || fromSite) document.documentElement.classList.add("from-lab");
+})();
+</script>
 </head>
 <body>
 <div class="wrap">
@@ -211,7 +223,7 @@
   </div>
 
   <p class="foot">
-    <a href="../../">← 실험실로 · back to the lab</a>
+    <a class="lab-back" href="../../">← 실험실로 · back to the lab</a>
     <span>진행 상황은 이 브라우저에만 저장됩니다 · progress stays in your browser</span>
     <a href="#" id="resetLink">진행 초기화 · reset</a>
   </p>

@@ -109,13 +109,15 @@ function renderCards(exps) {
   return exps
     .map((e) => {
       const href = `./experiments/${e._folder}/`;
+      // ?from=lab — 실험 쪽에서 "실험실로 돌아가기" 링크를 띄울지 판단하는 표식
+      const cardHref = `${href}?from=lab`;
       const num = '#' + String(e.id).padStart(3, '0');
       const thumb = e._hasThumb
         ? `<img class="card-thumb" src="${href}thumb.svg" alt="" aria-hidden="true" />`
         : `<div class="card-thumb" style="background:var(--surface-1);"></div>`;
       const tags = (e.tags || []).join(' · ');
       return `
-        <a class="card" href="${href}">
+        <a class="card" href="${cardHref}">
           ${thumb}
           <div class="card-body">
             <div class="card-meta">${esc(num)} · ${esc(e.date || '')}</div>

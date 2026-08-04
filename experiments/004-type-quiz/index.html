@@ -182,6 +182,18 @@
 
   footer { margin-top: 40px; font-size: 12px; color: var(--muted); }
 </style>
+<!-- 실험실에서 들어온 경우에만 "돌아가기" 링크를 노출 · show the back link only when arriving from the lab -->
+<style>.lab-back { display: none; } .from-lab .lab-back { display: revert; }</style>
+<script>
+(function () {
+  var fromQuery = new URLSearchParams(location.search).get("from") === "lab";
+  var fromSite = false;
+  try {
+    fromSite = !!document.referrer && new URL(document.referrer).origin === location.origin;
+  } catch (e) {}
+  if (fromQuery || fromSite) document.documentElement.classList.add("from-lab");
+})();
+</script>
 </head>
 <body>
 <main class="wrap">
@@ -318,7 +330,7 @@
     </div>
   </section>
 
-  <footer><a href="../../">← 실험실 · lab archive</a> · data &amp; sprites: <a href="https://pokeapi.co" target="_blank" rel="noopener">PokéAPI</a></footer>
+  <footer><span class="lab-back"><a href="../../">← 실험실 · lab archive</a> · </span>data &amp; sprites: <a href="https://pokeapi.co" target="_blank" rel="noopener">PokéAPI</a></footer>
 </main>
 
 <script src="data.js?v=202607251713"></script>
