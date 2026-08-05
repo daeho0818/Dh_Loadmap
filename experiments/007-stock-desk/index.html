@@ -179,10 +179,40 @@
   .keys { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 4px; }
   .keys span { font-family: var(--mono); font-size: 11px; color: var(--text-2);
     background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2px 9px; }
-  .r-act { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; }
+  .r-act { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 18px; align-items: center; }
   .r-act .fill { border-color: var(--up-strong); color: var(--up); }
   .r-act .fill:hover { background: var(--up-dim); }
   .row.done .r-act .fill { border-color: var(--border-strong); color: var(--muted); }
+  .saved { font-family: var(--mono); font-size: 11px; color: var(--muted); opacity: 0;
+    transition: opacity .2s; }
+  .saved.on { opacity: 1; }
+
+  /* ---------- 메모장 ---------- */
+  .memo { position: relative; }
+  .memo textarea { display: block; width: 100%; resize: none; overflow: hidden;
+    min-height: 62px; background: var(--surface); color: var(--text);
+    border: 1px solid var(--border); border-left: 2px solid var(--gold);
+    border-radius: 0 9px 9px 0; padding: 10px 12px; font-family: var(--sans);
+    font-size: 13.5px; line-height: 1.6; }
+  .memo textarea::placeholder { color: var(--muted); }
+  .memo textarea:focus { outline: none; border-color: var(--border-strong); border-left-color: var(--gold); }
+  .memo .hint { font-size: 11.5px; color: var(--muted); margin: 5px 0 0; font-family: var(--mono); }
+  .r-tag .pen { color: var(--gold); font-size: 12px; display: none; }
+  .row.noted .r-tag .pen { display: inline; }
+
+  /* ---------- 메모 모아보기 ---------- */
+  .sheet { position: fixed; inset: 0; z-index: 50; display: none;
+    background: rgba(4, 7, 12, .68); padding: 24px 16px; overflow: auto; }
+  .sheet.on { display: block; }
+  .sheet-card { max-width: 760px; margin: 0 auto; background: var(--surface);
+    border: 1px solid var(--border-strong); border-radius: 14px; padding: 18px; }
+  .sheet-card h2 { margin: 0 0 3px; font-size: 17px; font-weight: 600; }
+  .sheet-card .sub { font-family: var(--mono); font-size: 11.5px; color: var(--muted); margin: 0 0 13px; }
+  .sheet-card textarea { width: 100%; height: 46vh; min-height: 240px; resize: vertical;
+    background: var(--bg); color: var(--text-2); border: 1px solid var(--border);
+    border-radius: 10px; padding: 12px; font-family: var(--mono); font-size: 12.3px; line-height: 1.65; }
+  .sheet-card textarea:focus { outline: none; border-color: var(--gold); }
+  .sheet-act { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; align-items: center; }
 
   .hidden { display: none !important; }
   .foot { margin-top: 30px; font-size: 13px; color: var(--muted);
@@ -230,24 +260,42 @@
       <div class="stat"><span class="k">체결 · FILLED</span><span class="v" id="stFilled">0 / 60</span></div>
       <div class="stat"><span class="k">세션 · SESSIONS</span><span class="v" id="stSess">0 / 8</span></div>
       <div class="stat"><span class="k">용어 · TERMS</span><span class="v" id="stTerms">0</span></div>
+      <div class="stat"><span class="k">메모 · NOTES</span><span class="v" id="stNotes">0</span></div>
     </div>
     <div class="chartbox"><svg id="chart" viewBox="0 0 800 214" role="img"
       aria-label="세션별 진행을 캔들로 그린 차트 · progress drawn as candlesticks"></svg></div>
-    <p class="chart-hint" id="chartHint">캔들 하나 = 장세션 하나. 몸통 = 끝낸 만큼, 윗꼬리 = 아직 남은 만큼. 눌러서 이동.</p>
+    <p class="chart-hint" id="chartHint">캔들 하나 = 장세션 하나. 몸통 = 끝낸 만큼, 윗꼬리 = 아직 남은 만큼. 눌러서 이동.<br />항목을 펼치면 맨 아래에 <b style="color:var(--gold);font-weight:500">내 메모</b> 칸이 있다 — 자동 저장되고, 위 <b style="color:var(--gold);font-weight:500">메모 모아보기</b>에서 한 장으로 뽑아 쓸 수 있다.</p>
   </section>
 
   <div class="tools">
     <input type="search" id="q" placeholder="검색 · search — 예: PER, 배당, 금리, 손절" autocomplete="off" />
     <span class="hits" id="hits"></span>
+    <button id="notesBtn">📝 메모 모아보기</button>
     <button id="foldAll">전부 접기</button>
     <button id="unfoldAll">전부 펼치기</button>
   </div>
 
   <div id="board"></div>
 
+  <!-- 메모 모아보기 · all notes in one sheet -->
+  <div class="sheet" id="sheet">
+    <div class="sheet-card">
+      <h2>내 메모 모아보기</h2>
+      <p class="sub" id="sheetSub">0개 항목 · markdown</p>
+      <textarea id="sheetText" spellcheck="false"></textarea>
+      <div class="sheet-act">
+        <button id="copyNotes">복사 · copy</button>
+        <button id="dlNotes">.md 내려받기</button>
+        <span class="saved" id="copyMsg">복사됨</span>
+        <span style="flex:1"></span>
+        <button id="closeSheet">닫기 · close</button>
+      </div>
+    </div>
+  </div>
+
   <p class="foot">
     <a class="lab-back" href="../../">← 실험실로 · back to the lab</a>
-    <span>진행 상황은 이 브라우저에만 저장됩니다 · progress stays in your browser</span>
+    <span>진행과 메모는 이 브라우저에만 저장됩니다 — 지우기 전에 <b>.md로 내려받아 두세요</b> · progress &amp; notes stay in your browser</span>
     <a href="#" id="reset">진행 초기화 · reset</a>
   </p>
 </div>
@@ -848,10 +896,15 @@ function load() {
     const raw = localStorage.getItem(STORE_KEY);
     if (raw) {
       const p = JSON.parse(raw);
-      if (p && Array.isArray(p.done)) return { done: p.done.slice(0, LESSONS.length) };
+      if (p && Array.isArray(p.done)) {
+        return {
+          done: p.done.slice(0, LESSONS.length),
+          notes: (p.notes && typeof p.notes === "object") ? p.notes : {},
+        };
+      }
     }
   } catch (e) { /* ignore */ }
-  return { done: [] };
+  return { done: [], notes: {} };
 }
 function save() {
   try { localStorage.setItem(STORE_KEY, JSON.stringify(state)); } catch (e) { /* ignore */ }
@@ -920,7 +973,8 @@ function rowHTML(i) {
         '<div class="r-t">' + esc(l.t) + '<span class="r-en">' + esc(l.en) + '</span></div>' +
         '<div class="r-sum">' + l.sum + '</div>' +
       '</div>' +
-      '<div class="r-tag"><span class="lv">' + l.keys.length + '용어</span><span class="mark">●</span></div>' +
+      '<div class="r-tag"><span class="lv">' + l.keys.length + '용어</span>' +
+        '<span class="pen" title="메모 있음">✎</span><span class="mark">●</span></div>' +
     '</div>' +
     '<div class="r-body">' +
       '<h3>흔한 오해 · common myth</h3>' +
@@ -934,9 +988,16 @@ function rowHTML(i) {
       '<div class="chk"><span class="lb">여기에 답하면 다음으로</span>' + l.chk + '</div>' +
       '<h3>용어 · terms</h3>' +
       '<div class="keys">' + l.keys.map((k) => "<span>" + esc(k) + "</span>").join("") + '</div>' +
+      '<h3>내 메모 · my note</h3>' +
+      '<div class="memo">' +
+        '<textarea placeholder="한 줄이면 충분하다 — 내 말로 요약 / 아직 남은 질문 / 내 계좌엔 이렇게 적용"' +
+        ' aria-label="' + esc(l.t) + ' 메모"></textarea>' +
+        '<p class="hint">자동 저장 · 이 브라우저에만 남는다</p>' +
+      '</div>' +
       '<div class="r-act">' +
         '<button class="fill">체결 · mark filled</button>' +
         '<button class="close">접기 · close</button>' +
+        '<span class="saved">저장됨</span>' +
       '</div>' +
     '</div>' +
   '</article>';
@@ -1063,6 +1124,7 @@ function refresh() {
     bySession.filter((g) => g.length && g.every(isDone)).length + " / " + SESSIONS.length;
   document.getElementById("stTerms").textContent =
     state.done.reduce((n, i) => n + LESSONS[i].keys.length, 0);
+  document.getElementById("stNotes").textContent = notedIdx().length;
 
   document.querySelectorAll(".sess").forEach((el) => {
     const s = +el.dataset.s, g = bySession[s], d = g.filter(isDone).length;
@@ -1073,13 +1135,113 @@ function refresh() {
   });
 
   document.querySelectorAll(".row").forEach((el) => {
-    el.classList.toggle("done", isDone(+el.dataset.i));
+    const i = +el.dataset.i;
+    el.classList.toggle("done", isDone(i));
+    el.classList.toggle("noted", !!noteOf(i));
     const b = el.querySelector(".fill");
-    b.textContent = isDone(+el.dataset.i) ? "체결 취소 · unfill" : "체결 · mark filled";
+    b.textContent = isDone(i) ? "체결 취소 · unfill" : "체결 · mark filled";
   });
 
   drawChart();
 }
+
+/* ==========================================================================
+   메모장 · per-item notes
+   ========================================================================== */
+const noteOf = (i) => (state.notes[i] || "").trim();
+const notedIdx = () => LESSONS.map((_, i) => i).filter((i) => noteOf(i));
+
+function grow(ta) {
+  ta.style.height = "auto";
+  ta.style.height = Math.max(62, ta.scrollHeight + 2) + "px";
+}
+
+/* 저장한 메모를 textarea에 채워 넣는다 */
+document.querySelectorAll(".row").forEach((el) => {
+  const ta = el.querySelector(".memo textarea");
+  const v = state.notes[+el.dataset.i];
+  if (v) ta.value = v;
+});
+
+let noteT = null;
+board.addEventListener("input", (e) => {
+  const ta = e.target.closest(".memo textarea");
+  if (!ta) return;
+  const row = ta.closest(".row"), i = +row.dataset.i;
+  grow(ta);
+  if (ta.value.trim()) state.notes[i] = ta.value; else delete state.notes[i];
+  /* 표식과 카운터는 즉시 — 저장만 늦춘다 (타이머를 공유하므로 여기 두면 앞 행이 누락된다) */
+  row.classList.toggle("noted", !!noteOf(i));
+  document.getElementById("stNotes").textContent = notedIdx().length;
+  clearTimeout(noteT);
+  noteT = setTimeout(() => {
+    save();
+    const tag = row.querySelector(".saved");
+    tag.classList.add("on");
+    setTimeout(() => tag.classList.remove("on"), 1100);
+  }, 400);
+});
+
+/* 펼칠 때 높이를 내용에 맞춘다 — 접힌 상태에선 scrollHeight가 0이라 여기서 해야 한다 */
+function fitMemo(row) {
+  const ta = row.querySelector(".memo textarea");
+  if (ta) grow(ta);
+}
+
+/* 모아보기 — 마크다운 한 장으로 */
+function notesMarkdown() {
+  const idxs = notedIdx();
+  const today = new Date().toISOString().slice(0, 10);
+  let out = "# 주식 데스크 · 내 메모\n\n> " + today + " · " + idxs.length + "개 항목 · " +
+    state.done.length + "/" + TOTAL + " 체결\n";
+  SESSIONS.forEach((ss, s) => {
+    const mine = bySession[s].filter((i) => noteOf(i));
+    if (!mine.length) return;
+    out += "\n## " + ss.code + " · " + ss.name + "\n";
+    mine.forEach((i) => {
+      out += "\n### " + String(i + 1).padStart(2, "0") + ". " + LESSONS[i].t +
+        (isDone(i) ? " ✓" : "") + "\n" + state.notes[i].trim() + "\n";
+    });
+  });
+  if (!idxs.length) out += "\n_아직 메모가 없다. 항목을 펼쳐 '내 메모'에 한 줄 적어보자._\n";
+  return out;
+}
+
+const sheet = document.getElementById("sheet");
+document.getElementById("notesBtn").addEventListener("click", () => {
+  document.getElementById("sheetText").value = notesMarkdown();
+  document.getElementById("sheetSub").textContent =
+    notedIdx().length + "개 항목 · markdown — 고쳐서 복사해도 된다";
+  sheet.classList.add("on");
+});
+document.getElementById("closeSheet").addEventListener("click", () => sheet.classList.remove("on"));
+sheet.addEventListener("click", (e) => { if (e.target === sheet) sheet.classList.remove("on"); });
+document.addEventListener("keydown", (e) => {
+  if (e.key === "Escape") sheet.classList.remove("on");
+});
+
+document.getElementById("copyNotes").addEventListener("click", () => {
+  const ta = document.getElementById("sheetText");
+  const msg = document.getElementById("copyMsg");
+  const done = () => { msg.classList.add("on"); setTimeout(() => msg.classList.remove("on"), 1400); };
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(ta.value).then(done, () => { ta.select(); });
+  } else {
+    ta.select(); try { document.execCommand("copy"); done(); } catch (err) { /* ignore */ }
+  }
+});
+
+document.getElementById("dlNotes").addEventListener("click", () => {
+  const blob = new Blob([document.getElementById("sheetText").value],
+    { type: "text/markdown;charset=utf-8" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "주식데스크-메모-" + new Date().toISOString().slice(0, 10) + ".md";
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
 
 /* ==========================================================================
    상호작용 · interactions
@@ -1094,7 +1256,10 @@ board.addEventListener("click", (e) => {
 
   if (e.target.closest(".fill")) { toggle(i); refresh(); return; }
   if (e.target.closest(".close")) { row.classList.remove("open"); return; }
-  if (e.target.closest(".r-head")) { row.classList.toggle("open"); }
+  if (e.target.closest(".r-head")) {
+    row.classList.toggle("open");
+    if (row.classList.contains("open")) fitMemo(row);
+  }
 });
 
 document.getElementById("foldAll").addEventListener("click", () => {
@@ -1121,7 +1286,8 @@ q.addEventListener("input", () => {
     sec.querySelectorAll(".row").forEach((row) => {
       const l = LESSONS[+row.dataset.i];
       const hay = (l.t + " " + l.en + " " + l.sum + " " + l.body + " " + l.chk + " " +
-        l.myth.x + " " + l.myth.o + " " + l.do.join(" ") + " " + l.keys.join(" ")).toLowerCase();
+        l.myth.x + " " + l.myth.o + " " + l.do.join(" ") + " " + l.keys.join(" ") + " " +
+        (state.notes[+row.dataset.i] || "")).toLowerCase();
       const hit = hay.indexOf(term) !== -1;
       row.classList.toggle("hidden", !hit);
       if (hit) { any = true; n++; }
@@ -1131,11 +1297,17 @@ q.addEventListener("input", () => {
   hits.textContent = n + "건";
 });
 
+/* 초기화 — 메모는 진행보다 귀하니 따로 묻는다 */
 document.getElementById("reset").addEventListener("click", (e) => {
   e.preventDefault();
-  if (!confirm("진행 상황을 모두 지웁니다. 계속할까요?")) return;
+  if (!confirm("체결 표시를 모두 지웁니다. 메모는 그대로 둡니다. 계속할까요?")) return;
   state.done = [];
-  try { localStorage.removeItem(STORE_KEY); } catch (err) { /* ignore */ }
+  const n = notedIdx().length;
+  if (n && confirm("메모 " + n + "개도 함께 지울까요? 되돌릴 수 없습니다.")) {
+    state.notes = {};
+    document.querySelectorAll(".memo textarea").forEach((ta) => { ta.value = ""; grow(ta); });
+  }
+  save();
   refresh();
 });
 
