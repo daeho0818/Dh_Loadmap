@@ -10,9 +10,12 @@ permissions:
   pages: write
   id-token: write
 
+# 동시에 한 건만 배포한다. 다만 진행 중인 배포는 취소하지 않는다 —
+# 배포 도중에 취소되면 Pages 쪽에 배포가 물려서 이후 배포가 계속 대기하다 실패한다.
+# (GitHub 공식 Pages 워크플로도 cancel-in-progress: false 를 쓴다)
 concurrency:
   group: pages
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   build:
