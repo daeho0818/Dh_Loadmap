@@ -187,6 +187,47 @@
     transition: opacity .2s; }
   .saved.on { opacity: 1; }
 
+  /* ---------- 세션 총정리 (읽기 전용) ---------- */
+  .recap { border-top: 1px solid var(--border); background: var(--surface-2); }
+  .rc-head { display: grid; grid-template-columns: 38px 1fr auto; gap: 12px;
+    align-items: center; padding: 12px 14px 12px 12px; cursor: pointer;
+    border-left: 2px solid var(--gold); transition: background .12s; }
+  .rc-head:hover { background: var(--surface-3); }
+  .rc-mark { text-align: right; color: var(--gold); font-size: 12px; }
+  .rc-mid { min-width: 0; }
+  .rc-t { font-size: 14.5px; font-weight: 600; color: var(--gold); letter-spacing: -.1px; }
+  .rc-en { font-family: var(--mono); font-size: 10.5px; color: var(--muted);
+    margin-left: 7px; font-weight: 400; }
+  .rc-sum { font-size: 12.8px; color: var(--text-2); margin-top: 2px;
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .recap.open .rc-sum { display: none; }
+  .rc-tag { font-family: var(--mono); font-size: 10.5px; color: var(--muted); white-space: nowrap; }
+  @media (max-width: 620px) {
+    .rc-head { grid-template-columns: 28px 1fr auto; gap: 8px; padding: 11px 10px 11px 8px; }
+    .rc-en, .rc-tag { display: none; }
+  }
+
+  .rc-body { display: none; padding: 2px 18px 20px 52px;
+    border-left: 2px solid var(--gold); background: var(--surface-2); }
+  .recap.open .rc-body { display: block; }
+  @media (max-width: 620px) { .rc-body { padding: 2px 12px 18px 14px; } }
+  .rc-line { font-size: 14.5px; color: var(--text); line-height: 1.65;
+    background: var(--gold-dim); border-radius: 10px; padding: 12px 14px; margin-bottom: 4px; }
+  .rc-line b { color: var(--gold); font-weight: 600; }
+  .rc-body h3 { font-family: var(--mono); font-size: 10.5px; letter-spacing: .09em;
+    color: var(--muted); text-transform: uppercase; margin: 18px 0 7px; font-weight: 500; }
+  .rc-body ul { margin: 0; padding-left: 17px; }
+  .rc-body li { font-size: 13.6px; color: var(--text-2); margin: 6px 0; line-height: 1.6; }
+  .rc-body li b { color: var(--text); font-weight: 600; }
+  .rc-keep li::marker { color: var(--up); }
+  .rc-myth li::marker { color: var(--down); }
+  .rc-myth li { color: var(--muted); }
+  .rc-chk { list-style: none; padding-left: 0; }
+  .rc-chk li { position: relative; padding-left: 22px; }
+  .rc-chk li::before { content: "☐"; position: absolute; left: 0;
+    color: var(--gold); font-size: 14px; }
+  .rc-act { margin-top: 18px; }
+
   /* ---------- 메모장 ---------- */
   .memo { position: relative; }
   .memo textarea { display: block; width: 100%; resize: none; overflow: hidden;
@@ -887,6 +928,181 @@ const LESSONS = [
 ];
 
 /* ==========================================================================
+   세션 총정리 · recap (읽기 전용 — 체결/메모 없음, 진행률에도 안 들어간다)
+   ========================================================================== */
+const RECAPS = [
+{ line:"주식은 회사의 조각이고, 그 값은 회사가 정하는 게 아니라 <b>방금 두 사람이 합의한 결과</b>다.",
+  keep:[
+    "주식 = 지분. 첫 질문은 <b>이 회사는 누구에게 무엇을 팔아 돈을 버는가</b>",
+    "회사가 주식을 파는 건 <b>갚지 않아도 되는 돈</b>을 구하는 것 — 대신 지분이 희석된다",
+    "주가 = <b>마지막 체결가</b>. 미래의 약속이 아니라 지나간 사실의 기록",
+    "회사끼리 비교는 주가가 아니라 <b>시가총액</b>으로. 액면분할은 가치를 바꾸지 않는다",
+    "주주는 청산 순위 <b>맨 끝</b>. 그 대가로 상승분엔 위쪽 한도가 없다",
+    "배당은 <b>회사 금고에서 현금이 나가는 것</b> → 그만큼 주가가 빠진다(배당락)",
+    "지수의 장기 우상향에는 <b>생존편향</b>이 들어 있다 — 지수는 부진한 회사를 조용히 갈아끼운다",
+  ],
+  myths:[
+    "\"5,000원짜리가 50만원짜리보다 싸다\" → 주식 수가 다르다. 시가총액을 봐라",
+    "\"배당은 공짜 보너스\" → 배당락 + 세금까지 넣으면 그 자체론 손해다",
+    "\"주식은 결국 우상향\" → <b>시장 전체</b> 얘기이고, <b>아주 긴 시간</b> 얘기다",
+  ],
+  check:[
+    "호가창을 보고 <b>지금 사면 얼마 / 팔면 얼마</b>를 짚을 수 있다",
+    "배당락이 왜 일어나는지 <b>회사 금고</b>로 설명할 수 있다",
+    "\"주식은 우상향한다\"에 붙어야 할 단서 두 개를 말할 수 있다",
+  ] },
+
+{ line:"주문 한 건이 나가기까지 <b>계좌·주문유형·시간·수수료·세금·환율</b>이 전부 개입한다. 첫 거래의 목적은 수익이 아니라 절차 익히기.",
+  keep:[
+    "주식은 예탁결제원에 내 이름으로 보관된다. 증권사는 <b>통로</b>",
+    "<b>시장가</b>는 체결 보장·가격 미보장, <b>지정가</b>는 그 반대. 사고는 대개 시장가에서 난다",
+    "체결은 <b>가격 우선 → 시간 우선</b>",
+    "정규장 09:00~15:30. 시작과 끝은 <b>동시호가</b>로 한 번에 결정된다(시가·종가)",
+    "수익률은 <b>세후·수수료 후</b>가 진짜. 국내와 해외는 세금 구조가 다르다",
+    "해외 주식은 <b>주가와 환율</b> 두 가지에 동시에 투자하는 것",
+    "ETF 확인 4가지 — <b>추종 지수 / 총보수 / 규모·거래량 / 추적오차</b>",
+  ],
+  myths:[
+    "\"시장가가 안전하다\" → 체결은 보장돼도 <b>가격은 보장되지 않는다</b>",
+    "\"수수료 0.015%는 무시해도 된다\" → 횟수 × 세월이면 복리로 갉아먹는다",
+    "\"애플이 10% 올랐으니 내 계좌도 10%\" → 환율이 반대로 가면 상쇄된다",
+  ],
+  check:[
+    "내 주문이 왜 아직 미체결인지 <b>우선순위</b>로 설명할 수 있다",
+    "동시호가에서 가격이 <b>한 번에</b> 정해진다는 게 무슨 뜻인지 안다",
+    "ETF 네 가지 확인 항목을 외우지 않고 <b>이유와 함께</b> 말할 수 있다",
+  ] },
+
+{ line:"화면의 모든 숫자는 <b>지나간 거래의 기록</b>이다. 읽는 법은 익히되, 그걸로 미래를 맞히려 들지 않는다.",
+  keep:[
+    "캔들 하나 = <b>시가·고가·저가·종가</b> 네 숫자의 압축. 한국은 <b>빨강이 상승</b>(미국은 반대)",
+    "거래량 없이 오른 가격은 <b>가볍다</b> — 되돌아가기도 쉽다",
+    "지수는 가중평균. <b>무엇으로 가중하는지</b>가 핵심(시총가중이면 큰 회사가 끌고 간다)",
+    "분산은 <b>종목 개수가 아니라 상관관계</b>로 판단한다",
+    "상·하한가·VI·서킷브레이커는 <b>속도만 늦출 뿐</b> 방향은 못 막는다",
+    "공매도는 손실에 <b>상한이 없다</b>. 다만 공매도 잔고는 읽을 만한 데이터",
+    "기사보다 <b>공시 원문</b>(DART). 기사엔 요약과 해석이 섞인다",
+  ],
+  myths:[
+    "\"지수가 올랐으면 대부분 종목이 올랐다\" → 큰 회사 몇 개가 끌어올렸을 수 있다",
+    "\"안전장치가 있으니 큰 손실은 안 난다\" → 하한가에 갇히면 팔지도 못한다",
+    "\"여러 종목 샀으니 분산됐다\" → 같은 섹터 5종목은 사실상 1종목",
+  ],
+  check:[
+    "긴 윗꼬리 캔들 하나를 보고 그날 무슨 일이 있었는지 <b>문장으로</b> 풀 수 있다",
+    "내 포트폴리오에서 <b>사실상 같은 베팅</b>인 종목 묶음을 찾아낼 수 있다",
+  ] },
+
+{ line:"재무제표 세 장은 <b>각각 다른 질문</b>에 답한다. 이익에는 판단이 섞이지만 <b>현금은 사실</b>이다.",
+  keep:[
+    "손익계산서=<b>기간</b>의 성적표 / 재무상태표=<b>시점</b>의 사진 / 현금흐름표=그 사이 현금의 이동",
+    "매출보다 <b>영업이익률</b>. 순이익엔 일회성이 섞이니 추세는 영업이익이 정직하다",
+    "자산 = 부채 + 자본. 부채는 <b>크기보다 감당 가능성</b>(이자보상배율 &lt; 1이면 벌어서 이자도 못 낸다)",
+    "순이익 ≠ 현금. 외상으로 팔면 이익은 잡히고 현금은 안 들어온다 → <b>흑자도산</b>",
+    "ROE는 <b>실력인지 빚인지</b> 분해해서 봐야 한다(듀폰 분해)",
+    "PER·PBR은 <b>가격표</b>일 뿐. 반드시 같은 업종·같은 시기와 비교",
+    "업종마다 <b>잣대가 다르다</b> — 은행·유통·바이오는 보는 지표 자체가 다르다",
+  ],
+  myths:[
+    "\"매출이 크면 좋은 회사\" → 매출 1조에 영업이익 100억인 회사도 있다",
+    "\"PER이 낮으면 싸다\" → 낮은 데는 이유가 있다. <b>밸류 트랩</b>",
+    "\"ROE가 높을수록 좋다\" → 빚을 늘려도 ROE는 올라간다. 부채비율과 함께 봐라",
+  ],
+  check:[
+    "사업의 <b>체력</b>을 보려면 영업이익과 순이익 중 어느 쪽인지 이유와 함께 말할 수 있다",
+    "흑자도산이 어떻게 가능한지 <b>매출채권</b>이라는 말로 설명할 수 있다",
+    "관심 회사의 매출이 <b>어디서</b> 나오는지 보고서를 열어 답할 수 있다",
+  ] },
+
+{ line:"가치는 <b>미래 현금의 현재가치</b>다. DCF는 정답을 얻는 도구가 아니라, <b>지금 가격에 어떤 가정이 들어 있는지 역산하는</b> 도구다.",
+  keep:[
+    "금리 = <b>할인율</b>. 금리가 오르면 <b>먼 미래의 현금</b>일수록 크게 깎인다 → 성장주가 더 아프다",
+    "상대가치는 빠르지만 <b>비교군 선택</b>이 결론을 좌우한다 — 고른 이유를 적어라",
+    "결과를 가장 크게 흔드는 건 <b>성장률 가정</b>이고, 그건 대개 틀린다",
+    "성장은 분해해서 본다 — 가격 인상인가, 수량 증가인가, 일회성인가",
+    "해자 확인 질문: <b>경쟁사가 돈을 무제한 써도 못 이기는가 / 고객이 옮기면 무엇을 잃는가</b>",
+    "<b>안전마진</b>은 싸게 사는 기술이 아니라 <b>내 오차를 인정하는 방법</b>",
+    "매수 전에 <b>내가 틀렸다고 인정할 조건</b>을 미리 적는다(프리모템)",
+  ],
+  myths:[
+    "\"업종 평균 PER보다 낮으니 저평가\" → 업종 전체가 고평가일 수도 있다",
+    "\"최근 3년 30% 성장했으니 앞으로도 30%\" → 고성장은 거의 예외 없이 둔화한다",
+    "\"확신이 있으면 흔들리지 않는다\" → 흔들릴 때 읽을 <b>문서</b>만이 막아준다",
+  ],
+  check:[
+    "할인율을 5%→10%로 올리면 가치가 왜 떨어지는지 직관으로 설명할 수 있다",
+    "내 밸류에이션이 <b>어떤 가정에 가장 민감한지</b> 짚을 수 있다",
+    "내 투자 논리를 <b>반증할 수 있는</b> 관측 가능한 조건을 두 개 댈 수 있다",
+  ] },
+
+{ line:"거시 뉴스는 <b>금리를 거쳐</b> 주가에 닿는다. 그리고 시장은 뉴스 자체가 아니라 <b>기대와의 차이</b>에 반응한다.",
+  keep:[
+    "사슬은 언제나 <b>지표 → 금리 → 자산 가격</b>",
+    "<b>예상된 뉴스는 이미 가격에 있다</b>. 그래서 좋은 실적에도 주가가 빠진다",
+    "인플레이션의 승패는 <b>가격 전가력</b>이 가른다 — 이게 해자와 이어진다",
+    "환율은 회사마다 <b>부호가 뒤집힌다</b>. 보고서에 민감도가 적혀 있으니 찾아 읽어라",
+    "사이클은 예측 도구가 아니라 <b>내 포트가 한쪽에 쏠렸는지 점검하는 용도</b>",
+    "금리가 오르면 <b>기존 채권 가격은 내린다</b>. 만기가 길수록 타격이 크다",
+    "실적은 <b>컨센서스 대비</b>로 평가되고, 정작 주가를 흔드는 건 <b>가이던스</b>",
+    "정보 위계: <b>원문(공시·실적자료) &gt; 데이터 &gt; 기사 &gt; 커뮤니티</b>",
+  ],
+  myths:[
+    "\"경제가 좋다는 뉴스 = 주가 상승\" → 과열이면 금리 우려로 오히려 빠진다",
+    "\"채권은 안전자산이라 손실이 없다\" → 중간에 팔면 금리 변동만큼 손실이 난다",
+    "\"정보를 많이 볼수록 판단이 좋아진다\" → 정확도는 그대로인데 <b>확신만</b> 커진다",
+  ],
+  check:[
+    "금리 상승이 성장주에 더 아픈 이유를 <b>할인</b>으로 설명할 수 있다",
+    "내 포트폴리오가 환율에 <b>어느 방향으로</b> 노출돼 있는지 말할 수 있다",
+    "어떤 투자 정보를 볼 때 <b>발신자의 이해관계</b>를 자동으로 따져본다",
+  ] },
+
+{ line:"개인에게 진짜 리스크는 변동성이 아니라 <b>영구 손실</b>이고, 그 대부분은 종목이 아니라 <b>크기</b>에서 온다.",
+  keep:[
+    "영구 손실 경로 셋 — 회사가 망함 / 너무 비싸게 삼 / <b>바닥에서 내가 팔아버림</b>",
+    "<b>-50%는 +100%로만 회복된다.</b> 손실과 회복은 대칭이 아니다",
+    "분산은 <b>상관관계</b>로 판단. 국가·섹터·통화로 쪼개 비중을 세어봐라",
+    "크기는 확신이 아니라 <b>틀렸을 때 감당 가능한가</b>로 정한다. 3년 안에 쓸 돈은 넣지 않는다",
+    "신용·미수는 <b>반대매매</b>, 레버리지 ETF는 <b>변동성 잠식</b>. 초보 구간에선 금지",
+    "<b>팔 조건은 사기 전에</b> 쓴다 — 논리가 깨졌나 / 목표에 닿았나 / 더 나은 기회인가",
+    "편향에는 이름이 있다 — 확증편향·손실회피·처분효과·앵커링·FOMO·최근성",
+    "<b>보장</b>한다는 말이 나오는 순간 그건 투자가 아니다",
+  ],
+  myths:[
+    "\"변동성이 낮으면 안전하다\" → 조용히 망하는 회사도 있다",
+    "\"반토막 났으니 50%만 오르면 본전\" → <b>100%</b> 올라야 본전이다",
+    "\"나는 감정적으로 투자하지 않는다\" → 편향은 느껴지지 않아서 편향이다",
+  ],
+  check:[
+    "내 포트가 -30%면 <b>얼마인지 금액으로</b> 말할 수 있다(비율 말고)",
+    "내 <b>최대 종목 비중 규칙</b>이 문서로 존재한다",
+    "최근 매매 3건에 각각 <b>어떤 편향</b>이 작용했는지 이름 붙일 수 있다",
+  ] },
+
+{ line:"남의 방법이 아니라 <b>내가 몇 년간 지킬 수 있는 한 장</b>을 만드는 것 — 그게 이 지도의 최종 산출물이다.",
+  keep:[
+    "장기적으로 <b>대부분의 프로가 지수를 못 이긴다</b> → 코어(지수) + 새틀라이트(개별) 구조",
+    "적립식의 진짜 가치는 수익률이 아니라 <b>계속하게 만드는 것</b>",
+    "리밸런싱은 <b>감정과 반대로</b> 움직이게 만드는 자동화 장치",
+    "자산배분은 나이보다 <b>이 돈을 언제 쓸 것인가</b>로 정한다",
+    "세제혜택 계좌는 <b>혜택과 인출 제약이 한 쌍</b>. 한도·요건은 가입 시점 공식 자료로 확인",
+    "스타일은 수익률이 아니라 <b>내가 지킬 수 있는가</b>로 고른다",
+    "백테스트 3대 함정 — <b>과최적화·생존편향·미래참조</b>(+수수료·세금 미반영)",
+    "원칙 한 장에는 반드시 <b>고칠 수 있는 조건과 시점</b>을 넣는다 — 급락장 한복판에서 고치지 않기 위해",
+  ],
+  myths:[
+    "\"가장 수익률 높은 방법을 찾아야 한다\" → 성과가 좋아도 못 지키면 0이다",
+    "\"원칙은 머릿속에 있으면 된다\" → 머릿속 원칙은 급변할 때 조용히 수정된다",
+    "\"10년 백테스트 연 30%니 좋은 전략\" → 조건을 맞추면 어떤 데이터에서도 나온다",
+  ],
+  check:[
+    "내 <b>투자 원칙 한 장</b>이 날짜와 함께 실제로 존재한다",
+    "그 한 장의 각 줄이 <b>왜</b> 있는지 설명할 수 있다",
+    "지금 내가 <b>가장 모르는 영역</b>을 지목하고 다음 계획을 말할 수 있다",
+  ] },
+];
+
+/* ==========================================================================
    상태 · state
    ========================================================================== */
 const state = load();
@@ -944,7 +1160,7 @@ const STEP = 1000 / TOTAL;          /* 항목 하나당 지수 상승분 */
 const board = document.getElementById("board");
 
 board.innerHTML = SESSIONS.map((ss, s) => {
-  const rows = bySession[s].map((i) => rowHTML(i)).join("");
+  const rows = bySession[s].map((i) => rowHTML(i)).join("") + recapHTML(s);
   return '' +
     '<section class="sess" id="s' + s + '" data-s="' + s + '">' +
       '<div class="s-head">' +
@@ -999,6 +1215,30 @@ function rowHTML(i) {
         '<button class="close">접기 · close</button>' +
         '<span class="saved">저장됨</span>' +
       '</div>' +
+    '</div>' +
+  '</article>';
+}
+
+/* 총정리 행 — 읽기 전용. .row가 아니라 .recap이라 체결/메모/진행률 로직이 건드리지 않는다 */
+function recapHTML(s) {
+  const r = RECAPS[s], ss = SESSIONS[s];
+  const li = (arr) => arr.map((t) => "<li>" + t + "</li>").join("");
+  return '' +
+  '<article class="recap" data-s="' + s + '">' +
+    '<div class="rc-head">' +
+      '<span class="rc-mark">✦</span>' +
+      '<div class="rc-mid">' +
+        '<div class="rc-t">' + esc(ss.name) + ' 총정리<span class="rc-en">recap</span></div>' +
+        '<div class="rc-sum">' + r.line + '</div>' +
+      '</div>' +
+      '<span class="rc-tag">읽기용</span>' +
+    '</div>' +
+    '<div class="rc-body">' +
+      '<div class="rc-line">' + r.line + '</div>' +
+      '<h3>남길 것 · keep</h3><ul class="rc-keep">' + li(r.keep) + '</ul>' +
+      '<h3>흔한 착각 · myths</h3><ul class="rc-myth">' + li(r.myths) + '</ul>' +
+      '<h3>넘어가기 전 자가 점검 · self-check</h3><ul class="rc-chk">' + li(r.check) + '</ul>' +
+      '<div class="rc-act"><button class="rc-close">접기 · close</button></div>' +
     '</div>' +
   '</article>';
 }
@@ -1250,6 +1490,14 @@ board.addEventListener("click", (e) => {
   const sHead = e.target.closest(".s-head");
   if (sHead) { sHead.parentElement.classList.toggle("folded"); return; }
 
+  /* 총정리는 펼치고 접는 것뿐 — 체결도 메모도 없다 */
+  const rc = e.target.closest(".recap");
+  if (rc) {
+    if (e.target.closest(".rc-close")) rc.classList.remove("open");
+    else if (e.target.closest(".rc-head")) rc.classList.toggle("open");
+    return;
+  }
+
   const row = e.target.closest(".row");
   if (!row) return;
   const i = +row.dataset.i;
@@ -1275,7 +1523,7 @@ const hits = document.getElementById("hits");
 q.addEventListener("input", () => {
   const term = q.value.trim().toLowerCase();
   if (!term) {
-    document.querySelectorAll(".row, .sess").forEach((el) => el.classList.remove("hidden"));
+    document.querySelectorAll(".row, .sess, .recap").forEach((el) => el.classList.remove("hidden"));
     hits.textContent = "";
     return;
   }
@@ -1290,6 +1538,14 @@ q.addEventListener("input", () => {
         (state.notes[+row.dataset.i] || "")).toLowerCase();
       const hit = hay.indexOf(term) !== -1;
       row.classList.toggle("hidden", !hit);
+      if (hit) { any = true; n++; }
+    });
+    sec.querySelectorAll(".recap").forEach((rc) => {
+      const r = RECAPS[+rc.dataset.s];
+      const hay = (r.line + " " + r.keep.join(" ") + " " + r.myths.join(" ") + " " +
+        r.check.join(" ")).toLowerCase();
+      const hit = hay.indexOf(term) !== -1;
+      rc.classList.toggle("hidden", !hit);
       if (hit) { any = true; n++; }
     });
     sec.classList.toggle("hidden", !any);
