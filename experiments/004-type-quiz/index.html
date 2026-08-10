@@ -213,7 +213,7 @@
         <span class="mc-tag">MODE A</span>
         <span class="mc-title">포켓몬 보고 타입 맞추기</span>
         <span class="mc-desc">포켓몬 한 마리가 뜨면 그 타입을 고릅니다.
-          단일이면 1개, 듀얼이면 2개. 맞히면 +2초.</span>
+          단일이면 1개, 듀얼이면 2개. 주어진 시간 안에 몇 개나.</span>
         <span class="mc-en">A Pokémon appears — pick its exact type(s).</span>
         <span class="mc-vis" id="visType"></span>
       </button>
@@ -377,8 +377,8 @@ const GENS = [1, 2, 3, 4, 5, 6, 7, 8, 9];
 const DUR_PRESETS = [[60, "1분"], [120, "2분"], [180, "3분"]];
 const DUR_PRESETS_RUSH = [[30, "30초"], [45, "45초"], [60, "1분"]]; // 러시는 짧게
 const HINT_PRESETS = [["hintDex", "도감 번호 표시"], ["hintGen", "세대 표시"]];
-const CLEAR_BONUS = 5000;   // mode A: 조합 클리어 보너스
-const RIGHT_BONUS = 2000;   // mode B: 정답 보너스
+const CLEAR_BONUS = 5000;   // mode B(타입→포켓몬): 조합 클리어 보너스
+// 모드 A(포켓몬→타입)·C(러시)는 보너스 시간 없음 — 주어진 시간이 곧 전부
 
 /* 모드 A = 타입→포켓몬(원래 버전), 모드 B = 포켓몬→타입 */
 let MODE = "combo";
@@ -399,8 +399,9 @@ const MODE_TEXT = {
     kicker: "experiment #004 · mode A",
     title: "포켓몬 보고 타입 맞추기",
     lead: `포켓몬이 한 마리씩 뜹니다. 그 포켓몬의 <strong>타입을 정확히</strong> 고르세요 —
-      단일이면 1개, 듀얼이면 2개. 맞히면 <strong>+2초</strong>. 순서는 상관없습니다.`,
-    leadEn: "One Pokémon at a time — pick its exact type(s). Correct answers give +2s.",
+      단일이면 1개, 듀얼이면 2개. 순서는 상관없습니다.
+      <strong>보너스 시간은 없습니다</strong> — 주어진 시간 안에 몇 개나 맞히는지가 점수.`,
+    leadEn: "One Pokémon at a time — pick its exact type(s). No time bonus — just beat the clock.",
     note: `리전 폼(알로라·가라르·히스이·팔데아)·메가진화·원시회귀·로토무 폼도 그대로 출제되니
       이름을 잘 보세요 — 같은 포켓몬이라도 폼에 따라 타입이 다릅니다. 반만 맞히면 오답이지만
       어느 쪽이 맞았는지 알려줍니다. 틀린 문제는 결과 화면에서 정답과 함께 다시 볼 수 있습니다.`,
@@ -447,7 +448,8 @@ let rushType = cfg.rushType;
 // 러시는 힌트 표시가 없으므로(찾은 것만 보여줌) 힌트 설정을 기록 키에서 뺀다.
 const bestKey = () => MODE === "rush"
   ? `ptq.best.rush${rushType}.${[...cfg.gens].sort().join("")}.${cfg.durRush}`
-  : `ptq.best.${MODE === "combo" ? "all" : "type"}.`
+  // 모드 A는 정답 보너스(+2초)를 없애면서 예전 기록과 비교가 불가능해졌다 → 키를 type2로 올린다.
+  : `ptq.best.${MODE === "combo" ? "all" : "type2"}.`
     + `${[...cfg.gens].sort().join("")}.${cfg.dur}.${cfg.hintDex ? 1 : 0}${cfg.hintGen ? 1 : 0}`;
 const getBest = () => { try { return JSON.parse(localStorage.getItem(bestKey())); } catch (e) { return null; } };
 
@@ -1041,8 +1043,7 @@ function submitType() {
     S.score++;
     S.streak++;
     S.bestStreak = Math.max(S.bestStreak, S.streak);
-    S.endAt += RIGHT_BONUS;
-    setFeedback2(`✓ ${typeLabel(answer)} 정답! +${RIGHT_BONUS / 1000}초`, "good");
+    setFeedback2(`✓ ${typeLabel(answer)} 정답!`, "good");
   } else {
     S.streak = 0;
     setFeedback2(hit.length
