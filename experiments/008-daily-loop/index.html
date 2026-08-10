@@ -1,0 +1,1074 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<title>#008 하루 고리 · Daily Loop</title>
+<meta name="description" content="요일별 루틴 템플릿을 직접 짜고 매일 채우는 체크판. 어제는 어땠는지, 어떤 요일에 잘 되는지까지 보여줍니다. Design your weekday routine template, fill it daily, and see which weekdays you keep it." />
+<style>
+  :root {
+    --bg: #0f1519; --surface: #161e24; --surface-2: #1d272e; --surface-3: #24313a;
+    --border: #27343c; --border-strong: #3a4b56;
+    --text: #e7eff2; --text-2: #a9bcc4; --muted: #7a8e97;
+    --accent: #4fd1ad; --accent-strong: #17a880; --accent-dim: #14342e;
+    --warn: #f0b429; --miss: #4c5a63;
+    --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", "Apple SD Gothic Neo", "Noto Sans KR", sans-serif;
+    --mono: ui-monospace, "Cascadia Code", Menlo, Consolas, monospace;
+    /* 달성률 색 계단 · sequential scale for completion */
+    --h0: #1d272e; --h1: #1f4a42; --h2: #2a7a63; --h3: #3ba888; --h4: #5ee0ba;
+    --shadow: 0 1px 2px rgba(0,0,0,.35);
+  }
+  @media (prefers-color-scheme: light) {
+    :root {
+      --bg: #f1f5f4; --surface: #ffffff; --surface-2: #e9efee; --surface-3: #dde7e5;
+      --border: #d3dedb; --border-strong: #b3c3bf;
+      --text: #17262a; --text-2: #4d6167; --muted: #7d9198;
+      --accent: #0f9b7a; --accent-strong: #0f9b7a; --accent-dim: #d3f0e6;
+      --warn: #c98209; --miss: #b7c5c8;
+      --h0: #e4ecea; --h1: #bfe6d8; --h2: #86d3b7; --h3: #43b593; --h4: #0f9b7a;
+      --shadow: 0 1px 2px rgba(20,40,45,.08);
+    }
+  }
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  html { -webkit-text-size-adjust: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+    font-family: var(--sans); line-height: 1.55; -webkit-font-smoothing: antialiased; }
+  .wrap { max-width: 680px; margin: 0 auto; padding: 26px 16px 90px; }
+
+  .kicker { font-family: var(--mono); font-size: 12px; color: var(--accent); }
+  h1 { font-size: 24px; font-weight: 600; margin: 4px 0 6px; letter-spacing: -.01em; }
+  h2 { font-size: 15px; font-weight: 600; margin: 26px 0 8px; }
+  h2 .en { color: var(--muted); font-weight: 400; font-size: 12px; font-family: var(--mono); margin-left: 6px; }
+  .lead { color: var(--text-2); font-size: 14px; margin: 0 0 2px; }
+  .lead-en { color: var(--muted); font-size: 12.5px; margin: 0 0 18px; }
+  .note { font-size: 12.5px; color: var(--muted); }
+  a { color: var(--accent); }
+
+  button { font-family: var(--sans); font-size: 14px; cursor: pointer;
+    border-radius: 10px; padding: 9px 14px; border: 1px solid var(--border-strong);
+    background: var(--surface); color: var(--text); transition: border-color .12s, background .12s; }
+  button:hover { border-color: var(--accent); }
+  button.primary { background: var(--accent-strong); color: #fff; border-color: var(--accent-strong); font-weight: 600; }
+  button.primary:hover { filter: brightness(1.08); }
+  button.ghost { background: transparent; border-color: var(--border); color: var(--text-2); }
+  input, select { font-family: var(--sans); font-size: 15px; color: var(--text);
+    background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 10px 12px; }
+  input:focus, select:focus { outline: none; border-color: var(--accent); }
+  .hidden { display: none !important; }
+
+  /* ---- tabs ---- */
+  .tabs { display: flex; gap: 4px; background: var(--surface-2); border-radius: 12px; padding: 4px; margin: 0 0 18px; }
+  .tab { flex: 1; border: none; background: transparent; color: var(--text-2); font-weight: 600;
+    font-size: 13.5px; padding: 9px 4px; border-radius: 9px; }
+  .tab:hover { border-color: transparent; color: var(--text); }
+  .tab[aria-selected="true"] { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+
+  /* ---- cards ---- */
+  .card { background: var(--surface); border: 0.5px solid var(--border); border-radius: 14px;
+    padding: 16px; margin-bottom: 12px; }
+  .card-head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+  .card-head .t { font-size: 13px; font-family: var(--mono); color: var(--muted); }
+
+  /* ---- date nav ---- */
+  .datenav { display: flex; align-items: center; gap: 8px; margin-bottom: 12px; }
+  .datenav .nav { padding: 8px 12px; font-family: var(--mono); line-height: 1; }
+  .datenav .cur { flex: 1; text-align: center; font-size: 15px; font-weight: 600; }
+  .datenav .cur small { display: block; font-size: 11px; color: var(--muted); font-family: var(--mono); font-weight: 400; }
+
+  /* ---- today hero ---- */
+  .hero { display: flex; gap: 16px; align-items: center; }
+  .hero .ringwrap { flex: none; position: relative; width: 104px; height: 104px; }
+  .hero .ringtext { position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center; }
+  .hero .ringtext b { font-size: 25px; font-weight: 600; letter-spacing: -.02em; }
+  .hero .ringtext span { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .hero .hinfo { flex: 1; min-width: 0; }
+  .hero .hline { font-size: 14.5px; color: var(--text-2); margin-bottom: 6px; }
+  .hero .hline b { color: var(--text); font-weight: 600; }
+  .hero .hsub { font-size: 12.5px; color: var(--muted); }
+  .ring-bg { stroke: var(--surface-3); }
+  .ring-fg { transition: stroke-dashoffset .5s cubic-bezier(.2,.9,.3,1), stroke .3s; }
+  .full .ringwrap { filter: drop-shadow(0 0 8px color-mix(in srgb, var(--accent) 55%, transparent)); }
+
+  /* ---- routine rows ---- */
+  .rlist { display: flex; flex-direction: column; gap: 8px; margin-top: 14px; }
+  .rrow { display: flex; align-items: center; gap: 10px; }
+  .rmain { flex: 1; min-width: 0; display: flex; align-items: center; gap: 11px; text-align: left;
+    background: var(--surface-2); border: 1px solid transparent; border-radius: 12px; padding: 11px 13px; }
+  .rmain:hover { border-color: var(--border-strong); }
+  .rmain.done { background: var(--accent-dim); border-color: color-mix(in srgb, var(--accent) 35%, transparent); }
+  .rmain.part { border-color: var(--border-strong); }
+  .mark { flex: none; width: 22px; height: 22px; border-radius: 7px; border: 2px solid var(--border-strong);
+    display: flex; align-items: center; justify-content: center; }
+  .rmain.done .mark { background: var(--accent-strong); border-color: var(--accent-strong); }
+  .mark svg { display: block; opacity: 0; transition: opacity .15s; }
+  .rmain.done .mark svg { opacity: 1; }
+  .rname { flex: 1; min-width: 0; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .rmain.done .rname { color: var(--text-2); }
+  .rcount { flex: none; font-family: var(--mono); font-size: 12px; color: var(--muted); }
+  .rmain.done .rcount { color: var(--accent); }
+  .pips { display: flex; gap: 3px; flex: none; }
+  .pip { width: 7px; height: 16px; border-radius: 2px; background: var(--surface-3); }
+  .pip.on { background: var(--accent); }
+  .minus { flex: none; padding: 9px 11px; font-family: var(--mono); line-height: 1; color: var(--muted); }
+  .bump { animation: bump .28s cubic-bezier(.2,1.5,.4,1); }
+  @keyframes bump { 0% { transform: scale(1); } 45% { transform: scale(1.025); } 100% { transform: scale(1); } }
+  .empty { text-align: center; color: var(--muted); font-size: 13.5px; padding: 26px 8px; }
+
+  /* ---- yesterday strip ---- */
+  .yday { display: flex; align-items: center; gap: 13px; }
+  .yday .ytext { flex: 1; min-width: 0; }
+  .yday .ytitle { font-size: 13.5px; font-weight: 600; margin-bottom: 2px; }
+  .yday .ymiss { font-size: 12.5px; color: var(--muted); }
+  .yday .ymiss b { color: var(--text-2); font-weight: 500; }
+
+  /* ---- week strip (7 rings) ---- */
+  .weekstrip { display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; }
+  .wday { display: flex; flex-direction: column; align-items: center; gap: 4px;
+    background: transparent; border: 1px solid transparent; border-radius: 10px; padding: 7px 2px; }
+  .wday:hover { border-color: var(--border-strong); }
+  .wday.today { border-color: var(--accent); }
+  .wday .dlab { font-size: 11px; color: var(--muted); font-family: var(--mono); }
+  .wday .dnum { font-size: 10px; color: var(--muted); font-family: var(--mono); }
+  .wday.sat .dlab { color: #7fb2e8; } .wday.sun .dlab { color: #e8899a; }
+
+  /* ---- bars (weekday tendency) ---- */
+  .bars { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; align-items: end; height: 132px; }
+  .barcol { display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 5px; }
+  .barval { font-size: 10.5px; font-family: var(--mono); color: var(--muted); }
+  .bar { width: 100%; max-width: 34px; border-radius: 5px 5px 2px 2px; background: var(--h2); min-height: 3px;
+    transition: height .45s cubic-bezier(.2,.9,.3,1); }
+  .barcol.best .bar { background: var(--accent); }
+  .barcol.best .barval { color: var(--accent); font-weight: 700; }
+  .barcol.worst .bar { background: var(--miss); }
+  .barlab { font-size: 11.5px; color: var(--text-2); }
+  .barbase { border-top: 1px solid var(--border); margin: 6px 0 0; padding-top: 6px;
+    display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; text-align: center; }
+
+  /* ---- heat grid (routine × weekday) ---- */
+  .heat { width: 100%; border-collapse: separate; border-spacing: 3px; font-size: 12px; }
+  .heat th { font-weight: 500; color: var(--muted); font-size: 11px; font-family: var(--mono); padding: 0 0 2px; }
+  .heat th.rowh { text-align: left; font-family: var(--sans); font-size: 12px; }
+  .heat td.rowh { text-align: left; color: var(--text-2); font-size: 13px; max-width: 0; overflow: hidden;
+    text-overflow: ellipsis; white-space: nowrap; padding-right: 6px; width: 40%; }
+  .cell { height: 26px; border-radius: 5px; background: var(--h0); text-align: center;
+    font-family: var(--mono); font-size: 10.5px; color: var(--text); }
+  .cell.off { background: transparent; border: 1px dashed var(--border); color: var(--muted); }
+  .cell.lv4 { color: #06231c; font-weight: 700; }
+  @media (prefers-color-scheme: light) { .cell.lv4 { color: #fff; } }
+
+  /* ---- history weeks ---- */
+  .hist { display: flex; flex-direction: column; gap: 4px; }
+  .histrow { display: grid; grid-template-columns: 52px repeat(7, 1fr); gap: 4px; align-items: center; }
+  .histrow .wl { font-family: var(--mono); font-size: 10.5px; color: var(--muted); }
+  .hcell { height: 22px; border-radius: 5px; background: var(--h0); }
+  .hcell.none { background: transparent; border: 1px dashed var(--border); }
+  .hcell.cur { box-shadow: 0 0 0 1.5px var(--accent); }
+  .legend { display: flex; align-items: center; gap: 5px; font-size: 11px; color: var(--muted); margin-top: 10px; }
+  .legend i { width: 16px; height: 11px; border-radius: 3px; display: inline-block; }
+
+  /* ---- stats ---- */
+  .stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+  .stat { background: var(--surface-2); border-radius: 10px; padding: 10px 12px; }
+  .stat b { display: block; font-size: 20px; font-weight: 600; letter-spacing: -.02em; }
+  .stat span { font-size: 11px; color: var(--muted); }
+
+  /* ---- settings ---- */
+  .field { margin-bottom: 12px; }
+  .field label { display: block; font-size: 12.5px; color: var(--text-2); margin-bottom: 5px; }
+  .field input[type="text"] { width: 100%; }
+  .daypick { display: flex; gap: 5px; }
+  .daypick button { flex: 1; padding: 9px 0; font-size: 13px; font-weight: 600; color: var(--muted);
+    background: var(--surface-2); border-color: transparent; }
+  .daypick button[aria-pressed="true"] { background: var(--accent-dim); color: var(--accent);
+    border-color: color-mix(in srgb, var(--accent) 45%, transparent); }
+  .presets { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 7px; }
+  .presets button { padding: 5px 10px; font-size: 12px; color: var(--text-2); border-radius: 999px; }
+  .inline2 { display: flex; gap: 8px; }
+  .inline2 .field { flex: 1; margin-bottom: 0; }
+  .inline2 input { width: 100%; }
+
+  .ritem { background: var(--surface-2); border-radius: 12px; padding: 12px 13px; margin-bottom: 8px; }
+  .ritem .top { display: flex; align-items: center; gap: 8px; }
+  .ritem .nm { flex: 1; min-width: 0; font-size: 14.5px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ritem .sub { font-size: 11.5px; color: var(--muted); font-family: var(--mono); margin-top: 3px; }
+  .iconbtn { padding: 6px 9px; font-size: 12px; color: var(--muted); background: transparent; border-color: var(--border); }
+  .iconbtn.arm { color: #fff; background: #c0392b; border-color: #c0392b; }
+  .dowchips { display: flex; gap: 3px; margin-top: 6px; }
+  .dowchip { width: 22px; height: 20px; border-radius: 5px; background: var(--surface-3); color: var(--muted);
+    font-size: 10.5px; display: flex; align-items: center; justify-content: center; }
+  .dowchip.on { background: var(--accent-dim); color: var(--accent); }
+  .row { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px; }
+  .seedlist { display: flex; flex-wrap: wrap; gap: 6px; justify-content: center; margin-top: 10px; }
+</style>
+<!-- 실험실에서 들어온 경우에만 "돌아가기" 링크를 노출 · show the back link only when arriving from the lab -->
+<style>.lab-back { display: none; } .from-lab .lab-back { display: revert; }</style>
+<script>
+(function () {
+  var fromQuery = new URLSearchParams(location.search).get("from") === "lab";
+  var fromSite = false;
+  try {
+    fromSite = !!document.referrer && new URL(document.referrer).origin === location.origin;
+  } catch (e) {}
+  if (fromQuery || fromSite) document.documentElement.classList.add("from-lab");
+})();
+</script>
+</head>
+<body>
+<main class="wrap">
+  <div class="kicker">experiment #008</div>
+  <h1>하루 고리 · Daily Loop</h1>
+  <p class="lead">요일별로 내 루틴을 직접 짜두면, 매일 그날 몫만 뜹니다. 하나씩 채워 고리를 닫으세요.</p>
+  <p class="lead-en">Design a routine template per weekday. Each day shows only that day's share — fill it and close the loop.</p>
+
+  <div class="tabs" role="tablist">
+    <button class="tab" role="tab" id="tab-today" aria-selected="true" data-view="today">오늘 · Today</button>
+    <button class="tab" role="tab" id="tab-look" aria-selected="false" data-view="look">되돌아보기 · Look back</button>
+    <button class="tab" role="tab" id="tab-set" aria-selected="false" data-view="set">루틴 설정 · Setup</button>
+  </div>
+
+  <!-- ======================= TODAY ======================= -->
+  <section id="view-today" role="tabpanel" aria-labelledby="tab-today">
+    <div class="datenav">
+      <button class="nav" id="prevDay" aria-label="이전 날 · previous day">‹</button>
+      <div class="cur"><span id="curDate">—</span><small id="curRel"></small></div>
+      <button class="nav" id="nextDay" aria-label="다음 날 · next day">›</button>
+      <button class="nav ghost hidden" id="todayBtn">오늘</button>
+    </div>
+
+    <div class="card" id="heroCard">
+      <div class="hero">
+        <div class="ringwrap" id="heroRing"></div>
+        <div class="hinfo">
+          <div class="hline" id="heroLine">—</div>
+          <div class="hsub" id="heroSub"></div>
+        </div>
+      </div>
+      <div class="rlist" id="rlist"></div>
+      <div class="empty hidden" id="dayEmpty"></div>
+    </div>
+
+    <div class="card" id="ydayCard">
+      <div class="yday">
+        <div class="ringwrap" style="width:52px;height:52px;flex:none;" id="ydayRing"></div>
+        <div class="ytext">
+          <div class="ytitle" id="ydayTitle">어제 · yesterday</div>
+          <div class="ymiss" id="ydayMiss"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-head"><span class="t" id="weekLabel">이번 주 · this week</span><span class="t" id="weekAvg"></span></div>
+      <div class="weekstrip" id="weekStrip"></div>
+    </div>
+
+    <p class="note" id="todayHint">한 번 누르면 +1, 다 채운 뒤 누르면 0으로 되돌아갑니다. <b>−</b>로 한 칸씩 되돌릴 수도 있어요.</p>
+  </section>
+
+  <!-- ======================= LOOK BACK ======================= -->
+  <section id="view-look" role="tabpanel" aria-labelledby="tab-look" class="hidden">
+    <div class="stats">
+      <div class="stat"><b id="stDays">0</b><span>기록한 날 · days logged</span></div>
+      <div class="stat"><b id="stChecks">0</b><span>누적 체크 · total checks</span></div>
+      <div class="stat"><b id="stAvg">—</b><span>평균 달성률 · average</span></div>
+    </div>
+
+    <h2>지난주 <span class="en">last week</span></h2>
+    <div class="card">
+      <div class="card-head"><span class="t" id="lastWkRange"></span><span class="t" id="lastWkAvg"></span></div>
+      <div class="weekstrip" id="lastWkStrip"></div>
+      <p class="note" id="lastWkVerdict" style="margin:12px 0 0;"></p>
+    </div>
+
+    <h2>요일 성향 <span class="en">weekday tendency</span></h2>
+    <p class="note" style="margin:-4px 0 10px;">기록 전체에서 요일별 평균 달성률. 어떤 요일이 무너지는지 보이면, 그 요일 루틴을 줄이면 됩니다.</p>
+    <div class="card">
+      <div class="bars" id="dowBars"></div>
+      <div class="barbase" id="dowLabels"></div>
+      <p class="note" id="dowVerdict" style="margin:12px 0 0;"></p>
+    </div>
+
+    <h2>루틴 × 요일 <span class="en">routine × weekday</span></h2>
+    <p class="note" style="margin:-4px 0 10px;">루틴 하나하나가 어느 요일에 살고 어느 요일에 죽는지. 점선 칸은 그 요일에 없는 루틴입니다.</p>
+    <div class="card">
+      <table class="heat" id="heatTable"></table>
+      <div class="legend" id="heatLegend"></div>
+    </div>
+
+    <h2>최근 12주 <span class="en">last 12 weeks</span></h2>
+    <div class="card">
+      <div class="hist" id="histGrid"></div>
+      <p class="note" style="margin:10px 0 0;">한 칸 = 하루. 진할수록 그날 고리를 많이 채운 겁니다.</p>
+    </div>
+  </section>
+
+  <!-- ======================= SETUP ======================= -->
+  <section id="view-set" role="tabpanel" aria-labelledby="tab-set" class="hidden">
+    <div class="card">
+      <div class="card-head"><span class="t" id="formTitle">새 루틴 · new routine</span></div>
+      <div class="field">
+        <label for="rName">이름 · name</label>
+        <input type="text" id="rName" maxlength="40" placeholder="예: 30분 걷기 / 물 8잔 / 책 10쪽" autocomplete="off" />
+      </div>
+      <div class="field">
+        <label>요일 · which days</label>
+        <div class="daypick" id="dayPick"></div>
+        <div class="presets">
+          <button data-preset="daily">매일</button>
+          <button data-preset="weekday">평일</button>
+          <button data-preset="weekend">주말</button>
+          <button data-preset="mwf">월·수·금</button>
+          <button data-preset="none">해제</button>
+        </div>
+      </div>
+      <div class="inline2">
+        <div class="field">
+          <label for="rTarget">하루 목표 횟수 · target per day</label>
+          <input type="number" id="rTarget" min="1" max="30" step="1" value="1" />
+        </div>
+        <div class="field">
+          <label for="rUnit">단위 · unit <span class="note">(선택)</span></label>
+          <input type="text" id="rUnit" maxlength="6" placeholder="잔 · 쪽 · 세트" autocomplete="off" />
+        </div>
+      </div>
+      <div class="row">
+        <button class="primary" id="saveRoutine">추가하기 · Add</button>
+        <button class="ghost hidden" id="cancelEdit">취소</button>
+      </div>
+      <p class="note" id="formErr" style="margin:10px 0 0;color:var(--warn);"></p>
+    </div>
+
+    <h2>내 루틴 <span class="en">my routines</span></h2>
+    <div id="routineList"></div>
+    <div class="seedlist" id="seedList"></div>
+
+    <h2>보관함 <span class="en">archived</span></h2>
+    <p class="note" style="margin:-4px 0 10px;">보관한 루틴은 오늘부터 안 뜨지만, 지난 기록은 그대로 남습니다.</p>
+    <div id="archiveList"></div>
+
+    <h2>데이터 <span class="en">data</span></h2>
+    <p class="note" style="margin:-4px 0 10px;">기록은 이 브라우저에만 저장됩니다. 서버로 전송되지 않아요 · everything stays in this browser.</p>
+    <div class="row">
+      <button id="exportBtn">JSON 내보내기 · Export</button>
+      <button id="importBtn">가져오기 · Import</button>
+      <input type="file" id="importFile" accept="application/json" class="hidden" />
+    </div>
+  </section>
+
+  <p class="note lab-back" style="margin-top:22px;"><a href="../../">← 실험실로 · back to the lab</a></p>
+</main>
+
+<script>
+"use strict";
+
+/* ==========================================================================
+   #008 하루 고리 · Daily Loop
+   요일별 루틴 템플릿 → 그날 몫만 체크 → 어제/지난주/요일별 회고.
+   저장소: localStorage 한 곳. 의존성 0.
+   ========================================================================== */
+
+const STORAGE_KEY = "lab.dailyloop.v1";
+const DOW_KO = ["월", "화", "수", "목", "금", "토", "일"];
+const DOW_KO_FULL = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"];
+
+let DB = { version: "v1", routines: [], log: {} };
+let viewDate = todayStr();   // 오늘 탭이 보고 있는 날짜
+let editingId = null;        // 설정 탭에서 편집 중인 루틴
+let formDays = [0, 1, 2, 3, 4, 5, 6];
+let bumpId = null;           // 방금 누른 행 (애니메이션용)
+
+/* ---------- persistence ---------- */
+function save() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(DB)); } catch (e) {} }
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) {
+      const d = JSON.parse(raw);
+      if (d && Array.isArray(d.routines)) DB = d;
+    }
+  } catch (e) {}
+  if (!DB.log || typeof DB.log !== "object") DB.log = {};
+  if (!Array.isArray(DB.routines)) DB.routines = [];
+}
+
+/* ---------- date helpers (로컬 시간 기준, 문자열 YYYY-MM-DD) ---------- */
+function fmt(d) {
+  return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+}
+function todayStr() { return fmt(new Date()); }
+function parseDate(s) { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
+function addDays(s, n) { const d = parseDate(s); d.setDate(d.getDate() + n); return fmt(d); }
+/* 0=월 … 6=일 */
+function dow(s) { return (parseDate(s).getDay() + 6) % 7; }
+/* 그 주의 월요일 */
+function mondayOf(s) { return addDays(s, -dow(s)); }
+function isoWeekLabel(s) {
+  const d = parseDate(s);
+  const t = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+  const day = t.getUTCDay() || 7;
+  t.setUTCDate(t.getUTCDate() + 4 - day);
+  const ys = new Date(Date.UTC(t.getUTCFullYear(), 0, 1));
+  const w = Math.ceil(((t - ys) / 86400000 + 1) / 7);
+  return t.getUTCFullYear() + "-W" + String(w).padStart(2, "0");
+}
+function humanDate(s) {
+  const d = parseDate(s);
+  return (d.getMonth() + 1) + "월 " + d.getDate() + "일 (" + DOW_KO[dow(s)] + ")";
+}
+function daysBetween(a, b) { return Math.round((parseDate(b) - parseDate(a)) / 86400000); }
+
+/* ---------- model ---------- */
+/* routine: { id, name, days:[0..6], target, unit, created:"YYYY-MM-DD", retired:null|"YYYY-MM-DD" } */
+
+function scheduledFor(dateStr) {
+  const w = dow(dateStr);
+  return DB.routines.filter(r =>
+    r.days.includes(w) &&
+    r.created <= dateStr &&
+    (!r.retired || dateStr < r.retired)
+  );
+}
+function countOf(dateStr, id) {
+  const day = DB.log[dateStr];
+  return (day && day[id]) || 0;
+}
+/* 하루 성적: {done, total, ratio(null=루틴 없는 날), items} */
+function dayStat(dateStr) {
+  const items = scheduledFor(dateStr);
+  let done = 0, total = 0;
+  for (const r of items) {
+    total += r.target;
+    done += Math.min(countOf(dateStr, r.id), r.target);
+  }
+  return { done, total, ratio: total ? done / total : null, items };
+}
+/* 기록이 존재하는 가장 이른 날 (루틴 생성일 중 최소) */
+function firstDay() {
+  let min = null;
+  for (const r of DB.routines) if (!min || r.created < min) min = r.created;
+  for (const k of Object.keys(DB.log)) if (!min || k < min) min = k;
+  return min;
+}
+/* 통계 대상 날짜들: 첫날 ~ 오늘 (미래 제외) */
+function historyDays() {
+  const start = firstDay();
+  if (!start) return [];
+  const out = [];
+  const end = todayStr();
+  let c = start;
+  let guard = 0;
+  while (c <= end && guard++ < 4000) { out.push(c); c = addDays(c, 1); }
+  return out;
+}
+
+/* ---------- misc ---------- */
+const $ = s => document.querySelector(s);
+function esc(t) { return String(t == null ? "" : t).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;"); }
+function pct(r) { return Math.round(r * 100) + "%"; }
+
+/* 달성률 → 색 계단 (0 / ~40 / ~70 / ~99 / 100) */
+function heatLevel(ratio) {
+  if (ratio == null) return -1;
+  if (ratio <= 0) return 0;
+  if (ratio < 0.4) return 1;
+  if (ratio < 0.7) return 2;
+  if (ratio < 1) return 3;
+  return 4;
+}
+function heatColor(ratio) {
+  const lv = heatLevel(ratio);
+  return lv < 0 ? "transparent" : "var(--h" + lv + ")";
+}
+function ringColor(ratio) {
+  if (ratio == null || ratio <= 0) return "var(--miss)";
+  if (ratio >= 1) return "var(--accent)";
+  if (ratio < 0.4) return "var(--h2)";
+  return "var(--h3)";
+}
+/* 고리 SVG */
+function ringSVG(ratio, size, stroke) {
+  const r = (size - stroke) / 2;
+  const c = 2 * Math.PI * r;
+  const filled = ratio == null ? 0 : Math.max(0, Math.min(1, ratio));
+  const off = c * (1 - filled);
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true">
+    <circle class="ring-bg" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke-width="${stroke}"
+      ${ratio == null ? 'stroke-dasharray="2 4"' : ""} />
+    <circle class="ring-fg" cx="${size / 2}" cy="${size / 2}" r="${r}" fill="none" stroke-width="${stroke}"
+      stroke="${ringColor(ratio)}" stroke-linecap="round"
+      stroke-dasharray="${c.toFixed(2)}" stroke-dashoffset="${off.toFixed(2)}"
+      transform="rotate(-90 ${size / 2} ${size / 2})" />
+  </svg>`;
+}
+
+/* ==========================================================================
+   VIEW: 오늘
+   ========================================================================== */
+function renderToday() {
+  const isToday = viewDate === todayStr();
+  const diff = daysBetween(viewDate, todayStr());
+  $("#curDate").textContent = humanDate(viewDate);
+  $("#curRel").textContent = isToday ? "오늘 · today"
+    : diff === 1 ? "어제 · yesterday"
+    : diff + "일 전 · " + diff + " days ago";
+  $("#nextDay").disabled = isToday;
+  $("#nextDay").style.opacity = isToday ? .35 : 1;
+  $("#todayBtn").classList.toggle("hidden", isToday);
+
+  const st = dayStat(viewDate);
+  const hero = $("#heroCard");
+  hero.classList.toggle("full", st.ratio === 1);
+  $("#heroRing").innerHTML = ringSVG(st.ratio, 104, 9) +
+    `<div class="ringtext"><b>${st.ratio == null ? "—" : Math.round(st.ratio * 100)}</b><span>${st.ratio == null ? "루틴 없음" : "%"}</span></div>`;
+
+  if (!DB.routines.length) {
+    $("#heroLine").innerHTML = "아직 루틴이 없습니다.";
+    $("#heroSub").textContent = "‘루틴 설정’ 탭에서 요일별로 하나만 만들어 보세요.";
+  } else if (st.ratio == null) {
+    $("#heroLine").innerHTML = "<b>" + DOW_KO_FULL[dow(viewDate)] + "</b>엔 잡아둔 루틴이 없습니다.";
+    $("#heroSub").textContent = "쉬는 요일 · a rest day by design";
+  } else if (st.ratio === 1) {
+    $("#heroLine").innerHTML = "<b>고리를 닫았습니다.</b> " + st.done + "/" + st.total;
+    $("#heroSub").textContent = "완주 · loop closed";
+  } else {
+    const left = st.total - st.done;
+    $("#heroLine").innerHTML = "<b>" + st.done + "/" + st.total + "</b> 채웠습니다. " + left + "칸 남았어요.";
+    $("#heroSub").textContent = DOW_KO_FULL[dow(viewDate)] + " · " + st.items.length + "개 루틴";
+  }
+
+  /* 루틴 행 */
+  const list = $("#rlist");
+  $("#dayEmpty").classList.toggle("hidden", st.items.length > 0);
+  if (!st.items.length) {
+    $("#dayEmpty").innerHTML = DB.routines.length
+      ? "이 요일엔 루틴이 없습니다.<br><span style='font-size:12px;'>No routine scheduled for this weekday.</span>"
+      : "루틴을 먼저 만들어 주세요.<br><span style='font-size:12px;'>Create a routine first — the Setup tab.</span>";
+  }
+  list.innerHTML = st.items.map(r => {
+    const n = countOf(viewDate, r.id);
+    const done = n >= r.target;
+    const cls = done ? " done" : (n > 0 ? " part" : "");
+    const bump = r.id === bumpId ? " bump" : "";
+    const unit = r.unit ? esc(r.unit) : "";
+    const meter = r.target === 1
+      ? `<span class="mark"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6.4l2.6 2.6L10 3.4" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`
+      : (r.target <= 10
+        ? `<span class="pips">${Array.from({ length: r.target }, (_, i) =>
+            `<i class="pip${i < n ? " on" : ""}"></i>`).join("")}</span>`
+        : `<span class="mark"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6.4l2.6 2.6L10 3.4" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`);
+    const counter = r.target === 1 ? "" : `<span class="rcount">${n}/${r.target}${unit}</span>`;
+    return `<div class="rrow">
+      <button class="rmain${cls}${bump}" data-inc="${r.id}" aria-pressed="${done}">
+        ${meter}<span class="rname">${esc(r.name)}</span>${counter}
+      </button>
+      ${n > 0 ? `<button class="minus" data-dec="${r.id}" aria-label="${esc(r.name)} 하나 되돌리기">−</button>` : ""}
+    </div>`;
+  }).join("");
+  bumpId = null;
+
+  list.querySelectorAll("[data-inc]").forEach(b => b.onclick = () => inc(b.dataset.inc));
+  list.querySelectorAll("[data-dec]").forEach(b => b.onclick = () => dec(b.dataset.dec));
+
+  renderYesterday();
+  renderWeekStrip();
+}
+
+function renderYesterday() {
+  const prev = addDays(viewDate, -1);
+  const st = dayStat(prev);
+  const isY = viewDate === todayStr();
+  $("#ydayRing").innerHTML = ringSVG(st.ratio, 52, 6);
+  $("#ydayTitle").textContent = (isY ? "어제" : "하루 전") + " · " + humanDate(prev) +
+    (st.ratio == null ? "" : " — " + st.done + "/" + st.total + " (" + pct(st.ratio) + ")");
+  if (st.ratio == null) {
+    $("#ydayMiss").textContent = "루틴이 없던 날 · nothing was scheduled";
+  } else if (st.ratio === 1) {
+    $("#ydayMiss").innerHTML = "<b>전부 해냈습니다.</b> 그대로 이어가세요.";
+  } else {
+    const missed = st.items
+      .filter(r => countOf(prev, r.id) < r.target)
+      .map(r => esc(r.name) + (r.target > 1 ? " (" + countOf(prev, r.id) + "/" + r.target + ")" : ""));
+    $("#ydayMiss").innerHTML = "못 채운 것: <b>" + missed.join(", ") + "</b>";
+  }
+}
+
+function renderWeekStrip() {
+  const mon = mondayOf(viewDate);
+  const today = todayStr();
+  const cells = [];
+  let sum = 0, cnt = 0;
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(mon, i);
+    const future = d > today;
+    const st = future ? { ratio: null, done: 0, total: 0 } : dayStat(d);
+    if (!future && st.ratio != null) { sum += st.ratio; cnt++; }
+    const cls = [
+      d === today ? "today" : "",
+      i === 5 ? "sat" : "", i === 6 ? "sun" : ""
+    ].join(" ");
+    cells.push(`<button class="wday ${cls}" data-goto="${d}" ${future ? "disabled" : ""}
+      style="${future ? "opacity:.35;" : ""}"
+      title="${d} ${st.ratio == null ? "(루틴 없음)" : st.done + "/" + st.total}">
+      <span class="dlab">${DOW_KO[i]}</span>
+      ${ringSVG(future ? null : st.ratio, 32, 4.5)}
+      <span class="dnum">${parseDate(d).getDate()}</span>
+    </button>`);
+  }
+  $("#weekStrip").innerHTML = cells.join("");
+  $("#weekLabel").textContent = isoWeekLabel(viewDate) + " · " + (viewDate >= mondayOf(today) ? "이번 주" : "그 주");
+  $("#weekAvg").textContent = cnt ? "평균 " + pct(sum / cnt) : "";
+  $("#weekStrip").querySelectorAll("[data-goto]").forEach(b => b.onclick = () => {
+    viewDate = b.dataset.goto; renderToday();
+  });
+}
+
+function inc(id) {
+  const r = DB.routines.find(x => x.id === id);
+  if (!r) return;
+  const cur = countOf(viewDate, id);
+  const next = cur >= r.target ? 0 : cur + 1;
+  setCount(viewDate, id, next);
+  bumpId = id;
+  renderToday();
+}
+function dec(id) {
+  setCount(viewDate, id, Math.max(0, countOf(viewDate, id) - 1));
+  renderToday();
+}
+function setCount(date, id, n) {
+  if (!DB.log[date]) DB.log[date] = {};
+  if (n <= 0) delete DB.log[date][id];
+  else DB.log[date][id] = n;
+  if (!Object.keys(DB.log[date]).length) delete DB.log[date];
+  save();
+}
+
+/* ==========================================================================
+   VIEW: 되돌아보기
+   ========================================================================== */
+function renderLook() {
+  const days = historyDays();
+  const scored = days.map(d => dayStat(d)).filter(s => s.ratio != null);
+
+  /* 누적 통계 — 스트릭이 아니라 쌓임 */
+  const logged = Object.keys(DB.log).length;
+  let checks = 0;
+  for (const d of Object.keys(DB.log)) for (const k of Object.keys(DB.log[d])) checks += DB.log[d][k];
+  $("#stDays").textContent = logged;
+  $("#stChecks").textContent = checks;
+  $("#stAvg").textContent = scored.length ? pct(scored.reduce((a, s) => a + s.ratio, 0) / scored.length) : "—";
+
+  renderLastWeek();
+  renderDowBars(days);
+  renderHeat(days);
+  renderHistory();
+}
+
+function renderLastWeek() {
+  const mon = addDays(mondayOf(todayStr()), -7);
+  const today = todayStr();
+  let sum = 0, cnt = 0, best = null, worst = null;
+  const cells = [];
+  for (let i = 0; i < 7; i++) {
+    const d = addDays(mon, i);
+    const st = d > today ? { ratio: null, done: 0, total: 0 } : dayStat(d);
+    if (st.ratio != null) {
+      sum += st.ratio; cnt++;
+      if (!best || st.ratio > best.ratio) best = { i, ratio: st.ratio };
+      if (!worst || st.ratio < worst.ratio) worst = { i, ratio: st.ratio };
+    }
+    cells.push(`<div class="wday ${i === 5 ? "sat" : ""} ${i === 6 ? "sun" : ""}"
+      title="${d} ${st.ratio == null ? "(루틴 없음)" : st.done + "/" + st.total}">
+      <span class="dlab">${DOW_KO[i]}</span>
+      ${ringSVG(st.ratio, 34, 4.5)}
+      <span class="dnum">${st.ratio == null ? "·" : Math.round(st.ratio * 100)}</span>
+    </div>`);
+  }
+  $("#lastWkStrip").innerHTML = cells.join("");
+  $("#lastWkRange").textContent = mon.slice(5) + " ~ " + addDays(mon, 6).slice(5);
+  $("#lastWkAvg").textContent = cnt ? "평균 " + pct(sum / cnt) : "기록 없음";
+
+  let verdict;
+  if (!cnt) {
+    verdict = "지난주 기록이 아직 없습니다. 이번 주가 첫 주라면 다음 주 이 칸이 채워집니다.";
+  } else if (best && worst && best.i === worst.i) {
+    verdict = "지난주엔 " + DOW_KO_FULL[best.i] + " 하루만 기록됐습니다 (" + pct(best.ratio) + ").";
+  } else {
+    verdict = "지난주 최고는 <b style='color:var(--accent)'>" + DOW_KO_FULL[best.i] + " " + pct(best.ratio) +
+      "</b>, 최저는 <b>" + DOW_KO_FULL[worst.i] + " " + pct(worst.ratio) + "</b>였습니다." +
+      (worst.ratio < 0.5 ? " " + DOW_KO_FULL[worst.i] + " 루틴이 너무 많은 건 아닌지 한 번 보세요." : "");
+  }
+  $("#lastWkVerdict").innerHTML = verdict;
+}
+
+function renderDowBars(days) {
+  const agg = Array.from({ length: 7 }, () => ({ sum: 0, n: 0 }));
+  for (const d of days) {
+    const st = dayStat(d);
+    if (st.ratio == null) continue;
+    const w = dow(d);
+    agg[w].sum += st.ratio; agg[w].n++;
+  }
+  const rates = agg.map(a => (a.n ? a.sum / a.n : null));
+  const known = rates.filter(r => r != null);
+  const max = known.length ? Math.max(...known) : 0;
+  const min = known.length ? Math.min(...known) : 0;
+  const multi = known.length > 1 && max !== min;
+
+  $("#dowBars").innerHTML = rates.map((r, i) => {
+    const h = r == null ? 0 : Math.max(3, Math.round(r * 100));
+    const cls = !multi ? "" : (r === max ? " best" : (r === min ? " worst" : ""));
+    return `<div class="barcol${cls}">
+      <span class="barval">${r == null ? "·" : Math.round(r * 100)}</span>
+      <div class="bar" style="height:${h}%" title="${DOW_KO_FULL[i]} ${r == null ? "기록 없음" : pct(r)} (${agg[i].n}일)"></div>
+    </div>`;
+  }).join("");
+  $("#dowLabels").innerHTML = rates.map((r, i) =>
+    `<span class="barlab" style="color:${i === 5 ? "#7fb2e8" : i === 6 ? "#e8899a" : "var(--text-2)"}">${DOW_KO[i]}</span>`
+  ).join("");
+
+  let v;
+  if (!known.length) {
+    v = "기록이 쌓이면 여기에 요일별 평균이 그려집니다.";
+  } else if (!multi) {
+    v = "아직 요일을 비교할 만큼 기록이 모이지 않았습니다. 2주쯤 채우면 윤곽이 보입니다.";
+  } else {
+    const bi = rates.indexOf(max), wi = rates.indexOf(min);
+    v = "가장 잘 되는 요일은 <b style='color:var(--accent)'>" + DOW_KO_FULL[bi] + " (" + pct(max) + ")</b>, " +
+      "가장 안 되는 요일은 <b>" + DOW_KO_FULL[wi] + " (" + pct(min) + ")</b>입니다. " +
+      (min < 0.5
+        ? DOW_KO_FULL[wi] + "은 의지 문제라기보다 계획 문제일 확률이 높습니다 — 그날 루틴을 덜어내 보세요."
+        : "무너지는 요일이 없네요. 지금 template이 몸에 맞습니다.");
+  }
+  $("#dowVerdict").innerHTML = v;
+}
+
+function renderHeat(days) {
+  const rows = DB.routines.filter(r => !r.retired);
+  if (!rows.length) {
+    $("#heatTable").innerHTML = "";
+    $("#heatLegend").innerHTML = "<span>루틴을 만들면 여기에 요일별 성적표가 생깁니다.</span>";
+    return;
+  }
+  /* routineId → [ {sum,n} × 7 ] */
+  const agg = new Map(rows.map(r => [r.id, Array.from({ length: 7 }, () => ({ sum: 0, n: 0 }))]));
+  for (const d of days) {
+    const w = dow(d);
+    for (const r of scheduledFor(d)) {
+      const a = agg.get(r.id);
+      if (!a) continue;
+      a[w].sum += Math.min(countOf(d, r.id), r.target) / r.target;
+      a[w].n++;
+    }
+  }
+  const head = "<tr><th class='rowh'>루틴</th>" + DOW_KO.map((d, i) =>
+    `<th style="${i === 5 ? "color:#7fb2e8" : i === 6 ? "color:#e8899a" : ""}">${d}</th>`).join("") + "</tr>";
+  const body = rows.map(r => {
+    const a = agg.get(r.id);
+    const tds = a.map((c, i) => {
+      if (!r.days.includes(i)) return `<td class="cell off" title="${esc(r.name)} · ${DOW_KO_FULL[i]}엔 없음">·</td>`;
+      if (!c.n) return `<td class="cell" title="${esc(r.name)} · ${DOW_KO_FULL[i]} 기록 없음"></td>`;
+      const rate = c.sum / c.n;
+      return `<td class="cell lv${heatLevel(rate)}" style="background:${heatColor(rate)}"
+        title="${esc(r.name)} · ${DOW_KO_FULL[i]} ${pct(rate)} (${c.n}회 중)">${Math.round(rate * 100)}</td>`;
+    }).join("");
+    return `<tr><td class="rowh" title="${esc(r.name)}">${esc(r.name)}</td>${tds}</tr>`;
+  }).join("");
+  $("#heatTable").innerHTML = head + body;
+  $("#heatLegend").innerHTML = "적음 " +
+    [0, 1, 2, 3, 4].map(l => `<i style="background:var(--h${l})"></i>`).join("") + " 많음";
+}
+
+function renderHistory() {
+  const today = todayStr();
+  const start = addDays(mondayOf(today), -7 * 11);
+  const rows = [];
+  for (let w = 0; w < 12; w++) {
+    const mon = addDays(start, w * 7);
+    const cells = [];
+    for (let i = 0; i < 7; i++) {
+      const d = addDays(mon, i);
+      if (d > today) { cells.push(`<div class="hcell none" title="${d}"></div>`); continue; }
+      const st = dayStat(d);
+      const cls = "hcell" + (st.ratio == null ? " none" : "") + (d === today ? " cur" : "");
+      cells.push(`<div class="${cls}" style="${st.ratio == null ? "" : "background:" + heatColor(st.ratio)}"
+        title="${d} (${DOW_KO[i]}) ${st.ratio == null ? "루틴 없음" : st.done + "/" + st.total + " " + pct(st.ratio)}"></div>`);
+    }
+    rows.push(`<div class="histrow"><span class="wl">${mon.slice(5)}</span>${cells.join("")}</div>`);
+  }
+  $("#histGrid").innerHTML =
+    `<div class="histrow"><span class="wl"></span>${DOW_KO.map(d =>
+      `<span class="wl" style="text-align:center">${d}</span>`).join("")}</div>` + rows.join("");
+}
+
+/* ==========================================================================
+   VIEW: 루틴 설정
+   ========================================================================== */
+const SEEDS = [
+  { name: "30분 걷기", days: [0, 1, 2, 3, 4, 5, 6], target: 1, unit: "" },
+  { name: "물 8잔", days: [0, 1, 2, 3, 4, 5, 6], target: 8, unit: "잔" },
+  { name: "책 10쪽", days: [0, 1, 2, 3, 4], target: 1, unit: "" },
+  { name: "스트레칭", days: [0, 1, 2, 3, 4, 5, 6], target: 1, unit: "" },
+  { name: "코드 한 커밋", days: [0, 1, 2, 3, 4], target: 1, unit: "" },
+  { name: "주말 정리", days: [5, 6], target: 1, unit: "" }
+];
+
+function renderDayPick() {
+  $("#dayPick").innerHTML = DOW_KO.map((d, i) =>
+    `<button type="button" data-dow="${i}" aria-pressed="${formDays.includes(i)}">${d}</button>`).join("");
+  $("#dayPick").querySelectorAll("[data-dow]").forEach(b => b.onclick = () => {
+    const i = Number(b.dataset.dow);
+    formDays = formDays.includes(i) ? formDays.filter(x => x !== i) : [...formDays, i].sort((a, b2) => a - b2);
+    renderDayPick();
+  });
+}
+
+function renderSetup() {
+  renderDayPick();
+  const active = DB.routines.filter(r => !r.retired);
+  const archived = DB.routines.filter(r => r.retired);
+
+  $("#routineList").innerHTML = active.map((r, idx) => `
+    <div class="ritem">
+      <div class="top">
+        <span class="nm">${esc(r.name)}</span>
+        <button class="iconbtn" data-up="${r.id}" ${idx === 0 ? "disabled style='opacity:.3'" : ""} aria-label="위로">↑</button>
+        <button class="iconbtn" data-down="${r.id}" ${idx === active.length - 1 ? "disabled style='opacity:.3'" : ""} aria-label="아래로">↓</button>
+        <button class="iconbtn" data-edit="${r.id}">수정</button>
+        <button class="iconbtn" data-retire="${r.id}">보관</button>
+      </div>
+      <div class="dowchips">${DOW_KO.map((d, i) =>
+        `<span class="dowchip${r.days.includes(i) ? " on" : ""}">${d}</span>`).join("")}</div>
+      <div class="sub">하루 ${r.target}${esc(r.unit) || "회"} · ${r.created}부터</div>
+    </div>`).join("") ||
+    `<p class="note">아직 루틴이 없습니다. 위에서 하나 추가하거나, 아래 예시를 눌러 바로 시작하세요.</p>`;
+
+  $("#seedList").innerHTML = active.length ? "" : SEEDS.map((s, i) =>
+    `<button class="iconbtn" data-seed="${i}">+ ${esc(s.name)}</button>`).join("");
+
+  $("#archiveList").innerHTML = archived.map(r => `
+    <div class="ritem">
+      <div class="top">
+        <span class="nm" style="color:var(--muted)">${esc(r.name)}</span>
+        <button class="iconbtn" data-restore="${r.id}">되살리기</button>
+        <button class="iconbtn" data-del="${r.id}">삭제</button>
+      </div>
+      <div class="sub">${r.created} ~ ${r.retired} 보관됨</div>
+    </div>`).join("") || `<p class="note">보관한 루틴이 없습니다.</p>`;
+
+  const L = $("#routineList"), A = $("#archiveList"), S = $("#seedList");
+  L.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => startEdit(b.dataset.edit));
+  L.querySelectorAll("[data-retire]").forEach(b => b.onclick = () => retire(b.dataset.retire));
+  L.querySelectorAll("[data-up]").forEach(b => b.onclick = () => move(b.dataset.up, -1));
+  L.querySelectorAll("[data-down]").forEach(b => b.onclick = () => move(b.dataset.down, 1));
+  A.querySelectorAll("[data-restore]").forEach(b => b.onclick = () => {
+    const r = DB.routines.find(x => x.id === b.dataset.restore);
+    if (r) { r.retired = null; save(); renderAll(); }
+  });
+  A.querySelectorAll("[data-del]").forEach(b => b.onclick = () => armDelete(b));
+  S.querySelectorAll("[data-seed]").forEach(b => b.onclick = () => {
+    const s = SEEDS[Number(b.dataset.seed)];
+    DB.routines.push({ id: newId(), name: s.name, days: [...s.days], target: s.target, unit: s.unit, created: todayStr(), retired: null });
+    save(); renderAll();
+  });
+}
+
+function newId() { return "r" + Date.now().toString(36) + Math.floor(Math.random() * 1e4).toString(36); }
+
+function move(id, dir) {
+  const i = DB.routines.findIndex(r => r.id === id);
+  const j = i + dir;
+  if (i < 0 || j < 0 || j >= DB.routines.length) return;
+  const [it] = DB.routines.splice(i, 1);
+  DB.routines.splice(j, 0, it);
+  save(); renderAll();
+}
+
+function retire(id) {
+  const r = DB.routines.find(x => x.id === id);
+  if (!r) return;
+  r.retired = todayStr();
+  if (editingId === id) resetForm();
+  save(); renderAll();
+}
+
+let armedDel = null;
+function armDelete(btn) {
+  const id = btn.dataset.del;
+  if (armedDel !== id) {
+    armedDel = id; btn.textContent = "정말 삭제?"; btn.classList.add("arm");
+    setTimeout(() => { if (armedDel === id) { armedDel = null; renderSetup(); } }, 4000);
+    return;
+  }
+  DB.routines = DB.routines.filter(x => x.id !== id);
+  for (const d of Object.keys(DB.log)) {
+    delete DB.log[d][id];
+    if (!Object.keys(DB.log[d]).length) delete DB.log[d];
+  }
+  armedDel = null;
+  save(); renderAll();
+}
+
+function startEdit(id) {
+  const r = DB.routines.find(x => x.id === id);
+  if (!r) return;
+  editingId = id;
+  formDays = [...r.days];
+  $("#rName").value = r.name;
+  $("#rTarget").value = r.target;
+  $("#rUnit").value = r.unit || "";
+  $("#formTitle").textContent = "루틴 수정 · edit routine";
+  $("#saveRoutine").textContent = "저장하기 · Save";
+  $("#cancelEdit").classList.remove("hidden");
+  renderDayPick();
+  $("#rName").focus();
+  window.scrollTo({ top: 0, behavior: "smooth" });
+}
+
+function resetForm() {
+  editingId = null;
+  formDays = [0, 1, 2, 3, 4, 5, 6];
+  $("#rName").value = "";
+  $("#rTarget").value = 1;
+  $("#rUnit").value = "";
+  $("#formTitle").textContent = "새 루틴 · new routine";
+  $("#saveRoutine").textContent = "추가하기 · Add";
+  $("#cancelEdit").classList.add("hidden");
+  $("#formErr").textContent = "";
+  renderDayPick();
+}
+
+function saveRoutine() {
+  const name = $("#rName").value.trim();
+  const target = Math.max(1, Math.min(30, parseInt($("#rTarget").value, 10) || 1));
+  const unit = $("#rUnit").value.trim().slice(0, 6);
+  if (!name) { $("#formErr").textContent = "이름을 적어주세요 · name required"; $("#rName").focus(); return; }
+  if (!formDays.length) { $("#formErr").textContent = "요일을 하나 이상 골라주세요 · pick at least one weekday"; return; }
+  if (editingId) {
+    const r = DB.routines.find(x => x.id === editingId);
+    if (r) { r.name = name; r.days = [...formDays]; r.target = target; r.unit = unit; }
+  } else {
+    DB.routines.push({ id: newId(), name, days: [...formDays], target, unit, created: todayStr(), retired: null });
+  }
+  save(); resetForm(); renderAll();
+}
+
+/* ==========================================================================
+   데이터 내보내기 / 가져오기
+   ========================================================================== */
+function exportJSON() {
+  const days = historyDays().map(d => dayStat(d)).filter(s => s.ratio != null);
+  const out = {
+    schema: "lab.dailyloop/v1",
+    exportedAt: new Date().toISOString(),
+    stats: {
+      routines: DB.routines.filter(r => !r.retired).length,
+      daysLogged: Object.keys(DB.log).length,
+      average: days.length ? Math.round(days.reduce((a, s) => a + s.ratio, 0) / days.length * 100) / 100 : null
+    },
+    routines: DB.routines,
+    log: DB.log
+  };
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = "daily-loop.json";
+  a.click();
+  URL.revokeObjectURL(a.href);
+}
+
+function importJSON(file) {
+  const rd = new FileReader();
+  rd.onload = () => {
+    try {
+      const d = JSON.parse(rd.result);
+      if (!Array.isArray(d.routines)) throw new Error("routines 없음");
+      const have = new Set(DB.routines.map(r => r.id));
+      let addedR = 0;
+      for (const r of d.routines) {
+        if (r && r.id && typeof r.name === "string" && Array.isArray(r.days) && !have.has(r.id)) {
+          DB.routines.push({
+            id: r.id, name: r.name, days: r.days.filter(n => n >= 0 && n <= 6),
+            target: Math.max(1, Math.min(30, Number(r.target) || 1)),
+            unit: typeof r.unit === "string" ? r.unit : "",
+            created: r.created || todayStr(), retired: r.retired || null
+          });
+          addedR++;
+        }
+      }
+      let addedD = 0;
+      for (const [date, day] of Object.entries(d.log || {})) {
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(date) || !day || typeof day !== "object") continue;
+        DB.log[date] = Object.assign({}, day, DB.log[date] || {});
+        addedD++;
+      }
+      save(); renderAll();
+      $("#importBtn").textContent = `가져옴 · 루틴 +${addedR} / ${addedD}일`;
+    } catch (err) {
+      $("#importBtn").textContent = "가져오기 실패 — JSON 확인";
+    }
+  };
+  rd.readAsText(file);
+}
+
+/* ==========================================================================
+   탭 / 초기화
+   ========================================================================== */
+function showView(v) {
+  for (const t of document.querySelectorAll(".tab")) {
+    t.setAttribute("aria-selected", String(t.dataset.view === v));
+  }
+  $("#view-today").classList.toggle("hidden", v !== "today");
+  $("#view-look").classList.toggle("hidden", v !== "look");
+  $("#view-set").classList.toggle("hidden", v !== "set");
+  if (v === "look") renderLook();
+  if (v === "set") renderSetup();
+}
+
+function renderAll() {
+  renderToday();
+  if (!$("#view-look").classList.contains("hidden")) renderLook();
+  if (!$("#view-set").classList.contains("hidden")) renderSetup();
+}
+
+function init() {
+  load();
+  document.querySelectorAll(".tab").forEach(t => t.onclick = () => showView(t.dataset.view));
+  $("#prevDay").onclick = () => { viewDate = addDays(viewDate, -1); renderToday(); };
+  $("#nextDay").onclick = () => {
+    if (viewDate >= todayStr()) return;
+    viewDate = addDays(viewDate, 1); renderToday();
+  };
+  $("#todayBtn").onclick = () => { viewDate = todayStr(); renderToday(); };
+  $("#saveRoutine").onclick = saveRoutine;
+  $("#cancelEdit").onclick = resetForm;
+  $("#rName").addEventListener("keydown", e => { if (e.key === "Enter") saveRoutine(); });
+  document.querySelectorAll("[data-preset]").forEach(b => b.onclick = () => {
+    const p = b.dataset.preset;
+    formDays = p === "daily" ? [0, 1, 2, 3, 4, 5, 6]
+      : p === "weekday" ? [0, 1, 2, 3, 4]
+      : p === "weekend" ? [5, 6]
+      : p === "mwf" ? [0, 2, 4]
+      : [];
+    renderDayPick();
+  });
+  $("#exportBtn").onclick = exportJSON;
+  $("#importBtn").onclick = () => $("#importFile").click();
+  $("#importFile").addEventListener("change", e => { if (e.target.files[0]) importJSON(e.target.files[0]); });
+  /* 키보드: ← → 로 날짜 이동 */
+  document.addEventListener("keydown", e => {
+    if (e.target.matches("input, select, textarea")) return;
+    if ($("#view-today").classList.contains("hidden")) return;
+    if (e.key === "ArrowLeft") { viewDate = addDays(viewDate, -1); renderToday(); }
+    if (e.key === "ArrowRight" && viewDate < todayStr()) { viewDate = addDays(viewDate, 1); renderToday(); }
+  });
+
+  resetForm();
+  showView(DB.routines.length ? "today" : "set");
+  renderToday();
+}
+init();
+</script>
+</body>
+</html>
