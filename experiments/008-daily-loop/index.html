@@ -17,6 +17,7 @@
     /* 달성률 색 계단 · sequential scale for completion */
     --h0: #1d272e; --h1: #1f4a42; --h2: #2a7a63; --h3: #3ba888; --h4: #5ee0ba;
     --shadow: 0 1px 2px rgba(0,0,0,.35);
+    color-scheme: dark;   /* 시간 입력의 네이티브 위젯까지 어둡게 · native time picker follows */
   }
   @media (prefers-color-scheme: light) {
     :root {
@@ -27,6 +28,7 @@
       --warn: #c98209; --miss: #b7c5c8;
       --h0: #e4ecea; --h1: #bfe6d8; --h2: #86d3b7; --h3: #43b593; --h4: #0f9b7a;
       --shadow: 0 1px 2px rgba(20,40,45,.08);
+      color-scheme: light;
     }
   }
   * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -103,6 +105,9 @@
   .rmain.done .mark { background: var(--accent-strong); border-color: var(--accent-strong); }
   .mark svg { display: block; opacity: 0; transition: opacity .15s; }
   .rmain.done .mark svg { opacity: 1; }
+  .rtime { flex: none; font-family: var(--mono); font-size: 12px; color: var(--text-2);
+    background: var(--surface-3); border-radius: 6px; padding: 2px 6px; letter-spacing: -.01em; }
+  .rmain.done .rtime { background: transparent; color: var(--muted); }
   .rname { flex: 1; min-width: 0; font-size: 15px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
   .rmain.done .rname { color: var(--text-2); }
   .rcount { flex: none; font-family: var(--mono); font-size: 12px; color: var(--muted); }
@@ -187,6 +192,9 @@
   .inline2 { display: flex; gap: 8px; }
   .inline2 .field { flex: 1; margin-bottom: 0; }
   .inline2 input { width: 100%; }
+  .timerow { display: flex; gap: 6px; align-items: center; flex-wrap: wrap; }
+  .timerow input[type="time"] { font-family: var(--mono); padding: 9px 10px; }
+  .timerow .quick { padding: 6px 10px; font-size: 12px; color: var(--text-2); border-radius: 999px; }
 
   .ritem { background: var(--surface-2); border-radius: 12px; padding: 12px 13px; margin-bottom: 8px; }
   .ritem .top { display: flex; align-items: center; gap: 8px; }
@@ -263,7 +271,8 @@
       <div class="weekstrip" id="weekStrip"></div>
     </div>
 
-    <p class="note" id="todayHint">한 번 누르면 +1, 다 채운 뒤 누르면 0으로 되돌아갑니다. <b>−</b>로 한 칸씩 되돌릴 수도 있어요.</p>
+    <p class="note" id="todayHint">한 번 누르면 +1, 다 채운 뒤 누르면 0으로 되돌아갑니다. <b>−</b>로 한 칸씩 되돌릴 수도 있어요.
+      시간을 정해둔 루틴은 이른 순으로 위에 오고, 안 정한 루틴은 그 아래에 그대로 놓입니다.</p>
   </section>
 
   <!-- ======================= LOOK BACK ======================= -->
@@ -332,6 +341,16 @@
           <input type="text" id="rUnit" maxlength="6" placeholder="잔 · 쪽 · 세트" autocomplete="off" />
         </div>
       </div>
+      <div class="field" style="margin-top:12px;">
+        <label for="rTime">시간 · time <span class="note">(선택 — 비워두면 체크판에 시간이 안 보입니다)</span></label>
+        <div class="timerow">
+          <input type="time" id="rTime" />
+          <button type="button" class="quick" data-time="07:00">07:00</button>
+          <button type="button" class="quick" data-time="12:00">12:00</button>
+          <button type="button" class="quick" data-time="22:00">22:00</button>
+          <button type="button" class="quick ghost" id="clearTime">지우기 · clear</button>
+        </div>
+      </div>
       <div class="row">
         <button class="primary" id="saveRoutine">추가하기 · Add</button>
         <button class="ghost hidden" id="cancelEdit">취소</button>
@@ -390,6 +409,18 @@ function load() {
   } catch (e) {}
   if (!DB.log || typeof DB.log !== "object") DB.log = {};
   if (!Array.isArray(DB.routines)) DB.routines = [];
+  /* time 은 나중에 붙은 필드 — 기존 루틴은 "지정 안 함"으로 채운다 · added later, backfill as unset */
+  for (const r of DB.routines) r.time = normTime(r.time);
+}
+
+/* "HH:MM" 만 통과. 그 외(빈 값·구형 데이터)는 "" = 시간 미지정 */
+function normTime(v) {
+  if (typeof v !== "string") return "";
+  const m = v.trim().match(/^(\d{1,2}):(\d{2})/);
+  if (!m) return "";
+  const h = Number(m[1]), mi = Number(m[2]);
+  if (h > 23 || mi > 59) return "";
+  return String(h).padStart(2, "0") + ":" + String(mi).padStart(2, "0");
 }
 
 /* ---------- date helpers (로컬 시간 기준, 문자열 YYYY-MM-DD) ---------- */
@@ -419,15 +450,25 @@ function humanDate(s) {
 function daysBetween(a, b) { return Math.round((parseDate(b) - parseDate(a)) / 86400000); }
 
 /* ---------- model ---------- */
-/* routine: { id, name, days:[0..6], target, unit, created:"YYYY-MM-DD", retired:null|"YYYY-MM-DD" } */
+/* routine: { id, name, days:[0..6], target, unit, time:""|"HH:MM", created:"YYYY-MM-DD", retired:null|"YYYY-MM-DD" } */
 
 function scheduledFor(dateStr) {
   const w = dow(dateStr);
-  return DB.routines.filter(r =>
-    r.days.includes(w) &&
-    r.created <= dateStr &&
-    (!r.retired || dateStr < r.retired)
-  );
+  return DB.routines
+    .map((r, i) => ({ r, i }))
+    .filter(({ r }) =>
+      r.days.includes(w) &&
+      r.created <= dateStr &&
+      (!r.retired || dateStr < r.retired)
+    )
+    /* 시간을 정한 것이 이른 순으로 먼저, 시간 없는 것은 뒤에 원래 순서대로 */
+    .sort((a, b) => {
+      const ta = a.r.time || "", tb = b.r.time || "";
+      if (ta && tb && ta !== tb) return ta < tb ? -1 : 1;
+      if (!!ta !== !!tb) return ta ? -1 : 1;
+      return a.i - b.i;
+    })
+    .map(({ r }) => r);
 }
 function countOf(dateStr, id) {
   const day = DB.log[dateStr];
@@ -558,9 +599,11 @@ function renderToday() {
             `<i class="pip${i < n ? " on" : ""}"></i>`).join("")}</span>`
         : `<span class="mark"><svg width="12" height="12" viewBox="0 0 12 12"><path d="M2 6.4l2.6 2.6L10 3.4" fill="none" stroke="#fff" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/></svg></span>`);
     const counter = r.target === 1 ? "" : `<span class="rcount">${n}/${r.target}${unit}</span>`;
+    /* 시간을 정한 루틴만 시각을 보여준다 · only timed routines show a clock */
+    const time = r.time ? `<span class="rtime">${r.time}</span>` : "";
     return `<div class="rrow">
       <button class="rmain${cls}${bump}" data-inc="${r.id}" aria-pressed="${done}">
-        ${meter}<span class="rname">${esc(r.name)}</span>${counter}
+        ${meter}${time}<span class="rname">${esc(r.name)}</span>${counter}
       </button>
       ${n > 0 ? `<button class="minus" data-dec="${r.id}" aria-label="${esc(r.name)} 하나 되돌리기">−</button>` : ""}
     </div>`;
@@ -806,12 +849,12 @@ function renderHistory() {
    VIEW: 루틴 설정
    ========================================================================== */
 const SEEDS = [
-  { name: "30분 걷기", days: [0, 1, 2, 3, 4, 5, 6], target: 1, unit: "" },
-  { name: "물 8잔", days: [0, 1, 2, 3, 4, 5, 6], target: 8, unit: "잔" },
-  { name: "책 10쪽", days: [0, 1, 2, 3, 4], target: 1, unit: "" },
-  { name: "스트레칭", days: [0, 1, 2, 3, 4, 5, 6], target: 1, unit: "" },
-  { name: "코드 한 커밋", days: [0, 1, 2, 3, 4], target: 1, unit: "" },
-  { name: "주말 정리", days: [5, 6], target: 1, unit: "" }
+  { name: "30분 걷기", days: [0, 1, 2, 3, 4, 5, 6], target: 1, unit: "", time: "" },
+  { name: "물 8잔", days: [0, 1, 2, 3, 4, 5, 6], target: 8, unit: "잔", time: "" },
+  { name: "책 10쪽", days: [0, 1, 2, 3, 4], target: 1, unit: "", time: "22:00" },
+  { name: "스트레칭", days: [0, 1, 2, 3, 4, 5, 6], target: 1, unit: "", time: "07:00" },
+  { name: "코드 한 커밋", days: [0, 1, 2, 3, 4], target: 1, unit: "", time: "" },
+  { name: "주말 정리", days: [5, 6], target: 1, unit: "", time: "" }
 ];
 
 function renderDayPick() {
@@ -840,7 +883,7 @@ function renderSetup() {
       </div>
       <div class="dowchips">${DOW_KO.map((d, i) =>
         `<span class="dowchip${r.days.includes(i) ? " on" : ""}">${d}</span>`).join("")}</div>
-      <div class="sub">하루 ${r.target} ${esc(r.unit) || "회"} · ${r.created}부터</div>
+      <div class="sub">${r.time ? r.time + " · " : ""}하루 ${r.target} ${esc(r.unit) || "회"} · ${r.created}부터</div>
     </div>`).join("") ||
     `<p class="note">아직 루틴이 없습니다. 위에서 하나 추가하거나, 아래 예시를 눌러 바로 시작하세요.</p>`;
 
@@ -869,7 +912,7 @@ function renderSetup() {
   A.querySelectorAll("[data-del]").forEach(b => b.onclick = () => armDelete(b));
   S.querySelectorAll("[data-seed]").forEach(b => b.onclick = () => {
     const s = SEEDS[Number(b.dataset.seed)];
-    DB.routines.push({ id: newId(), name: s.name, days: [...s.days], target: s.target, unit: s.unit, created: todayStr(), retired: null });
+    DB.routines.push({ id: newId(), name: s.name, days: [...s.days], target: s.target, unit: s.unit, time: s.time, created: todayStr(), retired: null });
     save(); renderAll();
   });
 }
@@ -918,6 +961,7 @@ function startEdit(id) {
   $("#rName").value = r.name;
   $("#rTarget").value = r.target;
   $("#rUnit").value = r.unit || "";
+  $("#rTime").value = r.time || "";
   $("#formTitle").textContent = "루틴 수정 · edit routine";
   $("#saveRoutine").textContent = "저장하기 · Save";
   $("#cancelEdit").classList.remove("hidden");
@@ -932,6 +976,7 @@ function resetForm() {
   $("#rName").value = "";
   $("#rTarget").value = 1;
   $("#rUnit").value = "";
+  $("#rTime").value = "";
   $("#formTitle").textContent = "새 루틴 · new routine";
   $("#saveRoutine").textContent = "추가하기 · Add";
   $("#cancelEdit").classList.add("hidden");
@@ -943,13 +988,14 @@ function saveRoutine() {
   const name = $("#rName").value.trim();
   const target = Math.max(1, Math.min(30, parseInt($("#rTarget").value, 10) || 1));
   const unit = $("#rUnit").value.trim().slice(0, 6);
-  if (!name) { $("#formErr").textContent = "이름을 적어주세요 · name required"; $("#rName").focus(); return; }
+  const time = normTime($("#rTime").value);   /* 비워두면 "" — 체크판에 시간 표시 없음 */
+  if (!name){ $("#formErr").textContent = "이름을 적어주세요 · name required"; $("#rName").focus(); return; }
   if (!formDays.length) { $("#formErr").textContent = "요일을 하나 이상 골라주세요 · pick at least one weekday"; return; }
   if (editingId) {
     const r = DB.routines.find(x => x.id === editingId);
-    if (r) { r.name = name; r.days = [...formDays]; r.target = target; r.unit = unit; }
+    if (r) { r.name = name; r.days = [...formDays]; r.target = target; r.unit = unit; r.time = time; }
   } else {
-    DB.routines.push({ id: newId(), name, days: [...formDays], target, unit, created: todayStr(), retired: null });
+    DB.routines.push({ id: newId(), name, days: [...formDays], target, unit, time, created: todayStr(), retired: null });
   }
   save(); resetForm(); renderAll();
 }
@@ -992,6 +1038,7 @@ function importJSON(file) {
             id: r.id, name: r.name, days: r.days.filter(n => n >= 0 && n <= 6),
             target: Math.max(1, Math.min(30, Number(r.target) || 1)),
             unit: typeof r.unit === "string" ? r.unit : "",
+            time: normTime(r.time),
             created: r.created || todayStr(), retired: r.retired || null
           });
           addedR++;
@@ -1053,6 +1100,9 @@ function init() {
       : [];
     renderDayPick();
   });
+  document.querySelectorAll("[data-time]").forEach(b => b.onclick = () => { $("#rTime").value = b.dataset.time; });
+  $("#clearTime").onclick = () => { $("#rTime").value = ""; };
+  $("#rTime").addEventListener("keydown", e => { if (e.key === "Enter") saveRoutine(); });
   $("#exportBtn").onclick = exportJSON;
   $("#importBtn").onclick = () => $("#importFile").click();
   $("#importFile").addEventListener("change", e => { if (e.target.files[0]) importJSON(e.target.files[0]); });
