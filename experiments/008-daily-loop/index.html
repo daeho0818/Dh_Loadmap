@@ -428,6 +428,28 @@ function fmt(d) {
   return d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
 }
 function todayStr() { return fmt(new Date()); }
+
+/* ---------- 날짜 넘김 감지 · day rollover ----------
+   페이지를 켜둔 채 자정이 지나면 viewDate 가 어제에 멈춘다. 오늘을 보고 있었다면 새 오늘로
+   따라가고, 과거를 보고 있었다면 그 자리는 두되 화면(버튼 상태·주간 띠)만 다시 그린다. */
+let seenToday = todayStr();
+let midnightTimer = null;
+function checkDayRollover() {
+  const now = todayStr();
+  if (now === seenToday) return false;
+  const wasOnToday = viewDate === seenToday;
+  seenToday = now;
+  if (wasOnToday) viewDate = now;
+  renderAll();
+  scheduleMidnight();
+  return true;
+}
+function scheduleMidnight() {
+  clearTimeout(midnightTimer);
+  const d = new Date();
+  const next = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 1, 0, 0, 2);
+  midnightTimer = setTimeout(checkDayRollover, next - d);
+}
 function parseDate(s) { const [y, m, d] = s.split("-").map(Number); return new Date(y, m - 1, d); }
 function addDays(s, n) { const d = parseDate(s); d.setDate(d.getDate() + n); return fmt(d); }
 /* 0=월 … 6=일 */
@@ -553,7 +575,8 @@ function renderToday() {
   $("#curRel").textContent = isToday ? "오늘 · today"
     : diff === 1 ? "어제 · yesterday"
     : diff + "일 전 · " + diff + " days ago";
-  $("#nextDay").disabled = isToday;
+  /* disabled 로 잠그면 자정이 지나도 클릭이 막혀 버린다 — 핸들러가 매번 날짜를 새로 판단하게 둔다 */
+  $("#nextDay").setAttribute("aria-disabled", String(isToday));
   $("#nextDay").style.opacity = isToday ? .35 : 1;
   $("#todayBtn").classList.toggle("hidden", isToday);
 
@@ -1082,12 +1105,15 @@ function renderAll() {
 function init() {
   load();
   document.querySelectorAll(".tab").forEach(t => t.onclick = () => showView(t.dataset.view));
-  $("#prevDay").onclick = () => { viewDate = addDays(viewDate, -1); renderToday(); };
+  $("#prevDay").onclick = () => { checkDayRollover(); viewDate = addDays(viewDate, -1); renderToday(); };
   $("#nextDay").onclick = () => {
+    const before = viewDate;
+    checkDayRollover();
+    if (viewDate !== before) return;  /* 자정 넘김으로 이미 새 오늘로 옮겨졌으면 그걸로 충분 */
     if (viewDate >= todayStr()) return;
     viewDate = addDays(viewDate, 1); renderToday();
   };
-  $("#todayBtn").onclick = () => { viewDate = todayStr(); renderToday(); };
+  $("#todayBtn").onclick = () => { checkDayRollover(); viewDate = todayStr(); renderToday(); };
   $("#saveRoutine").onclick = saveRoutine;
   $("#cancelEdit").onclick = resetForm;
   $("#rName").addEventListener("keydown", e => { if (e.key === "Enter") saveRoutine(); });
@@ -1110,9 +1136,19 @@ function init() {
   document.addEventListener("keydown", e => {
     if (e.target.matches("input, select, textarea")) return;
     if ($("#view-today").classList.contains("hidden")) return;
+    if (e.key !== "ArrowLeft" && e.key !== "ArrowRight") return;
+    const before = viewDate;
+    checkDayRollover();
+    if (viewDate !== before) return;
     if (e.key === "ArrowLeft") { viewDate = addDays(viewDate, -1); renderToday(); }
     if (e.key === "ArrowRight" && viewDate < todayStr()) { viewDate = addDays(viewDate, 1); renderToday(); }
   });
+  /* 자정 타이머 + 탭 복귀/화면 켜짐/절전 해제 때마다 날짜 재확인 (타이머는 절전 중 밀릴 수 있음) */
+  scheduleMidnight();
+  document.addEventListener("visibilitychange", () => { if (!document.hidden) checkDayRollover(); });
+  window.addEventListener("focus", checkDayRollover);
+  window.addEventListener("pageshow", checkDayRollover);
+  setInterval(checkDayRollover, 60 * 1000);
 
   resetForm();
   showView(DB.routines.length ? "today" : "set");
