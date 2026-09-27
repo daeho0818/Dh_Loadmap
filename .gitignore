@@ -7,6 +7,10 @@ data/profile.json
 data/wants.json
 data/evidence*.json
 
+# OAuth credentials — public web client IDs belong in shared/lab-config.js,
+# but downloaded client-secret JSON files must never be committed.
+client_secret_*.apps.googleusercontent.com.json
+
 # node / os
 node_modules/
 .DS_Store
