@@ -51,6 +51,32 @@ npm run serve      # 빌드 후 http://localhost:8775 로 미리보기
 10–30분짜리 설문. 결과 JSON이 앞으로 만들 실험의 방향을 정하는 자료가 된다.
 자세한 흐름은 [data/README.md](data/README.md) 참고.
 
+## Google Drive 동기화
+
+모든 실험 데이터는 기본적으로 기존처럼 브라우저 `localStorage`에 저장된다. Google 계정을
+연결한 경우에만 Google Drive의 숨김 `appDataFolder`에 `personal-lab-sync-v1.json` 파일로
+동기화한다. 최초 연결 때 양쪽에 서로 다른 값이 있으면 자동으로 덮어쓰지 않고 선택을
+요청하며, 선택하지 않은 쪽은 해당 브라우저에 백업한다.
+
+정적 GitHub Pages용 설정:
+
+1. [Google Cloud Console](https://console.cloud.google.com/)에서 프로젝트를 만들거나 선택한다.
+2. **APIs & Services → Library**에서 **Google Drive API**를 사용 설정한다.
+3. **Google Auth Platform**(구 OAuth consent screen)의 Branding/Audience를 설정한다.
+   외부 앱을 `Testing`으로 둘 경우 사용할 Google 계정을 Test users에 추가한다.
+4. **Data Access**에 `https://www.googleapis.com/auth/drive.appdata` scope만 추가한다.
+5. **Clients → Create client → Web application**을 만들고 Authorized JavaScript origins에
+   `https://daeho0818.github.io`를 추가한다. 로컬 확인이 필요하면
+   `http://localhost:8775`도 추가한다(Origin에는 `/Dh_Loadmap/` 같은 경로를 넣지 않는다).
+6. 생성된 공개 **Client ID**를 [`shared/lab-config.js`](shared/lab-config.js)의
+   `LAB_GOOGLE_CLIENT_ID`에 넣는다. Client secret은 생성하거나 저장소에 넣지 않는다.
+7. 소유자만 쓸 때는 `Testing` + Test user로 둘 수 있다. 장기 사용 시 Testing 상태의 토큰
+   정책을 피하려면 Audience에서 `In production`으로 게시하되, 요청 scope는 위 하나로 유지한다.
+
+OAuth를 설정하지 않았거나 로그아웃한 상태, Drive API 오류 상태에서는 원격 데이터로
+로컬 값을 지우지 않고 계속 브라우저 저장만 사용한다. `file://` 직접 열기에서는 OAuth 대신
+로컬 저장을 사용하고, 로그인 검증은 등록한 HTTP(S) origin에서 한다.
+
 ## 라이선스
 
 미정 (소유자 결정 대기).

@@ -19,6 +19,7 @@ const path = require('path');
 const ROOT = path.resolve(__dirname, '..');
 const EXPERIMENTS_DIR = path.join(ROOT, 'experiments');
 const TEMPLATES_DIR = path.join(__dirname, 'templates');
+const SHARED_DIR = path.join(ROOT, 'shared');
 const DIST = path.join(ROOT, 'dist');
 const CONFIG_PATH = path.join(ROOT, 'site.config.json');
 
@@ -193,6 +194,7 @@ function build() {
     path.join(TEMPLATES_DIR, 'style.css'),
     path.join(DIST, 'style.css')
   );
+  copyDir(SHARED_DIR, path.join(DIST, 'shared'));
 
   // copy experiments
   const distExp = path.join(DIST, 'experiments');
