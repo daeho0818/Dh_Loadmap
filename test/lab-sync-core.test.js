@@ -76,6 +76,32 @@ test("Drive document parser ignores unrelated keys but rejects malformed managed
   assert.throws(() => Core.normalizeDocument({ version: 1, items: { [K]: { value: 3 } } }), /Malformed/);
 });
 
+test("Drive API errors are categorized without exposing identifiers or links", () => {
+  const message = Core.describeDriveError({
+    status: 403,
+    reason: "accessNotConfigured",
+    apiMessage: "Drive API is disabled for project 123456789012. Visit https://console.example/setup as owner@example.com",
+  });
+  assert.match(message, /403 · accessNotConfigured/);
+  assert.match(message, /Drive API 사용 설정/);
+  assert.match(message, /Drive API is disabled/);
+  assert.doesNotMatch(message, /123456789012|https:\/\/|owner@example\.com/);
+  assert.match(message, /이 브라우저 저장은 유지/);
+  assert.match(Core.describeDriveError({ status: 403, reason: "SERVICE_DISABLED" }), /Drive API 사용 설정/);
+});
+
+test("network and expired-token errors give distinct recovery guidance", () => {
+  assert.match(Core.describeDriveError(new TypeError("Failed to fetch")), /네트워크 연결/);
+  assert.match(Core.describeDriveError({ status: 401, reason: "authError" }), /다시 연결/);
+});
+
+test("Drive writes use the v3 JSON version because browser CORS may hide ETag", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "shared", "lab-drive-sync.js"), "utf8");
+  assert.match(source, /files\(id,name,createdTime,modifiedTime,version\)/);
+  assert.match(source, /assertRemoteVersion/);
+  assert.doesNotMatch(source, /headers\.get\(["']etag["']\)/i);
+});
+
 test("every page loads the shared sync scripts in dependency order", () => {
   const root = path.join(__dirname, "..");
   const pages = [path.join(root, "site/templates/index.html")];

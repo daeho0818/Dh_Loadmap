@@ -205,8 +205,16 @@
     const opts = { ...(options || {}), headers: { ...((options && options.headers) || {}), Authorization: `Bearer ${accessToken}` } };
     const response = await fetch(url, opts);
     if (!response.ok) {
+      let payload = null;
+      try { payload = await response.json(); } catch (_) { /* Some proxy errors have no JSON body. */ }
+      const apiError = payload && payload.error;
+      const legacyDetails = apiError && Array.isArray(apiError.errors) ? apiError.errors : [];
+      const rpcDetails = apiError && Array.isArray(apiError.details) ? apiError.details : [];
+      const errorInfo = rpcDetails.find((detail) => detail && typeof detail.reason === "string");
       const error = new Error(`Drive API ${response.status}`);
       error.status = response.status;
+      error.reason = (legacyDetails[0] && legacyDetails[0].reason) || (errorInfo && errorInfo.reason);
+      error.apiMessage = apiError && apiError.message;
       throw error;
     }
     return response;
@@ -226,22 +234,32 @@
       spaces: "appDataFolder",
       q: `name='${FILE_NAME}' and trashed=false`,
       orderBy: "createdTime asc",
-      fields: "files(id,name,createdTime,modifiedTime)",
+      fields: "files(id,name,createdTime,modifiedTime,version)",
       pageSize: "10",
     });
     const list = await driveFetch(`https://www.googleapis.com/drive/v3/files?${query}`);
     const body = await list.json();
     const file = body.files && body.files[0];
-    if (!file) return { fileId: null, etag: null, values: {} };
+    if (!file) return { fileId: null, version: null, values: {} };
     const download = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(file.id)}?alt=media`);
-    const etag = download.headers.get("etag");
     const document = Core.normalizeDocument(await download.json());
-    return { fileId: file.id, etag, values: document.values };
+    return { fileId: file.id, version: String(file.version || ""), values: document.values };
   }
 
-  async function saveRemote(fileId, values, etag) {
+  async function assertRemoteVersion(fileId, expectedVersion) {
+    const response = await driveFetch(`https://www.googleapis.com/drive/v3/files/${encodeURIComponent(fileId)}?fields=version,trashed`);
+    const metadata = await response.json();
+    if (metadata.trashed || !expectedVersion || String(metadata.version || "") !== expectedVersion) {
+      const error = new Error("Drive file changed before upload");
+      error.status = 412;
+      error.reason = "remoteChanged";
+      error.apiMessage = "Drive file changed before upload.";
+      throw error;
+    }
+  }
+
+  async function saveRemote(fileId, values, version) {
     let id = fileId;
-    let revision = etag;
     if (!id) {
       const create = await driveFetch("https://www.googleapis.com/drive/v3/files?fields=id", {
         method: "POST",
@@ -249,18 +267,18 @@
         body: JSON.stringify({ name: FILE_NAME, parents: ["appDataFolder"], mimeType: "application/json" }),
       });
       id = (await create.json()).id;
-      revision = null;
-    } else if (!revision) {
-      throw new Error("Drive revision unavailable; refusing an unconditional overwrite");
+    } else {
+      // Drive v3 exposes `version` in JSON, while ETag is not reliably readable by browser CORS.
+      // Re-check immediately before upload rather than silently overwriting a newer remote value.
+      await assertRemoteVersion(id, version);
     }
-    const headers = { "Content-Type": "application/json" };
-    if (revision) headers["If-Match"] = revision;
-    const upload = await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(id)}?uploadType=media`, {
+    const upload = await driveFetch(`https://www.googleapis.com/upload/drive/v3/files/${encodeURIComponent(id)}?uploadType=media&fields=id,version`, {
       method: "PATCH",
-      headers,
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(Core.makeDocument(values)),
     });
-    return { fileId: id, etag: upload.headers.get("etag") };
+    const metadata = await upload.json();
+    return { fileId: id, version: String(metadata.version || "") };
   }
 
   async function synchronize(fromWrite) {
@@ -282,19 +300,19 @@
         const result = Core.reconcile(collectLocal(), remote.values, readObject(baseKey));
         if (result.changedLocal) applyLocal(result.local);
         let fileId = remote.fileId;
-        let etag = remote.etag;
+        let version = remote.version;
         if (result.changedRemote) {
           try {
-            const saved = await saveRemote(fileId, result.remote, etag);
+            const saved = await saveRemote(fileId, result.remote, version);
             fileId = saved.fileId;
-            etag = saved.etag;
+            version = saved.version;
           } catch (error) {
             if (error.status === 412 && attempt < 2) continue;
             throw error;
           }
         }
         internalSet(baseKey, JSON.stringify(result.base));
-        pendingConflict = result.conflicts.length ? { result, fileId, etag, baseKey } : null;
+        pendingConflict = result.conflicts.length ? { result, fileId, version, baseKey } : null;
         showConflict(result.conflicts);
         if (result.conflicts.length) {
           setStatus("충돌 확인 필요 · 데이터는 덮어쓰지 않았어요", "warn");
@@ -306,8 +324,8 @@
         completed = true;
       }
       if (!completed) throw new Error("Drive changed repeatedly during sync");
-    } catch (_) {
-      setStatus("Drive 오류 · 이 브라우저 저장은 유지돼요", "warn");
+    } catch (error) {
+      setStatus(Core.describeDriveError(error), "warn");
     } finally {
       syncing = false;
     }
@@ -350,7 +368,7 @@
           if (conflict.hasLocal) result.remote[conflict.key] = conflict.local;
           else delete result.remote[conflict.key];
         }
-        await saveRemote(pendingConflict.fileId, result.remote, pendingConflict.etag);
+        await saveRemote(pendingConflict.fileId, result.remote, pendingConflict.version);
         internalSet(pendingConflict.baseKey, JSON.stringify(collectLocal()));
         showConflict([]);
         pendingConflict = null;
@@ -368,7 +386,7 @@
         setTimeout(() => location.reload(), 180);
       }
     } catch (error) {
-      setStatus("충돌 처리를 완료하지 못했어요 · 양쪽 데이터 유지", "warn");
+      setStatus(`${Core.describeDriveError(error)} · 양쪽 데이터 유지`, "warn");
       if (error.status === 412) setTimeout(() => synchronize(false), 250);
     } finally {
       syncing = false;

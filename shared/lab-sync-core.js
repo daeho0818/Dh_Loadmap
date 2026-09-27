@@ -67,6 +67,41 @@
     return hasA === hasB && (!hasA || a === b);
   }
 
+  function sanitizeApiText(value) {
+    if (typeof value !== "string") return "";
+    return value
+      .replace(/[\u0000-\u001f\u007f]+/g, " ")
+      .replace(/https?:\/\/\S+/gi, "[링크]")
+      .replace(/[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}/g, "[계정]")
+      .replace(/\b(?:Bearer\s+)?[A-Za-z0-9_./+=-]{24,}\b/gi, "[숨김]")
+      .replace(/\b\d{8,}\b/g, "[숨김]")
+      .replace(/\s+/g, " ")
+      .trim()
+      .slice(0, 160);
+  }
+
+  function describeDriveError(error) {
+    const status = Number(error && error.status);
+    const statusText = Number.isInteger(status) && status > 0 ? String(status) : "네트워크";
+    const reason = typeof (error && error.reason) === "string" && /^[A-Za-z0-9_.-]{1,64}$/.test(error.reason)
+      ? error.reason
+      : "";
+    const apiMessage = sanitizeApiText(error && error.apiMessage);
+    let guidance = "잠시 뒤 다시 시도해 주세요";
+    if (status === 401) guidance = "Google 계정을 다시 연결해 주세요";
+    else if (status === 403 && /(?:access_?not_?configured|api_?disabled|service_?disabled)/i.test(reason)) guidance = "Google Cloud에서 Drive API 사용 설정을 확인해 주세요";
+    else if (status === 403 && /(?:insufficient_?permissions|access_token_scope_insufficient|forbidden)/i.test(reason)) guidance = "Drive appdata 권한과 테스트 사용자를 확인해 주세요";
+    else if (status === 403) guidance = "Drive API 권한·사용 설정·할당량을 확인해 주세요";
+    else if (status === 404) guidance = "원격 파일을 찾지 못했어요. 다시 동기화해 주세요";
+    else if (status === 412) guidance = "원격 변경을 감지했어요. 다시 동기화해 주세요";
+    else if (status === 429) guidance = "요청이 많아요. 잠시 뒤 다시 시도해 주세요";
+    else if (status >= 500) guidance = "Google Drive가 일시적으로 응답하지 않아요";
+    else if (!Number.isInteger(status) || status <= 0) guidance = "네트워크 연결이나 브라우저 차단 설정을 확인해 주세요";
+
+    const detail = [reason, apiMessage].filter(Boolean).join(" · ");
+    return `Drive 오류 (${statusText}${detail ? ` · ${detail}` : ""}) · ${guidance} · 이 브라우저 저장은 유지돼요`;
+  }
+
   /* Three-way merge: one-sided edits win, divergent edits become conflicts. */
   function reconcile(localInput, remoteInput, baseInput) {
     const local = cleanValues(localInput);
@@ -132,5 +167,5 @@
     };
   }
 
-  return { DOCUMENT_VERSION, INTERNAL_PREFIX, isManagedKey, cleanValues, normalizeDocument, makeDocument, reconcile };
+  return { DOCUMENT_VERSION, INTERNAL_PREFIX, isManagedKey, cleanValues, normalizeDocument, makeDocument, reconcile, sanitizeApiText, describeDriveError };
 });
