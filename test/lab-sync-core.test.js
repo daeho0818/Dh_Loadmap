@@ -102,6 +102,14 @@ test("Drive writes use the v3 JSON version because browser CORS may hide ETag", 
   assert.doesNotMatch(source, /headers\.get\(["']etag["']\)/i);
 });
 
+test("OAuth access token is reused during same-tab page navigation", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "shared", "lab-drive-sync.js"), "utf8");
+  assert.match(source, /sessionStorage\.setItem\(SESSION_TOKEN_KEY/);
+  assert.match(source, /const cached = readSessionToken\(\)/);
+  assert.match(source, /accessToken = cached\.accessToken/);
+  assert.match(source, /clearSessionToken\(\)/);
+});
+
 test("every page loads the shared sync scripts in dependency order", () => {
   const root = path.join(__dirname, "..");
   const pages = [path.join(root, "site/templates/index.html")];

@@ -12,6 +12,7 @@
   const LAST_ACCOUNT_KEY = Core.INTERNAL_PREFIX + "last-account";
   const ENABLED_KEY = Core.INTERNAL_PREFIX + "enabled";
   const BACKUP_PREFIX = Core.INTERNAL_PREFIX + "backup.";
+  const SESSION_TOKEN_KEY = Core.INTERNAL_PREFIX + "oauth-token.v1";
   const nativeSet = Storage.prototype.setItem;
   const nativeRemove = Storage.prototype.removeItem;
 
@@ -32,6 +33,27 @@
   }
   function internalRemove(key) {
     try { nativeRemove.call(localStorage, key); } catch (_) { /* ignore */ }
+  }
+  function readSessionToken() {
+    try {
+      const cached = JSON.parse(sessionStorage.getItem(SESSION_TOKEN_KEY) || "null");
+      if (cached && typeof cached.accessToken === "string" && cached.accessToken && Number(cached.expiresAt) > Date.now() + 120000) {
+        return cached;
+      }
+      sessionStorage.removeItem(SESSION_TOKEN_KEY);
+    } catch (_) { /* A fresh token can still be requested. */ }
+    return null;
+  }
+  function cacheSessionToken(token, expiresAt) {
+    try { sessionStorage.setItem(SESSION_TOKEN_KEY, JSON.stringify({ accessToken: token, expiresAt })); } catch (_) { /* Memory-only token still works. */ }
+  }
+  function clearSessionToken() {
+    try { sessionStorage.removeItem(SESSION_TOKEN_KEY); } catch (_) { /* ignore */ }
+  }
+  function scheduleTokenRefresh(expiresAt) {
+    clearTimeout(refreshTimer);
+    const delay = Math.max(30000, Number(expiresAt) - Date.now() - 90000);
+    refreshTimer = setTimeout(() => requestToken(false), delay);
   }
   function readObject(key) {
     try {
@@ -167,7 +189,17 @@
           setConnected(false);
         },
       });
-      if (internalGet(ENABLED_KEY) === "1") requestToken(false);
+      if (internalGet(ENABLED_KEY) === "1") {
+        const cached = readSessionToken();
+        if (cached) {
+          accessToken = cached.accessToken;
+          setConnected(true);
+          scheduleTokenRefresh(cached.expiresAt);
+          synchronize(false);
+        } else {
+          requestToken(false);
+        }
+      }
     };
     if (window.google && google.accounts && google.accounts.oauth2) return ready();
     const script = document.createElement("script");
@@ -195,9 +227,10 @@
     accessToken = response.access_token;
     internalSet(ENABLED_KEY, "1");
     setConnected(true);
-    clearTimeout(refreshTimer);
     const expiresIn = Math.max(60, Number(response.expires_in) || 3600);
-    refreshTimer = setTimeout(() => requestToken(false), Math.max(30, expiresIn - 90) * 1000);
+    const expiresAt = Date.now() + expiresIn * 1000;
+    cacheSessionToken(accessToken, expiresAt);
+    scheduleTokenRefresh(expiresAt);
     synchronize(false);
   }
 
@@ -399,6 +432,7 @@
     pendingConflict = null;
     clearTimeout(syncTimer);
     clearTimeout(refreshTimer);
+    clearSessionToken();
     internalRemove(ENABLED_KEY);
     setConnected(false);
     showConflict([]);
