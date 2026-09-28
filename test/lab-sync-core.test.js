@@ -110,31 +110,26 @@ test("OAuth access token is reused during same-tab page navigation", () => {
   assert.match(source, /clearSessionToken\(\)/);
 });
 
-test("expired OAuth tokens renew silently and retry a Drive read only once", () => {
+test("GIS popup requests are reachable only from the connect button gesture", () => {
   const source = fs.readFileSync(path.join(__dirname, "..", "shared", "lab-drive-sync.js"), "utf8");
-  assert.match(source, /prompt: interactive \? ["']select_account["'] : ["']["']/);
-  assert.match(source, /response\.status === 401 && canRenew !== false/);
-  assert.match(source, /await requestToken\(false\)/);
-  assert.match(source, /method === ["']GET["'] \|\| method === ["']HEAD["']/);
-  assert.match(source, /return driveFetch\(url, options, false\)/);
-  assert.match(source, /if \(response\.status === 401\) \{\s*invalidateAccessToken\(\);\s*setInteractiveReauth\(true\);\s*setConnected\(false\)/);
+  assert.equal((source.match(/\.requestAccessToken\(/g) || []).length, 1);
+  assert.equal((source.match(/requestTokenFromUserGesture\(/g) || []).length, 2);
+  assert.match(source, /ui\.connect\.addEventListener\(["']click["'], \(\) => \{\s*requestTokenFromUserGesture\(\)/);
+  assert.match(source, /function requestTokenFromUserGesture\(\)[\s\S]*?tokenClient\.requestAccessToken\(\{ prompt: ["']select_account["'] \}\)/);
+  assert.doesNotMatch(source, /requestAccessToken\(\{\s*prompt:\s*["']["']/);
 });
 
-test("a renewed write restarts the transaction instead of bypassing version checks", () => {
+test("startup, token expiry, and 401 paths require explicit reconnect without requesting a token", () => {
   const source = fs.readFileSync(path.join(__dirname, "..", "shared", "lab-drive-sync.js"), "utf8");
-  assert.match(source, /error\.retryAfterRenewal = true/);
-  assert.match(source, /error\.retryAfterRenewal && canRetryAfterRenewal/);
-  assert.match(source, /await synchronize\(fromWrite, false\)/);
+  assert.match(source, /function scheduleTokenExpiry\(expiresAt\)[\s\S]*?setTimeout\(requireReconnect, delay\)/);
+  assert.match(source, /if \(cached\) \{[\s\S]*?synchronize\(false\);\s*\} else \{\s*requireReconnect\(\)/);
+  assert.match(source, /if \(response\.status === 401\) requireReconnect\(\)/);
   assert.match(source, /await assertRemoteVersion\(id, version\)/);
 });
 
-test("failed silent renewal waits for an explicit reconnect in the same tab", () => {
+test("pending token requests are safely rejected on failure and disconnect", () => {
   const source = fs.readFileSync(path.join(__dirname, "..", "shared", "lab-drive-sync.js"), "utf8");
-  assert.match(source, /REAUTH_REQUIRED_KEY/);
-  assert.match(source, /if \(!request\.interactive\) setInteractiveReauth\(true\)/);
-  assert.match(source, /else if \(needsInteractiveReauth\(\)\)/);
-  assert.match(source, /ui\.connect\.addEventListener\(["']click["'], \(\) => \{\s*requestToken\(true\)/);
-  assert.match(source, /if \(!request\) return;\s*if \(!response/);
+  assert.match(source, /if \(!request\) return;\s*setConnected\(false\)/);
   assert.match(source, /if \(tokenRequest\) \{\s*const request = tokenRequest;\s*tokenRequest = null;\s*request\.reject/);
 });
 
