@@ -110,6 +110,34 @@ test("OAuth access token is reused during same-tab page navigation", () => {
   assert.match(source, /clearSessionToken\(\)/);
 });
 
+test("expired OAuth tokens renew silently and retry a Drive read only once", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "shared", "lab-drive-sync.js"), "utf8");
+  assert.match(source, /prompt: interactive \? ["']select_account["'] : ["']["']/);
+  assert.match(source, /response\.status === 401 && canRenew !== false/);
+  assert.match(source, /await requestToken\(false\)/);
+  assert.match(source, /method === ["']GET["'] \|\| method === ["']HEAD["']/);
+  assert.match(source, /return driveFetch\(url, options, false\)/);
+  assert.match(source, /if \(response\.status === 401\) \{\s*invalidateAccessToken\(\);\s*setInteractiveReauth\(true\);\s*setConnected\(false\)/);
+});
+
+test("a renewed write restarts the transaction instead of bypassing version checks", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "shared", "lab-drive-sync.js"), "utf8");
+  assert.match(source, /error\.retryAfterRenewal = true/);
+  assert.match(source, /error\.retryAfterRenewal && canRetryAfterRenewal/);
+  assert.match(source, /await synchronize\(fromWrite, false\)/);
+  assert.match(source, /await assertRemoteVersion\(id, version\)/);
+});
+
+test("failed silent renewal waits for an explicit reconnect in the same tab", () => {
+  const source = fs.readFileSync(path.join(__dirname, "..", "shared", "lab-drive-sync.js"), "utf8");
+  assert.match(source, /REAUTH_REQUIRED_KEY/);
+  assert.match(source, /if \(!request\.interactive\) setInteractiveReauth\(true\)/);
+  assert.match(source, /else if \(needsInteractiveReauth\(\)\)/);
+  assert.match(source, /ui\.connect\.addEventListener\(["']click["'], \(\) => \{\s*requestToken\(true\)/);
+  assert.match(source, /if \(!request\) return;\s*if \(!response/);
+  assert.match(source, /if \(tokenRequest\) \{\s*const request = tokenRequest;\s*tokenRequest = null;\s*request\.reject/);
+});
+
 test("every page loads the shared sync scripts in dependency order", () => {
   const root = path.join(__dirname, "..");
   const pages = [path.join(root, "site/templates/index.html")];

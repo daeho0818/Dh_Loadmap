@@ -13,6 +13,7 @@
   const ENABLED_KEY = Core.INTERNAL_PREFIX + "enabled";
   const BACKUP_PREFIX = Core.INTERNAL_PREFIX + "backup.";
   const SESSION_TOKEN_KEY = Core.INTERNAL_PREFIX + "oauth-token.v1";
+  const REAUTH_REQUIRED_KEY = Core.INTERNAL_PREFIX + "oauth-reauth-required.v1";
   const nativeSet = Storage.prototype.setItem;
   const nativeRemove = Storage.prototype.removeItem;
 
@@ -21,6 +22,7 @@
   let syncing = false;
   let syncTimer = null;
   let refreshTimer = null;
+  let tokenRequest = null;
   let pendingConflict = null;
   let ignoreStorageHooks = false;
   let ui = null;
@@ -50,10 +52,26 @@
   function clearSessionToken() {
     try { sessionStorage.removeItem(SESSION_TOKEN_KEY); } catch (_) { /* ignore */ }
   }
+  function needsInteractiveReauth() {
+    try { return sessionStorage.getItem(REAUTH_REQUIRED_KEY) === "1"; } catch (_) { return false; }
+  }
+  function setInteractiveReauth(required) {
+    try {
+      if (required) sessionStorage.setItem(REAUTH_REQUIRED_KEY, "1");
+      else sessionStorage.removeItem(REAUTH_REQUIRED_KEY);
+    } catch (_) { /* A tab-local memory fallback is unnecessary; failed renewals still stop in this page. */ }
+  }
+  function invalidateAccessToken() {
+    accessToken = null;
+    clearTimeout(refreshTimer);
+    clearSessionToken();
+  }
   function scheduleTokenRefresh(expiresAt) {
     clearTimeout(refreshTimer);
     const delay = Math.max(30000, Number(expiresAt) - Date.now() - 90000);
-    refreshTimer = setTimeout(() => requestToken(false), delay);
+    refreshTimer = setTimeout(() => {
+      requestToken(false).then(() => synchronize(false)).catch(() => {});
+    }, delay);
   }
   function readObject(key) {
     try {
@@ -147,7 +165,9 @@
       ui.panel.hidden = !ui.panel.hidden;
       ui.toggle.setAttribute("aria-expanded", String(!ui.panel.hidden));
     });
-    ui.connect.addEventListener("click", () => requestToken(true));
+    ui.connect.addEventListener("click", () => {
+      requestToken(true).then(() => synchronize(false)).catch(() => {});
+    });
     ui.sync.addEventListener("click", () => synchronize(false));
     ui.disconnect.addEventListener("click", disconnect);
     $("keepLocal").addEventListener("click", () => resolveConflicts("local"));
@@ -184,10 +204,7 @@
         client_id: CLIENT_ID,
         scope: DRIVE_SCOPE,
         callback: receiveToken,
-        error_callback: () => {
-          setStatus("Google 연결이 취소됐어요 · 로컬 저장 유지", "warn");
-          setConnected(false);
-        },
+        error_callback: failTokenRequest,
       });
       if (internalGet(ENABLED_KEY) === "1") {
         const cached = readSessionToken();
@@ -196,8 +213,11 @@
           setConnected(true);
           scheduleTokenRefresh(cached.expiresAt);
           synchronize(false);
+        } else if (needsInteractiveReauth()) {
+          setConnected(false);
+          setStatus("Google 계정을 다시 연결해 주세요 · 로컬 저장 유지", "warn");
         } else {
-          requestToken(false);
+          requestToken(false).then(() => synchronize(false)).catch(() => {});
         }
       }
     };
@@ -210,33 +230,96 @@
     document.head.appendChild(script);
   }
 
+  function authError(reason) {
+    const error = new Error("Google authorization required");
+    error.status = 401;
+    error.reason = reason || "authError";
+    return error;
+  }
+
   function requestToken(interactive) {
+    if (tokenRequest) return tokenRequest.promise;
     if (!tokenClient) {
       setStatus("Google 로그인 준비 중…", "local");
-      return;
+      return Promise.reject(authError("identityNotReady"));
     }
-    setStatus("Google 계정 연결 중…", "local");
-    tokenClient.requestAccessToken({ prompt: interactive ? "select_account" : "" });
+    if (!interactive && (internalGet(ENABLED_KEY) !== "1" || needsInteractiveReauth())) {
+      setConnected(false);
+      setStatus("Google 계정을 다시 연결해 주세요 · 로컬 저장 유지", "warn");
+      return Promise.reject(authError("interactionRequired"));
+    }
+
+    setStatus(interactive ? "Google 계정 연결 중…" : "Google 연결 갱신 중…", "local");
+    if (ui) ui.connect.disabled = true;
+    let resolveRequest;
+    let rejectRequest;
+    const promise = new Promise((resolve, reject) => {
+      resolveRequest = resolve;
+      rejectRequest = reject;
+    });
+    tokenRequest = { promise, resolve: resolveRequest, reject: rejectRequest, interactive };
+    try {
+      // Empty prompt is only used after this browser has explicitly enabled Drive sync.
+      // It can renew a previously granted token without asking again, but cannot bypass
+      // revoked consent, a signed-out Google session, or browser popup restrictions.
+      tokenClient.requestAccessToken({ prompt: interactive ? "select_account" : "" });
+    } catch (error) {
+      failTokenRequest(error);
+    }
+    return promise;
+  }
+
+  function failTokenRequest(error) {
+    const request = tokenRequest;
+    tokenRequest = null;
+    invalidateAccessToken();
+    if (ui) ui.connect.disabled = false;
+    if (!request) return;
+    setConnected(false);
+    if (!request.interactive) setInteractiveReauth(true);
+    setStatus(request.interactive ? "Google 연결이 취소됐어요 · 로컬 저장 유지" : "Google 계정을 다시 연결해 주세요 · 로컬 저장 유지", "warn");
+    request.reject(authError(error && (error.type || error.error)));
   }
 
   function receiveToken(response) {
+    const request = tokenRequest;
+    if (!request) return;
     if (!response || response.error || !response.access_token) {
-      setStatus("Google 연결에 실패했어요 · 로컬 저장 유지", "warn");
+      failTokenRequest(response);
       return;
     }
+    tokenRequest = null;
     accessToken = response.access_token;
     internalSet(ENABLED_KEY, "1");
+    setInteractiveReauth(false);
     setConnected(true);
+    if (ui) ui.connect.disabled = false;
     const expiresIn = Math.max(60, Number(response.expires_in) || 3600);
     const expiresAt = Date.now() + expiresIn * 1000;
     cacheSessionToken(accessToken, expiresAt);
     scheduleTokenRefresh(expiresAt);
-    synchronize(false);
+    if (request) request.resolve(accessToken);
   }
 
-  async function driveFetch(url, options) {
+  async function driveFetch(url, options, canRenew) {
     const opts = { ...(options || {}), headers: { ...((options && options.headers) || {}), Authorization: `Bearer ${accessToken}` } };
     const response = await fetch(url, opts);
+    if (response.status === 401 && canRenew !== false) {
+      invalidateAccessToken();
+      await requestToken(false);
+      const method = String(opts.method || "GET").toUpperCase();
+      if (method === "GET" || method === "HEAD") return driveFetch(url, options, false);
+      // Replaying a write here would skip saveRemote's version check. Ask the caller
+      // to restart the complete sync transaction with the renewed token instead.
+      const error = authError("retryTransaction");
+      error.retryAfterRenewal = true;
+      throw error;
+    }
+    if (response.status === 401) {
+      invalidateAccessToken();
+      setInteractiveReauth(true);
+      setConnected(false);
+    }
     if (!response.ok) {
       let payload = null;
       try { payload = await response.json(); } catch (_) { /* Some proxy errors have no JSON body. */ }
@@ -314,7 +397,7 @@
     return { fileId: id, version: String(metadata.version || "") };
   }
 
-  async function synchronize(fromWrite) {
+  async function synchronize(fromWrite, canRetryAfterRenewal = true) {
     if (!accessToken || syncing) return;
     syncing = true;
     setStatus("Drive와 동기화 중…", "local");
@@ -358,6 +441,13 @@
       }
       if (!completed) throw new Error("Drive changed repeatedly during sync");
     } catch (error) {
+      if (error.retryAfterRenewal && canRetryAfterRenewal) {
+        // Release the transaction lock before restarting so all remote reads and
+        // version checks run again with the renewed token.
+        syncing = false;
+        await synchronize(fromWrite, false);
+        return;
+      }
       setStatus(Core.describeDriveError(error), "warn");
     } finally {
       syncing = false;
@@ -420,7 +510,7 @@
       }
     } catch (error) {
       setStatus(`${Core.describeDriveError(error)} · 양쪽 데이터 유지`, "warn");
-      if (error.status === 412) setTimeout(() => synchronize(false), 250);
+      if (error.status === 412 || error.retryAfterRenewal) setTimeout(() => synchronize(false), 250);
     } finally {
       syncing = false;
     }
@@ -430,9 +520,16 @@
     const oldToken = accessToken;
     accessToken = null;
     pendingConflict = null;
+    if (tokenRequest) {
+      const request = tokenRequest;
+      tokenRequest = null;
+      request.reject(authError("disconnected"));
+    }
+    if (ui) ui.connect.disabled = false;
     clearTimeout(syncTimer);
     clearTimeout(refreshTimer);
     clearSessionToken();
+    setInteractiveReauth(false);
     internalRemove(ENABLED_KEY);
     setConnected(false);
     showConflict([]);
