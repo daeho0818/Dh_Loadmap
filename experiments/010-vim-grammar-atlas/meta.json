@@ -1,0 +1,9 @@
+{
+  "id": 10,
+  "slug": "vim-grammar-atlas",
+  "title": "Vim 문법 지도 · Vim Grammar Atlas",
+  "date": "2026-10-02",
+  "week": "2026-W40",
+  "tags": ["study", "vim", "editor", "roadmap"],
+  "oneliner": "키 암기를 넘어 Vim의 편집 언어·상태·시간·확장 구조를 operator-motion 문법으로 탐색하는 13개 기반 지식 지도 · a conceptual atlas of Vim's composable editing language"
+}

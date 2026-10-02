@@ -9,6 +9,7 @@ const K = "lab.evidence.v1";
 test("only known experiment key families are managed", () => {
   assert.equal(Core.isManagedKey("lab.evidence.v1"), true);
   assert.equal(Core.isManagedKey("lab009-sleep-observatory"), true);
+  assert.equal(Core.isManagedKey("lab.vim010.v1"), true);
   assert.equal(Core.isManagedKey("ptq.settings"), true);
   assert.equal(Core.isManagedKey("ptq.best.rush1.12.30"), true);
   assert.equal(Core.isManagedKey("lab.drive-sync.base.v1"), false);
@@ -131,6 +132,21 @@ test("pending token requests are safely rejected on failure and disconnect", () 
   const source = fs.readFileSync(path.join(__dirname, "..", "shared", "lab-drive-sync.js"), "utf8");
   assert.match(source, /if \(!request\) return;\s*setConnected\(false\)/);
   assert.match(source, /if \(tokenRequest\) \{\s*const request = tokenRequest;\s*tokenRequest = null;\s*request\.reject/);
+});
+
+test("Vim grammar atlas exposes its conceptual structure and managed progress key", () => {
+  const root = path.join(__dirname, "..");
+  const html = fs.readFileSync(path.join(root, "experiments", "010-vim-grammar-atlas", "index.html"), "utf8");
+  const meta = JSON.parse(fs.readFileSync(path.join(root, "experiments", "010-vim-grammar-atlas", "meta.json"), "utf8"));
+  assert.equal(meta.id, 10);
+  assert.equal(meta.slug, "vim-grammar-atlas");
+  assert.match(html, /const STORE_KEY='lab\.vim010\.v1'/);
+  assert.match(html, /const CHAPTERS=\[/);
+  assert.match(html, /operator-pending/);
+  assert.match(html, /Undo Tree/);
+  assert.match(html, /Terminal · Job · Channel · LSP/);
+  assert.match(html, /성능·진단·설정 디버깅/);
+  assert.equal((html.match(/token:'/g) || []).length, 13);
 });
 
 test("every page loads the shared sync scripts in dependency order", () => {
