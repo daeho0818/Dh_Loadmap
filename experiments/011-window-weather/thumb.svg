@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 360">
+ <defs><linearGradient id="sky" x2="0" y2="1"><stop stop-color="#7a939c"/><stop offset="1" stop-color="#c0c9be"/></linearGradient><linearGradient id="lake" x2="0" y2="1"><stop stop-color="#9bad9f"/><stop offset="1" stop-color="#748971"/></linearGradient></defs>
+ <path fill="#716e58" d="M0 0h640v360H0z"/><path fill="url(#sky)" d="M98 20h444v259H98z"/>
+ <path fill="#a4b2ab" d="m98 153 75-62 63 56 72-87 88 105 75-78 71 70v122H98z"/><path fill="#7b9185" d="m98 174 85-40 67 52 114-63 98 56 80-36v136H98z"/><path fill="url(#lake)" d="M98 204h444v75H98z"/>
+ <path fill="#587451" d="m98 205 90-30 99 80-43 24H98zm444-22-78 25-67 71h145z"/>
+ <g fill="#415f4d"><path d="m134 135-27 60h54zm35 14-27 60h54zm-51 37-30 61h60zm87-11-20 51h40z"/></g>
+ <path fill="#c5b18c" d="M381 196h81v52h-81z"/><path fill="#8c6b52" d="m374 198 48-38 48 38z"/><g fill="#e5c58a"><path d="M391 208h14v17h-14zm46 0h14v17h-14z"/></g>
+ <g fill="none" stroke="#dee9dc" stroke-opacity=".5"><path d="m121 57-3 11m83 25-3 12m85-45-3 12m67 39-3 12m110-62-3 12m43 93-3 12m-156 7-3 12m-115 56-3 12m-92-43-3 12m185 41-3 12m152 3-3 12"/></g>
+ <g fill="#7a6348" stroke="#b8a27a" stroke-width="2"><path d="M89 13h12v276H89zm450 0h12v276h-12zM93 13h454v10H93zM246 23h7v259h-7zm151 0h7v259h-7zM99 103h440v7H99z"/><path d="M82 282h476v17H82z"/></g>
+ <path fill="#dac58e" d="m27 164 46 0 22 60H4z"/><path stroke="#536047" stroke-width="5" d="M50 224v103"/><ellipse fill="#647058" cx="50" cy="328" rx="25" ry="5"/>
+ <path fill="#a78164" d="M135 273h54v10h-54z"/><path fill="#92a087" d="M142 263h52v9h-52z"/><path fill="#ccd2ae" d="M210 268h24v16h-24z"/>
+ <g fill="none" stroke="#d8dfc7" stroke-opacity=".5"><path d="M218 262q-9-7 0-14t0-13m8 25q9-7 0-14"/></g>
+ <ellipse fill="#bba078" cx="483" cy="278" rx="35" ry="13"/><ellipse fill="#cdb58c" cx="459" cy="278" rx="15" ry="10"/><path fill="#cdb58c" d="m447 275 2-13 10 11m2-1 13-9-2 13"/>
+ <path fill="#213329" opacity=".6" d="M0 307h640v53H0z"/><text x="24" y="340" fill="#e7e8cc" font-size="15" font-family="system-ui,sans-serif" letter-spacing="3">A LITTLE WINDOW</text><text x="574" y="340" fill="#d6dfc2" font-size="12" font-family="monospace">011</text>
+</svg>

@@ -20,6 +20,7 @@
     "lab.dailyloop.v1",
     "lab009-sleep-observatory",
     "lab.vim010.v1",
+    "lab.window011.v1",
   ]);
 
   function isManagedKey(key) {

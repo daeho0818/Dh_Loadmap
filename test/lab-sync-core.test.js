@@ -10,6 +10,7 @@ test("only known experiment key families are managed", () => {
   assert.equal(Core.isManagedKey("lab.evidence.v1"), true);
   assert.equal(Core.isManagedKey("lab009-sleep-observatory"), true);
   assert.equal(Core.isManagedKey("lab.vim010.v1"), true);
+  assert.equal(Core.isManagedKey("lab.window011.v1"), true);
   assert.equal(Core.isManagedKey("ptq.settings"), true);
   assert.equal(Core.isManagedKey("ptq.best.rush1.12.30"), true);
   assert.equal(Core.isManagedKey("lab.drive-sync.base.v1"), false);
